@@ -1,0 +1,93 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import type { IdeaStatus } from "@/types";
+
+export async function createIdea(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const title = formData.get("title") as string;
+  const description = formData.get("description") as string;
+  const tagsRaw = formData.get("tags") as string;
+  const githubUrl = (formData.get("github_url") as string) || null;
+
+  const tags = tagsRaw
+    ? tagsRaw
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean)
+    : [];
+
+  const { data, error } = await supabase
+    .from("ideas")
+    .insert({
+      title,
+      description,
+      author_id: user.id,
+      tags,
+      github_url: githubUrl,
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  redirect(`/ideas/${data.id}`);
+}
+
+export async function updateIdeaStatus(ideaId: string, status: IdeaStatus) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not authenticated");
+  }
+
+  const { error } = await supabase
+    .from("ideas")
+    .update({ status })
+    .eq("id", ideaId)
+    .eq("author_id", user.id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`/ideas/${ideaId}`);
+}
+
+export async function deleteIdea(ideaId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not authenticated");
+  }
+
+  const { error } = await supabase
+    .from("ideas")
+    .delete()
+    .eq("id", ideaId)
+    .eq("author_id", user.id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  redirect("/feed");
+}

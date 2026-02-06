@@ -1,0 +1,42 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createClient } from "@/lib/supabase/server";
+
+export async function toggleVote(ideaId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not authenticated");
+  }
+
+  // Check if user already voted
+  const { data: existingVote } = await supabase
+    .from("votes")
+    .select()
+    .eq("idea_id", ideaId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existingVote) {
+    // Remove vote
+    await supabase
+      .from("votes")
+      .delete()
+      .eq("idea_id", ideaId)
+      .eq("user_id", user.id);
+  } else {
+    // Add vote
+    await supabase.from("votes").insert({
+      idea_id: ideaId,
+      user_id: user.id,
+      type: "upvote",
+    });
+  }
+
+  revalidatePath(`/ideas/${ideaId}`);
+  revalidatePath("/feed");
+}
