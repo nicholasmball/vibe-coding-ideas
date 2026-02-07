@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -17,12 +18,14 @@ export function EmailAuthForm({ mode }: EmailAuthFormProps) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [existingAccount, setExistingAccount] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccess(null);
+    setExistingAccount(false);
     setLoading(true);
 
     const supabase = createClient();
@@ -39,7 +42,7 @@ export function EmailAuthForm({ mode }: EmailAuthFormProps) {
         router.push("/feed");
       }
     } else {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -48,6 +51,9 @@ export function EmailAuthForm({ mode }: EmailAuthFormProps) {
       });
       if (error) {
         setError(error.message);
+        setLoading(false);
+      } else if (data.user?.identities?.length === 0) {
+        setExistingAccount(true);
         setLoading(false);
       } else {
         setSuccess("Check your email to confirm your account.");
@@ -85,6 +91,19 @@ export function EmailAuthForm({ mode }: EmailAuthFormProps) {
       </div>
       {error && (
         <p className="text-sm text-destructive">{error}</p>
+      )}
+      {existingAccount && (
+        <p className="text-sm text-destructive">
+          An account with this email already exists. Try{" "}
+          <Link href="/login" className="font-medium underline hover:text-destructive/80">
+            signing in
+          </Link>{" "}
+          or{" "}
+          <Link href="/forgot-password" className="font-medium underline hover:text-destructive/80">
+            resetting your password
+          </Link>
+          .
+        </p>
       )}
       {success && (
         <p className="text-sm text-green-600 dark:text-green-400">{success}</p>
