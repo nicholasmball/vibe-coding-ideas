@@ -41,14 +41,15 @@ src/
 │   ├── comments.ts         # create, incorporate, delete
 │   ├── collaborators.ts    # toggleCollaborator
 │   ├── notifications.ts    # markRead, markAllRead
-│   └── profile.ts          # updateProfile
+│   ├── profile.ts          # updateProfile
+│   └── users.ts            # deleteUser (admin only)
 ├── components/
 │   ├── ui/                 # shadcn/ui (don't edit manually)
 │   ├── layout/             # navbar, theme-toggle, notification-bell
 │   ├── auth/               # oauth-buttons
 │   ├── ideas/              # card, feed, form, edit-form, vote-button, etc.
 │   ├── comments/           # thread, item, form, type-badge
-│   └── profile/            # header, tabs
+│   └── profile/            # header, tabs, delete-user-button
 ├── hooks/
 │   ├── use-user.ts         # Client-side auth state
 │   └── use-realtime.ts     # Supabase realtime subscription
@@ -63,7 +64,7 @@ src/
 │   ├── database.ts         # Supabase Database type (manual, includes Relationships)
 │   └── index.ts            # Derived types (IdeaWithAuthor, CommentWithAuthor, etc.)
 middleware.ts               # Root middleware (calls updateSession)
-supabase/migrations/        # 9 SQL migration files (run in order)
+supabase/migrations/        # 11 SQL migration files (run in order)
 ```
 
 ## Key Patterns
@@ -94,7 +95,9 @@ supabase/migrations/        # 9 SQL migration files (run in order)
 - Users auto-created from auth.users via trigger
 - Notifications auto-created via triggers on comments/votes/collaborators
 - RLS: public read, authenticated write, owner-only update/delete
-- Admin role: `users.is_admin` — admins can delete any idea
+- Admin role: `users.is_admin` — admins can delete any idea or non-admin user
+- `admin_delete_user` RPC (security definer) deletes from auth.users, cascading all data
+- `notifications.idea_id` is nullable (ON DELETE SET NULL) so notifications persist after user deletion
 
 ## Environment Variables
 
