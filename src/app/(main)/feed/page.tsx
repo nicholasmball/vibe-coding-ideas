@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { IdeaFeed } from "@/components/ideas/idea-feed";
+import { CompleteProfileBanner } from "@/components/profile/complete-profile-banner";
 import type { SortOption, IdeaWithAuthor } from "@/types";
 import type { Metadata } from "next";
 
@@ -62,14 +63,22 @@ export default async function FeedPage({
   const { data: ideas, count } = await query;
   const totalPages = Math.ceil((count ?? 0) / PAGE_SIZE);
 
-  // Get user votes
+  // Get user votes and profile completeness
   let userVotes: string[] = [];
+  let showProfileBanner = false;
   if (user) {
     const { data: votes } = await supabase
       .from("votes")
       .select("idea_id")
       .eq("user_id", user.id);
     userVotes = votes?.map((v) => v.idea_id) ?? [];
+
+    const { data: profile } = await supabase
+      .from("users")
+      .select("full_name, bio, contact_info")
+      .eq("id", user.id)
+      .single();
+    showProfileBanner = !profile?.full_name || !profile?.bio || !profile?.contact_info;
   }
 
   // Get all unique tags for the filter
@@ -80,6 +89,9 @@ export default async function FeedPage({
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
+      {showProfileBanner && user && (
+        <CompleteProfileBanner userId={user.id} />
+      )}
       <IdeaFeed
         ideas={(ideas as unknown as IdeaWithAuthor[]) ?? []}
         userVotes={userVotes}

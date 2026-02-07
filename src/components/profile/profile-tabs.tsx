@@ -4,6 +4,7 @@ import { IdeaCard } from "@/components/ideas/idea-card";
 import type { IdeaWithAuthor, CommentWithAuthor } from "@/types";
 import { formatRelativeTime } from "@/lib/utils";
 import { CommentTypeBadge } from "@/components/comments/comment-type-badge";
+import { Markdown } from "@/components/ui/markdown";
 
 interface ProfileTabsProps {
   ideas: IdeaWithAuthor[];
@@ -86,7 +87,9 @@ export function ProfileTabs({
                     {comment.idea_title ?? "Idea"}
                   </Link>
                 </div>
-                <p className="text-sm">{comment.content}</p>
+                <div className="text-sm">
+                  <Markdown>{comment.content}</Markdown>
+                </div>
               </div>
             ))}
           </div>

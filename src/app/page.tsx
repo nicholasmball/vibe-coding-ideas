@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Sparkles, Users, MessageSquare, Lightbulb, ArrowRight, Zap } from "lucide-react";
+import { Sparkles, Users, MessageSquare, Lightbulb, ArrowRight, Zap, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/layout/navbar";
+import { createClient } from "@/lib/supabase/server";
 
 const features = [
   {
@@ -30,7 +31,16 @@ const features = [
   },
 ];
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const supabase = await createClient();
+
+  const [{ count: ideaCount }, { count: userCount }, { count: collabCount }] =
+    await Promise.all([
+      supabase.from("ideas").select("*", { count: "exact", head: true }),
+      supabase.from("users").select("*", { count: "exact", head: true }),
+      supabase.from("collaborators").select("*", { count: "exact", head: true }),
+    ]);
+
   return (
     <div className="min-h-screen">
       <Navbar />
@@ -75,6 +85,37 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
+
+      {/* Stats Section */}
+      {(ideaCount ?? 0) > 0 && (
+        <section className="border-t border-border py-12">
+          <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-3 gap-8 text-center">
+              <div>
+                <div className="flex items-center justify-center gap-1.5 text-primary">
+                  <Lightbulb className="h-5 w-5" />
+                  <span className="text-3xl font-bold">{ideaCount ?? 0}</span>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">Ideas Shared</p>
+              </div>
+              <div>
+                <div className="flex items-center justify-center gap-1.5 text-primary">
+                  <Users className="h-5 w-5" />
+                  <span className="text-3xl font-bold">{userCount ?? 0}</span>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">Developers</p>
+              </div>
+              <div>
+                <div className="flex items-center justify-center gap-1.5 text-primary">
+                  <ChevronUp className="h-5 w-5" />
+                  <span className="text-3xl font-bold">{collabCount ?? 0}</span>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">Collaborations</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Features Section */}
       <section className="border-t border-border bg-muted/30 py-24">

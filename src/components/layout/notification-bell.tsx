@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { Bell, MessageSquare, ChevronUp, Users, Check, Trash2 } from "lucide-react";
+import { Bell, MessageSquare, ChevronUp, Users, Check, Trash2, ArrowRightLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -65,6 +65,7 @@ export function NotificationBell() {
     vote: ChevronUp,
     collaborator: Users,
     user_deleted: Trash2,
+    status_change: ArrowRightLeft,
   };
 
   const messageMap = {
@@ -72,6 +73,7 @@ export function NotificationBell() {
     vote: "voted on",
     collaborator: "wants to build",
     user_deleted: "removed an idea you were collaborating on",
+    status_change: "updated the status of",
   };
 
   return (

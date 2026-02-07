@@ -13,6 +13,7 @@
 - **Backend**: Supabase (Auth, Postgres, Realtime, RLS)
 - **Auth**: OAuth (GitHub + Google) + email/password via Supabase Auth
 - **Theming**: next-themes (dark default)
+- **Markdown**: react-markdown + remark-gfm (idea descriptions, comments)
 - **Notifications**: sonner (toasts)
 
 ## Project Structure
@@ -21,7 +22,7 @@
 src/
 ├── app/                    # Next.js App Router
 │   ├── layout.tsx          # Root layout (ThemeProvider, Toaster)
-│   ├── page.tsx            # Landing page (public)
+│   ├── page.tsx            # Landing page (public, live stats)
 │   ├── (auth)/             # Auth routes (no navbar)
 │   │   ├── login/
 │   │   ├── signup/
@@ -40,16 +41,16 @@ src/
 │   ├── votes.ts            # toggleVote
 │   ├── comments.ts         # create, incorporate, delete
 │   ├── collaborators.ts    # toggleCollaborator
-│   ├── notifications.ts    # markRead, markAllRead
+│   ├── notifications.ts    # markRead, markAllRead, updateNotificationPreferences
 │   ├── profile.ts          # updateProfile
 │   └── users.ts            # deleteUser (admin only)
 ├── components/
-│   ├── ui/                 # shadcn/ui (don't edit manually)
+│   ├── ui/                 # shadcn/ui (don't edit manually, except markdown.tsx)
 │   ├── layout/             # navbar, theme-toggle, notification-bell
 │   ├── auth/               # oauth-buttons
 │   ├── ideas/              # card, feed, form, edit-form, vote-button, etc.
 │   ├── comments/           # thread, item, form, type-badge
-│   └── profile/            # header, tabs, delete-user-button
+│   └── profile/            # header, tabs, delete-user-button, edit-profile-dialog, notification-settings, complete-profile-banner
 ├── hooks/
 │   ├── use-user.ts         # Client-side auth state
 │   └── use-realtime.ts     # Supabase realtime subscription
@@ -64,7 +65,7 @@ src/
 │   ├── database.ts         # Supabase Database type (manual, includes Relationships)
 │   └── index.ts            # Derived types (IdeaWithAuthor, CommentWithAuthor, etc.)
 middleware.ts               # Root middleware (calls updateSession)
-supabase/migrations/        # 12 SQL migration files (run in order)
+supabase/migrations/        # 15 SQL migration files (run in order)
 ```
 
 ## Key Patterns
@@ -93,7 +94,9 @@ supabase/migrations/        # 12 SQL migration files (run in order)
 - 6 tables: users, ideas, comments, collaborators, votes, notifications
 - Denormalized counts on ideas (upvotes, comment_count, collaborator_count) maintained by triggers
 - Users auto-created from auth.users via trigger
-- Notifications auto-created via triggers on comments/votes/collaborators
+- Notifications auto-created via triggers on comments/votes/collaborators (respect user preferences)
+- `notification_preferences` JSONB on users controls which notification types are received
+- Status change notifications sent to collaborators when idea status updates
 - RLS: public read, authenticated write, owner-only update/delete
 - Admin role: `users.is_admin` — admins can delete any idea or non-admin user
 - `admin_delete_user` RPC (security definer) deletes from auth.users, cascading all data

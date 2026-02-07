@@ -4,6 +4,7 @@ import { ProfileHeader } from "@/components/profile/profile-header";
 import { ProfileTabs } from "@/components/profile/profile-tabs";
 import { DeleteUserButton } from "@/components/profile/delete-user-button";
 import { EditProfileDialog } from "@/components/profile/edit-profile-dialog";
+import { NotificationSettings } from "@/components/profile/notification-settings";
 import type { IdeaWithAuthor } from "@/types";
 import type { Metadata } from "next";
 
@@ -128,7 +129,10 @@ export default async function ProfilePage({ params }: PageProps) {
       {(currentUser?.id === id || showDeleteButton) && (
         <div className="mt-4 flex justify-end gap-2">
           {currentUser?.id === id && (
-            <EditProfileDialog user={profileUser} />
+            <>
+              <NotificationSettings preferences={profileUser.notification_preferences} />
+              <EditProfileDialog user={profileUser} />
+            </>
           )}
           {showDeleteButton && (
             <DeleteUserButton userId={id} userName={profileUser.full_name} />

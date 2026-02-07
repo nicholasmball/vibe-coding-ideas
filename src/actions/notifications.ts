@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import type { NotificationPreferences } from "@/types";
 
 export async function markNotificationsRead(notificationIds: string[]) {
   const supabase = await createClient();
@@ -39,4 +40,28 @@ export async function markAllNotificationsRead() {
     .eq("read", false);
 
   revalidatePath("/feed");
+}
+
+export async function updateNotificationPreferences(
+  preferences: NotificationPreferences
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not authenticated");
+  }
+
+  const { error } = await supabase
+    .from("users")
+    .update({ notification_preferences: preferences })
+    .eq("id", user.id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`/profile/${user.id}`);
 }

@@ -101,6 +101,31 @@ export async function updateIdeaStatus(ideaId: string, status: IdeaStatus) {
     throw new Error(error.message);
   }
 
+  // Notify collaborators of the status change (respecting preferences)
+  const { data: collaborators } = await supabase
+    .from("collaborators")
+    .select("user_id, user:users!collaborators_user_id_fkey(notification_preferences)")
+    .eq("idea_id", ideaId)
+    .neq("user_id", user.id);
+
+  if (collaborators && collaborators.length > 0) {
+    const notifications = collaborators
+      .filter((c) => {
+        const prefs = (c.user as any)?.notification_preferences;
+        return prefs?.status_changes !== false;
+      })
+      .map((c) => ({
+        user_id: c.user_id,
+        actor_id: user.id,
+        type: "status_change" as const,
+        idea_id: ideaId,
+      }));
+
+    if (notifications.length > 0) {
+      await supabase.from("notifications").insert(notifications);
+    }
+  }
+
   revalidatePath(`/ideas/${ideaId}`);
 }
 

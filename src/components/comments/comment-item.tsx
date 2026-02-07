@@ -9,6 +9,7 @@ import { CommentTypeBadge } from "./comment-type-badge";
 import { CommentForm } from "./comment-form";
 import { incorporateComment, deleteComment } from "@/actions/comments";
 import { formatRelativeTime } from "@/lib/utils";
+import { Markdown } from "@/components/ui/markdown";
 import type { CommentWithAuthor } from "@/types";
 
 interface CommentItemProps {
@@ -77,9 +78,9 @@ export function CommentItem({
                 {formatRelativeTime(comment.created_at)}
               </span>
             </div>
-            <p className="mt-1 text-sm text-foreground/90 whitespace-pre-wrap">
-              {comment.content}
-            </p>
+            <div className="mt-1 text-sm text-foreground/90">
+              <Markdown>{comment.content}</Markdown>
+            </div>
             <div className="mt-2 flex items-center gap-2">
               {currentUserId && depth < 3 && (
                 <Button

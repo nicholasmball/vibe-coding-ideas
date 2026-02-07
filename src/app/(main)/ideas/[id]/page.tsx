@@ -13,6 +13,7 @@ import { StatusSelect } from "@/components/ideas/status-select";
 import { CommentThread } from "@/components/comments/comment-thread";
 import { IdeaDetailRealtime } from "@/components/ideas/idea-detail-realtime";
 import { DeleteIdeaButton } from "@/components/ideas/delete-idea-button";
+import { Markdown } from "@/components/ui/markdown";
 import { formatRelativeTime } from "@/lib/utils";
 import type { CommentWithAuthor, CollaboratorWithUser } from "@/types";
 import type { Metadata } from "next";
@@ -218,10 +219,8 @@ export default async function IdeaDetailPage({ params }: PageProps) {
       )}
 
       {/* Description */}
-      <div className="mt-6">
-        <p className="whitespace-pre-wrap text-foreground/90 leading-relaxed">
-          {idea.description}
-        </p>
+      <div className="mt-6 text-foreground/90 leading-relaxed">
+        <Markdown>{idea.description}</Markdown>
       </div>
 
       {/* Collaborators */}

@@ -30,3 +30,20 @@ export function formatRelativeTime(dateString: string): string {
   const years = Math.floor(diffInSeconds / 31536000);
   return `${years}y ago`;
 }
+
+export function stripMarkdown(text: string): string {
+  return text
+    .replace(/#{1,6}\s+/g, "")          // headings
+    .replace(/\*\*\*(.*?)\*\*\*/g, "$1") // bold italic
+    .replace(/\*\*(.*?)\*\*/g, "$1")     // bold
+    .replace(/\*(.*?)\*/g, "$1")         // italic
+    .replace(/~~(.*?)~~/g, "$1")         // strikethrough
+    .replace(/`{1,3}[^`]*`{1,3}/g, "")  // inline/block code
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // links
+    .replace(/^[-*+]\s+/gm, "")         // unordered list markers
+    .replace(/^\d+\.\s+/gm, "")         // ordered list markers
+    .replace(/^>\s+/gm, "")             // blockquotes
+    .replace(/\n{2,}/g, " ")            // collapse multiple newlines
+    .replace(/\n/g, " ")                // remaining newlines
+    .trim();
+}

@@ -41,5 +41,8 @@ export type NotificationWithDetails = Notification & {
   idea: { id: string; title: string } | null;
 };
 
+// Notification preferences
+export type NotificationPreferences = User["notification_preferences"];
+
 // Sort options
 export type SortOption = "newest" | "popular" | "discussed";

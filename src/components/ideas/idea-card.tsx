@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { IdeaStatusBadge } from "./idea-status-badge";
 import { VoteButton } from "./vote-button";
-import { formatRelativeTime } from "@/lib/utils";
+import { formatRelativeTime, stripMarkdown } from "@/lib/utils";
 import type { IdeaWithAuthor } from "@/types";
 
 interface IdeaCardProps {
@@ -38,7 +38,7 @@ export function IdeaCard({ idea, hasVoted }: IdeaCardProps) {
               {idea.title}
             </Link>
             <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
-              {idea.description}
+              {stripMarkdown(idea.description)}
             </p>
           </div>
         </div>
