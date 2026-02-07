@@ -16,6 +16,7 @@ export async function updateProfile(formData: FormData) {
   const fullName = formData.get("full_name") as string;
   const bio = formData.get("bio") as string;
   const githubUsername = formData.get("github_username") as string;
+  const contactInfo = formData.get("contact_info") as string;
 
   const { error } = await supabase
     .from("users")
@@ -23,6 +24,7 @@ export async function updateProfile(formData: FormData) {
       full_name: fullName || null,
       bio: bio || null,
       github_username: githubUsername || null,
+      contact_info: contactInfo || null,
     })
     .eq("id", user.id);
 

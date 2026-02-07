@@ -64,7 +64,7 @@ src/
 │   ├── database.ts         # Supabase Database type (manual, includes Relationships)
 │   └── index.ts            # Derived types (IdeaWithAuthor, CommentWithAuthor, etc.)
 middleware.ts               # Root middleware (calls updateSession)
-supabase/migrations/        # 11 SQL migration files (run in order)
+supabase/migrations/        # 12 SQL migration files (run in order)
 ```
 
 ## Key Patterns

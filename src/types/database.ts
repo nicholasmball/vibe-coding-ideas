@@ -17,6 +17,7 @@ export type Database = {
           avatar_url: string | null;
           bio: string | null;
           github_username: string | null;
+          contact_info: string | null;
           is_admin: boolean;
           created_at: string;
           updated_at: string;
@@ -28,6 +29,7 @@ export type Database = {
           avatar_url?: string | null;
           bio?: string | null;
           github_username?: string | null;
+          contact_info?: string | null;
           is_admin?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -39,6 +41,7 @@ export type Database = {
           avatar_url?: string | null;
           bio?: string | null;
           github_username?: string | null;
+          contact_info?: string | null;
           is_admin?: boolean;
           created_at?: string;
           updated_at?: string;

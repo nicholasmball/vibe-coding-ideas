@@ -1,4 +1,4 @@
-import { Github, Calendar } from "lucide-react";
+import { Github, Calendar, AtSign } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatRelativeTime } from "@/lib/utils";
@@ -49,6 +49,12 @@ export function ProfileHeader({
                 <Github className="h-4 w-4" />
                 {user.github_username}
               </a>
+            )}
+            {user.contact_info && (
+              <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                <AtSign className="h-4 w-4" />
+                {user.contact_info}
+              </span>
             )}
             <span className="flex items-center gap-1 text-sm text-muted-foreground">
               <Calendar className="h-4 w-4" />

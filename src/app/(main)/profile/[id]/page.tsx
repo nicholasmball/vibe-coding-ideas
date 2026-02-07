@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ProfileHeader } from "@/components/profile/profile-header";
 import { ProfileTabs } from "@/components/profile/profile-tabs";
 import { DeleteUserButton } from "@/components/profile/delete-user-button";
+import { EditProfileDialog } from "@/components/profile/edit-profile-dialog";
 import type { IdeaWithAuthor } from "@/types";
 import type { Metadata } from "next";
 
@@ -124,9 +125,14 @@ export default async function ProfilePage({ params }: PageProps) {
         collaborationCount={collaborations?.length ?? 0}
         commentCount={rawComments?.length ?? 0}
       />
-      {showDeleteButton && (
-        <div className="mt-4 flex justify-end">
-          <DeleteUserButton userId={id} userName={profileUser.full_name} />
+      {(currentUser?.id === id || showDeleteButton) && (
+        <div className="mt-4 flex justify-end gap-2">
+          {currentUser?.id === id && (
+            <EditProfileDialog user={profileUser} />
+          )}
+          {showDeleteButton && (
+            <DeleteUserButton userId={id} userName={profileUser.full_name} />
+          )}
         </div>
       )}
       <ProfileTabs
