@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "./theme-toggle";
+import { NotificationBell } from "./notification-bell";
 import { useUser } from "@/hooks/use-user";
 import { createClient } from "@/lib/supabase/client";
 import { useState } from "react";
@@ -61,6 +62,7 @@ export function Navbar() {
               </>
             )}
             <ThemeToggle />
+            {user && <NotificationBell />}
             {loading ? (
               <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
             ) : user ? (

@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ExternalLink, Github, Users } from "lucide-react";
+import { ExternalLink, Github, Users, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { IdeaStatusBadge } from "@/components/ideas/idea-status-badge";
 import { VoteButton } from "@/components/ideas/vote-button";
@@ -164,6 +165,14 @@ export default async function IdeaDetailPage({ params }: PageProps) {
             isCollaborator={isCollaborator}
             isAuthor={isAuthor}
           />
+        )}
+        {isAuthor && (
+          <Link href={`/ideas/${idea.id}/edit`}>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Pencil className="h-4 w-4" />
+              Edit
+            </Button>
+          </Link>
         )}
       </div>
 
