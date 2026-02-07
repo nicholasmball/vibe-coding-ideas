@@ -114,11 +114,23 @@ export async function deleteIdea(ideaId: string) {
     throw new Error("Not authenticated");
   }
 
-  const { error } = await supabase
-    .from("ideas")
-    .delete()
-    .eq("id", ideaId)
-    .eq("author_id", user.id);
+  // Check if user is admin
+  const { data: profile } = await supabase
+    .from("users")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single();
+
+  const isAdmin = profile?.is_admin ?? false;
+
+  let query = supabase.from("ideas").delete().eq("id", ideaId);
+
+  // Non-admins can only delete their own ideas
+  if (!isAdmin) {
+    query = query.eq("author_id", user.id);
+  }
+
+  const { error } = await query;
 
   if (error) {
     throw new Error(error.message);

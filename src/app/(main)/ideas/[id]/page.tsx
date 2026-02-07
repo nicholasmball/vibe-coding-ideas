@@ -12,6 +12,7 @@ import { CollaboratorButton } from "@/components/ideas/collaborator-button";
 import { StatusSelect } from "@/components/ideas/status-select";
 import { CommentThread } from "@/components/comments/comment-thread";
 import { IdeaDetailRealtime } from "@/components/ideas/idea-detail-realtime";
+import { DeleteIdeaButton } from "@/components/ideas/delete-idea-button";
 import { formatRelativeTime } from "@/lib/utils";
 import type { CommentWithAuthor, CollaboratorWithUser } from "@/types";
 import type { Metadata } from "next";
@@ -111,7 +112,19 @@ export default async function IdeaDetailPage({ params }: PageProps) {
     isCollaborator = !!collab;
   }
 
+  // Check if user is admin
+  let isAdmin = false;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("users")
+      .select("is_admin")
+      .eq("id", user.id)
+      .single();
+    isAdmin = profile?.is_admin ?? false;
+  }
+
   const isAuthor = user?.id === idea.author_id;
+  const canDelete = isAuthor || isAdmin;
   const author = idea.author as unknown as { full_name: string | null; avatar_url: string | null; id: string };
   const authorInitials =
     author.full_name
@@ -173,6 +186,9 @@ export default async function IdeaDetailPage({ params }: PageProps) {
               Edit
             </Button>
           </Link>
+        )}
+        {canDelete && (
+          <DeleteIdeaButton ideaId={idea.id} />
         )}
       </div>
 
