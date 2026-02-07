@@ -252,6 +252,99 @@ export type Database = {
           },
         ];
       };
+      board_columns: {
+        Row: {
+          id: string;
+          idea_id: string;
+          title: string;
+          position: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          idea_id: string;
+          title: string;
+          position?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          idea_id?: string;
+          title?: string;
+          position?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "board_columns_idea_id_fkey";
+            columns: ["idea_id"];
+            isOneToOne: false;
+            referencedRelation: "ideas";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      board_tasks: {
+        Row: {
+          id: string;
+          idea_id: string;
+          column_id: string;
+          title: string;
+          description: string | null;
+          assignee_id: string | null;
+          position: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          idea_id: string;
+          column_id: string;
+          title: string;
+          description?: string | null;
+          assignee_id?: string | null;
+          position?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          idea_id?: string;
+          column_id?: string;
+          title?: string;
+          description?: string | null;
+          assignee_id?: string | null;
+          position?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "board_tasks_idea_id_fkey";
+            columns: ["idea_id"];
+            isOneToOne: false;
+            referencedRelation: "ideas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "board_tasks_column_id_fkey";
+            columns: ["column_id"];
+            isOneToOne: false;
+            referencedRelation: "board_columns";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "board_tasks_assignee_id_fkey";
+            columns: ["assignee_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       notifications: {
         Row: {
           id: string;

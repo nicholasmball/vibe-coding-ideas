@@ -14,6 +14,7 @@
 - **Auth**: OAuth (GitHub + Google) + email/password via Supabase Auth
 - **Theming**: next-themes (dark default)
 - **Markdown**: react-markdown + remark-gfm (idea descriptions, comments)
+- **Drag & Drop**: @dnd-kit/core, @dnd-kit/sortable (kanban board)
 - **Notifications**: sonner (toasts)
 
 ## Project Structure
@@ -34,10 +35,12 @@ src/
 │       ├── feed/           # Idea feed with search/filter/pagination
 │       ├── ideas/new       # Submit idea form
 │       ├── ideas/[id]      # Idea detail (votes, comments, collaborators)
+│       ├── ideas/[id]/board # Kanban task board (author + collaborators only)
 │       ├── ideas/[id]/edit # Edit idea (author only)
 │       └── profile/[id]    # User profile with tabs
 ├── actions/                # Server Actions
 │   ├── ideas.ts            # create, update, updateStatus, delete
+│   ├── board.ts            # initializeColumns, create/update/delete columns & tasks, reorder, move
 │   ├── votes.ts            # toggleVote
 │   ├── comments.ts         # create, incorporate, delete
 │   ├── collaborators.ts    # toggleCollaborator
@@ -49,13 +52,14 @@ src/
 │   ├── layout/             # navbar, theme-toggle, notification-bell
 │   ├── auth/               # oauth-buttons
 │   ├── ideas/              # card, feed, form, edit-form, vote-button, etc.
+│   ├── board/              # kanban-board, board-column, board-task-card, task-edit-dialog, column-edit-dialog, add-column-button, board-realtime
 │   ├── comments/           # thread, item, form, type-badge
 │   └── profile/            # header, tabs, delete-user-button, edit-profile-dialog, notification-settings, complete-profile-banner
 ├── hooks/
 │   ├── use-user.ts         # Client-side auth state
 │   └── use-realtime.ts     # Supabase realtime subscription
 ├── lib/
-│   ├── constants.ts        # Status/comment type configs, sort options, tags
+│   ├── constants.ts        # Status/comment type configs, sort options, tags, board defaults
 │   ├── utils.ts            # cn(), formatRelativeTime()
 │   └── supabase/
 │       ├── client.ts       # Browser client (createBrowserClient)
@@ -65,7 +69,7 @@ src/
 │   ├── database.ts         # Supabase Database type (manual, includes Relationships)
 │   └── index.ts            # Derived types (IdeaWithAuthor, CommentWithAuthor, etc.)
 middleware.ts               # Root middleware (calls updateSession)
-supabase/migrations/        # 15 SQL migration files (run in order)
+supabase/migrations/        # 16 SQL migration files (run in order)
 ```
 
 ## Key Patterns
@@ -91,7 +95,7 @@ supabase/migrations/        # 15 SQL migration files (run in order)
 - `useUser()` hook for client-side auth state
 
 ### Database
-- 6 tables: users, ideas, comments, collaborators, votes, notifications
+- 8 tables: users, ideas, comments, collaborators, votes, notifications, board_columns, board_tasks
 - Denormalized counts on ideas (upvotes, comment_count, collaborator_count) maintained by triggers
 - Users auto-created from auth.users via trigger
 - Notifications auto-created via triggers on comments/votes/collaborators (respect user preferences)
@@ -101,6 +105,9 @@ supabase/migrations/        # 15 SQL migration files (run in order)
 - Admin role: `users.is_admin` — admins can delete any idea or non-admin user
 - `admin_delete_user` RPC (security definer) deletes from auth.users, cascading all data
 - `notifications.idea_id` is nullable (ON DELETE SET NULL) so notifications persist after user deletion
+- Board tables (board_columns, board_tasks) use `is_idea_team_member()` RLS function for team-only access
+- Board columns lazy-initialized with "To Do", "In Progress", "Done" on first visit
+- Board uses @dnd-kit for drag-and-drop with optimistic UI updates
 
 ## Environment Variables
 

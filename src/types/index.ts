@@ -44,5 +44,11 @@ export type NotificationWithDetails = Notification & {
 // Notification preferences
 export type NotificationPreferences = User["notification_preferences"];
 
+// Board types
+export type BoardColumn = Database["public"]["Tables"]["board_columns"]["Row"];
+export type BoardTask = Database["public"]["Tables"]["board_tasks"]["Row"];
+export type BoardTaskWithAssignee = BoardTask & { assignee: User | null };
+export type BoardColumnWithTasks = BoardColumn & { tasks: BoardTaskWithAssignee[] };
+
 // Sort options
 export type SortOption = "newest" | "popular" | "discussed";

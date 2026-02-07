@@ -53,6 +53,14 @@ export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: "discussed", label: "Most Discussed" },
 ];
 
+export const DEFAULT_BOARD_COLUMNS = [
+  { title: "To Do", position: 0 },
+  { title: "In Progress", position: 1000 },
+  { title: "Done", position: 2000 },
+];
+
+export const POSITION_GAP = 1000;
+
 export const SUGGESTED_TAGS = [
   "ai",
   "web",

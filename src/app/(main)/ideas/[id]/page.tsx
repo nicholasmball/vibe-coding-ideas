@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ExternalLink, Github, Users, Pencil } from "lucide-react";
+import { ExternalLink, Github, Users, Pencil, LayoutDashboard } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -179,6 +179,14 @@ export default async function IdeaDetailPage({ params }: PageProps) {
             isCollaborator={isCollaborator}
             isAuthor={isAuthor}
           />
+        )}
+        {(isAuthor || isCollaborator) && (
+          <Link href={`/ideas/${idea.id}/board`}>
+            <Button variant="outline" size="sm" className="gap-2">
+              <LayoutDashboard className="h-4 w-4" />
+              Board
+            </Button>
+          </Link>
         )}
         {isAuthor && (
           <Link href={`/ideas/${idea.id}/edit`}>
