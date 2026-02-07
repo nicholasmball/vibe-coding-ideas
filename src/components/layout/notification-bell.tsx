@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { Bell, MessageSquare, ChevronUp, Users, Check } from "lucide-react";
+import { Bell, MessageSquare, ChevronUp, Users, Check, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -64,12 +64,14 @@ export function NotificationBell() {
     comment: MessageSquare,
     vote: ChevronUp,
     collaborator: Users,
+    user_deleted: Trash2,
   };
 
   const messageMap = {
     comment: "commented on",
     vote: "voted on",
     collaborator: "wants to build",
+    user_deleted: "removed an idea you were collaborating on",
   };
 
   return (
@@ -108,25 +110,23 @@ export function NotificationBell() {
           ) : (
             notifications.map((notification) => {
               const Icon = iconMap[notification.type];
-              return (
-                <Link
-                  key={notification.id}
-                  href={`/ideas/${notification.idea_id}`}
-                  onClick={() => setOpen(false)}
-                  className={`flex items-start gap-3 px-3 py-2.5 transition-colors hover:bg-muted ${
-                    !notification.read ? "bg-primary/5" : ""
-                  }`}
-                >
+              const content = (
+                <>
                   <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm">
                       <span className="font-medium">
                         {notification.actor.full_name ?? "Someone"}
                       </span>{" "}
-                      {messageMap[notification.type]}{" "}
-                      <span className="font-medium truncate">
-                        {notification.idea.title}
-                      </span>
+                      {messageMap[notification.type]}
+                      {notification.idea && (
+                        <>
+                          {" "}
+                          <span className="font-medium truncate">
+                            {notification.idea.title}
+                          </span>
+                        </>
+                      )}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {formatRelativeTime(notification.created_at)}
@@ -135,7 +135,30 @@ export function NotificationBell() {
                   {!notification.read && (
                     <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
                   )}
-                </Link>
+                </>
+              );
+
+              const className = `flex items-start gap-3 px-3 py-2.5 transition-colors hover:bg-muted ${
+                !notification.read ? "bg-primary/5" : ""
+              }`;
+
+              if (notification.idea_id) {
+                return (
+                  <Link
+                    key={notification.id}
+                    href={`/ideas/${notification.idea_id}`}
+                    onClick={() => setOpen(false)}
+                    className={className}
+                  >
+                    {content}
+                  </Link>
+                );
+              }
+
+              return (
+                <div key={notification.id} className={className}>
+                  {content}
+                </div>
               );
             })
           )}

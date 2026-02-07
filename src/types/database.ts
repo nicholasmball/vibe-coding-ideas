@@ -236,8 +236,8 @@ export type Database = {
           id: string;
           user_id: string;
           actor_id: string;
-          type: "comment" | "vote" | "collaborator";
-          idea_id: string;
+          type: "comment" | "vote" | "collaborator" | "user_deleted";
+          idea_id: string | null;
           comment_id: string | null;
           read: boolean;
           created_at: string;
@@ -246,8 +246,8 @@ export type Database = {
           id?: string;
           user_id: string;
           actor_id: string;
-          type: "comment" | "vote" | "collaborator";
-          idea_id: string;
+          type: "comment" | "vote" | "collaborator" | "user_deleted";
+          idea_id?: string | null;
           comment_id?: string | null;
           read?: boolean;
           created_at?: string;
@@ -256,8 +256,8 @@ export type Database = {
           id?: string;
           user_id?: string;
           actor_id?: string;
-          type?: "comment" | "vote" | "collaborator";
-          idea_id?: string;
+          type?: "comment" | "vote" | "collaborator" | "user_deleted";
+          idea_id?: string | null;
           comment_id?: string | null;
           read?: boolean;
           created_at?: string;
@@ -298,13 +298,16 @@ export type Database = {
       [_ in never]: never;
     };
     Functions: {
-      [_ in never]: never;
+      admin_delete_user: {
+        Args: { target_user_id: string };
+        Returns: undefined;
+      };
     };
     Enums: {
       idea_status: "open" | "in_progress" | "completed" | "archived";
       comment_type: "comment" | "suggestion" | "question";
       vote_type: "upvote" | "downvote";
-      notification_type: "comment" | "vote" | "collaborator";
+      notification_type: "comment" | "vote" | "collaborator" | "user_deleted";
     };
     CompositeTypes: {
       [_ in never]: never;

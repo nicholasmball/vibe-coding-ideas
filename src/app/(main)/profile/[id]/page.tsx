@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProfileHeader } from "@/components/profile/profile-header";
 import { ProfileTabs } from "@/components/profile/profile-tabs";
+import { DeleteUserButton } from "@/components/profile/delete-user-button";
 import type { IdeaWithAuthor } from "@/types";
 import type { Metadata } from "next";
 
@@ -92,15 +93,28 @@ export default async function ProfilePage({ params }: PageProps) {
     idea_title: ideaTitleMap[c.idea_id],
   }));
 
-  // Get current user's votes
+  // Get current user's votes and admin status
   let userVotes: string[] = [];
+  let isCurrentUserAdmin = false;
   if (currentUser) {
     const { data: votes } = await supabase
       .from("votes")
       .select("idea_id")
       .eq("user_id", currentUser.id);
     userVotes = votes?.map((v) => v.idea_id) ?? [];
+
+    const { data: adminCheck } = await supabase
+      .from("users")
+      .select("is_admin")
+      .eq("id", currentUser.id)
+      .single();
+    isCurrentUserAdmin = adminCheck?.is_admin ?? false;
   }
+
+  const showDeleteButton =
+    isCurrentUserAdmin &&
+    currentUser?.id !== id &&
+    !profileUser.is_admin;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
@@ -110,6 +124,11 @@ export default async function ProfilePage({ params }: PageProps) {
         collaborationCount={collaborations?.length ?? 0}
         commentCount={rawComments?.length ?? 0}
       />
+      {showDeleteButton && (
+        <div className="mt-4 flex justify-end">
+          <DeleteUserButton userId={id} userName={profileUser.full_name} />
+        </div>
+      )}
       <ProfileTabs
         ideas={(ideas as unknown as IdeaWithAuthor[]) ?? []}
         collaborations={collabIdeas}

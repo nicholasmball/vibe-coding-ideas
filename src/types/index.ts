@@ -38,7 +38,7 @@ export type CollaboratorWithUser = Collaborator & {
 
 export type NotificationWithDetails = Notification & {
   actor: User;
-  idea: { id: string; title: string };
+  idea: { id: string; title: string } | null;
 };
 
 // Sort options
