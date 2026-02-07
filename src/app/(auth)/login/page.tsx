@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { OAuthButtons } from "@/components/auth/oauth-buttons";
+import { EmailAuthForm } from "@/components/auth/email-auth-form";
 import {
   Card,
   CardContent,
@@ -25,7 +26,21 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <OAuthButtons />
-          <p className="mt-6 text-center text-sm text-muted-foreground">
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-card px-2 text-muted-foreground">or</span>
+            </div>
+          </div>
+          <EmailAuthForm mode="login" />
+          <p className="mt-4 text-center text-sm">
+            <Link href="/forgot-password" className="text-muted-foreground hover:text-primary hover:underline">
+              Forgot password?
+            </Link>
+          </p>
+          <p className="mt-4 text-center text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
             <Link href="/signup" className="font-medium text-primary hover:underline">
               Sign up
