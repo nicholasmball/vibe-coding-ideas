@@ -11,7 +11,7 @@
 - **Framework**: Next.js 16 (App Router) with TypeScript
 - **Styling**: Tailwind CSS v4 (`@import "tailwindcss"` syntax) + shadcn/ui (New York style, Zinc base)
 - **Backend**: Supabase (Auth, Postgres, Realtime, RLS)
-- **Auth**: OAuth only (GitHub + Google) via Supabase Auth
+- **Auth**: OAuth (GitHub + Google) + email/password via Supabase Auth
 - **Theming**: next-themes (dark default)
 - **Notifications**: sonner (toasts)
 
@@ -25,6 +25,8 @@ src/
 │   ├── (auth)/             # Auth routes (no navbar)
 │   │   ├── login/
 │   │   ├── signup/
+│   │   ├── forgot-password/ # Password reset request
+│   │   ├── reset-password/  # Password reset form
 │   │   └── callback/       # OAuth callback route handler
 │   └── (main)/             # Authenticated routes (with navbar)
 │       ├── layout.tsx      # Navbar wrapper
@@ -61,7 +63,7 @@ src/
 │   ├── database.ts         # Supabase Database type (manual, includes Relationships)
 │   └── index.ts            # Derived types (IdeaWithAuthor, CommentWithAuthor, etc.)
 middleware.ts               # Root middleware (calls updateSession)
-supabase/migrations/        # 8 SQL migration files (run in order)
+supabase/migrations/        # 9 SQL migration files (run in order)
 ```
 
 ## Key Patterns
@@ -83,6 +85,7 @@ supabase/migrations/        # 8 SQL migration files (run in order)
 - Middleware protects `/feed`, `/ideas`, `/profile` routes (redirects to `/login`)
 - Middleware redirects logged-in users away from `/login`, `/signup`
 - OAuth callback at `/callback` exchanges code for session
+- Email/password with forgot/reset password flow
 - `useUser()` hook for client-side auth state
 
 ### Database
@@ -91,6 +94,7 @@ supabase/migrations/        # 8 SQL migration files (run in order)
 - Users auto-created from auth.users via trigger
 - Notifications auto-created via triggers on comments/votes/collaborators
 - RLS: public read, authenticated write, owner-only update/delete
+- Admin role: `users.is_admin` — admins can delete any idea
 
 ## Environment Variables
 
@@ -104,7 +108,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_xxx
 1. Create migration in `supabase/migrations/`
 2. Add table types to `src/types/database.ts` (include `Relationships`)
 3. Add row type export to `src/types/index.ts`
-4. Run migration in Supabase SQL Editor
+4. Run migration via Supabase MCP (`apply_migration`) or SQL Editor
 
 ## Adding shadcn/ui Components
 
