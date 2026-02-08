@@ -47,7 +47,13 @@ export type NotificationPreferences = User["notification_preferences"];
 // Board types
 export type BoardColumn = Database["public"]["Tables"]["board_columns"]["Row"];
 export type BoardTask = Database["public"]["Tables"]["board_tasks"]["Row"];
-export type BoardTaskWithAssignee = BoardTask & { assignee: User | null };
+export type BoardLabel = Database["public"]["Tables"]["board_labels"]["Row"];
+export type BoardTaskLabel = Database["public"]["Tables"]["board_task_labels"]["Row"];
+export type BoardChecklistItem = Database["public"]["Tables"]["board_checklist_items"]["Row"];
+export type BoardTaskWithAssignee = BoardTask & {
+  assignee: User | null;
+  labels: BoardLabel[];
+};
 export type BoardColumnWithTasks = BoardColumn & { tasks: BoardTaskWithAssignee[] };
 
 // Sort options

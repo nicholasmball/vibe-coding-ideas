@@ -19,15 +19,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { createBoardTask, updateBoardTask } from "@/actions/board";
-import type { BoardTaskWithAssignee, User } from "@/types";
+import { createBoardTask } from "@/actions/board";
+import type { User } from "@/types";
 
 interface TaskEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   ideaId: string;
   columnId: string;
-  task?: BoardTaskWithAssignee;
   teamMembers: User[];
 }
 
@@ -36,15 +35,12 @@ export function TaskEditDialog({
   onOpenChange,
   ideaId,
   columnId,
-  task,
   teamMembers,
 }: TaskEditDialogProps) {
-  const [title, setTitle] = useState(task?.title ?? "");
-  const [description, setDescription] = useState(task?.description ?? "");
-  const [assigneeId, setAssigneeId] = useState(task?.assignee_id ?? "");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [assigneeId, setAssigneeId] = useState("");
   const [loading, setLoading] = useState(false);
-
-  const isEditing = !!task;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,21 +48,13 @@ export function TaskEditDialog({
 
     setLoading(true);
     try {
-      if (isEditing) {
-        await updateBoardTask(task.id, ideaId, {
-          title: title.trim(),
-          description: description.trim() || null,
-          assignee_id: assigneeId || null,
-        });
-      } else {
-        await createBoardTask(
-          ideaId,
-          columnId,
-          title.trim(),
-          description.trim() || undefined,
-          assigneeId || undefined
-        );
-      }
+      await createBoardTask(
+        ideaId,
+        columnId,
+        title.trim(),
+        description.trim() || undefined,
+        assigneeId || undefined
+      );
       onOpenChange(false);
       setTitle("");
       setDescription("");
@@ -82,7 +70,7 @@ export function TaskEditDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isEditing ? "Edit Task" : "New Task"}</DialogTitle>
+          <DialogTitle>New Task</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -130,7 +118,7 @@ export function TaskEditDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={loading || !title.trim()}>
-              {loading ? "Saving..." : isEditing ? "Save" : "Create"}
+              {loading ? "Creating..." : "Create"}
             </Button>
           </DialogFooter>
         </form>

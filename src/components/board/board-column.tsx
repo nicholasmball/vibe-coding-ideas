@@ -18,15 +18,28 @@ import { BoardTaskCard } from "./board-task-card";
 import { TaskEditDialog } from "./task-edit-dialog";
 import { ColumnEditDialog } from "./column-edit-dialog";
 import { deleteBoardColumn } from "@/actions/board";
-import type { BoardColumnWithTasks, User } from "@/types";
+import type {
+  BoardColumnWithTasks,
+  BoardLabel,
+  BoardChecklistItem,
+  User,
+} from "@/types";
 
 interface BoardColumnProps {
   column: BoardColumnWithTasks;
   ideaId: string;
   teamMembers: User[];
+  boardLabels: BoardLabel[];
+  checklistItemsByTaskId: Record<string, BoardChecklistItem[]>;
 }
 
-export function BoardColumn({ column, ideaId, teamMembers }: BoardColumnProps) {
+export function BoardColumn({
+  column,
+  ideaId,
+  teamMembers,
+  boardLabels,
+  checklistItemsByTaskId,
+}: BoardColumnProps) {
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -96,6 +109,8 @@ export function BoardColumn({ column, ideaId, teamMembers }: BoardColumnProps) {
                 ideaId={ideaId}
                 columnId={column.id}
                 teamMembers={teamMembers}
+                boardLabels={boardLabels}
+                checklistItems={checklistItemsByTaskId[task.id] ?? []}
               />
             ))}
           </SortableContext>

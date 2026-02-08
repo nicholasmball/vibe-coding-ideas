@@ -31,6 +31,26 @@ export function formatRelativeTime(dateString: string): string {
   return `${years}y ago`;
 }
 
+export function getDueDateStatus(dueDate: string): "overdue" | "due_soon" | "on_track" {
+  const due = new Date(dueDate);
+  const now = new Date();
+  if (due < now) return "overdue";
+  const diffMs = due.getTime() - now.getTime();
+  if (diffMs < 24 * 60 * 60 * 1000) return "due_soon";
+  return "on_track";
+}
+
+export function formatDueDate(dueDate: string): string {
+  const date = new Date(dueDate);
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+import { LABEL_COLORS } from "./constants";
+
+export function getLabelColorConfig(color: string) {
+  return LABEL_COLORS.find((c) => c.value === color) ?? LABEL_COLORS[6]; // default blue
+}
+
 export function stripMarkdown(text: string): string {
   return text
     .replace(/#{1,6}\s+/g, "")          // headings

@@ -13,8 +13,11 @@ export function useRealtimeSubscription(
   useEffect(() => {
     const supabase = createClient();
 
+    const channelName = filter
+      ? `${table}-${filter.column}-${filter.value}`
+      : `${table}-all`;
     const channel = supabase
-      .channel(`${table}-changes`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
@@ -30,7 +33,7 @@ export function useRealtimeSubscription(
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      channel.unsubscribe();
     };
   }, [table, filter?.column, filter?.value, router]);
 }

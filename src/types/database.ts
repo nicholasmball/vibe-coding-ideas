@@ -296,6 +296,9 @@ export type Database = {
           description: string | null;
           assignee_id: string | null;
           position: number;
+          due_date: string | null;
+          checklist_total: number;
+          checklist_done: number;
           created_at: string;
           updated_at: string;
         };
@@ -307,6 +310,9 @@ export type Database = {
           description?: string | null;
           assignee_id?: string | null;
           position?: number;
+          due_date?: string | null;
+          checklist_total?: number;
+          checklist_done?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -318,6 +324,9 @@ export type Database = {
           description?: string | null;
           assignee_id?: string | null;
           position?: number;
+          due_date?: string | null;
+          checklist_total?: number;
+          checklist_done?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -341,6 +350,119 @@ export type Database = {
             columns: ["assignee_id"];
             isOneToOne: false;
             referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      board_labels: {
+        Row: {
+          id: string;
+          idea_id: string;
+          name: string;
+          color: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          idea_id: string;
+          name: string;
+          color?: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          idea_id?: string;
+          name?: string;
+          color?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "board_labels_idea_id_fkey";
+            columns: ["idea_id"];
+            isOneToOne: false;
+            referencedRelation: "ideas";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      board_task_labels: {
+        Row: {
+          id: string;
+          task_id: string;
+          label_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          task_id: string;
+          label_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          task_id?: string;
+          label_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "board_task_labels_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "board_tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "board_task_labels_label_id_fkey";
+            columns: ["label_id"];
+            isOneToOne: false;
+            referencedRelation: "board_labels";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      board_checklist_items: {
+        Row: {
+          id: string;
+          task_id: string;
+          idea_id: string;
+          title: string;
+          completed: boolean;
+          position: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          task_id: string;
+          idea_id: string;
+          title: string;
+          completed?: boolean;
+          position?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          task_id?: string;
+          idea_id?: string;
+          title?: string;
+          completed?: boolean;
+          position?: number;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "board_checklist_items_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "board_tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "board_checklist_items_idea_id_fkey";
+            columns: ["idea_id"];
+            isOneToOne: false;
+            referencedRelation: "ideas";
             referencedColumns: ["id"];
           },
         ];

@@ -1,15 +1,72 @@
 "use client";
 
-import { useRealtimeSubscription } from "@/hooks/use-realtime";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 export function BoardRealtime({ ideaId }: { ideaId: string }) {
-  useRealtimeSubscription("board_columns", {
-    column: "idea_id",
-    value: ideaId,
-  });
-  useRealtimeSubscription("board_tasks", {
-    column: "idea_id",
-    value: ideaId,
-  });
+  const router = useRouter();
+
+  useEffect(() => {
+    const supabase = createClient();
+
+    const channel = supabase
+      .channel(`board-${ideaId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "board_columns",
+          filter: `idea_id=eq.${ideaId}`,
+        },
+        () => router.refresh()
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "board_tasks",
+          filter: `idea_id=eq.${ideaId}`,
+        },
+        () => router.refresh()
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "board_labels",
+          filter: `idea_id=eq.${ideaId}`,
+        },
+        () => router.refresh()
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "board_task_labels",
+        },
+        () => router.refresh()
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "board_checklist_items",
+          filter: `idea_id=eq.${ideaId}`,
+        },
+        () => router.refresh()
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [ideaId, router]);
+
   return null;
 }

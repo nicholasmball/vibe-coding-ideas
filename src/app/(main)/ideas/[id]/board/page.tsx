@@ -6,7 +6,13 @@ import { initializeBoardColumns } from "@/actions/board";
 import { KanbanBoard } from "@/components/board/kanban-board";
 import { BoardRealtime } from "@/components/board/board-realtime";
 import { Button } from "@/components/ui/button";
-import type { BoardColumnWithTasks, BoardTaskWithAssignee, User } from "@/types";
+import type {
+  BoardColumnWithTasks,
+  BoardTaskWithAssignee,
+  BoardLabel,
+  BoardChecklistItem,
+  User,
+} from "@/types";
 import type { Metadata } from "next";
 
 interface PageProps {
@@ -82,6 +88,53 @@ export default async function BoardPage({ params }: PageProps) {
     .eq("idea_id", id)
     .order("position", { ascending: true });
 
+  // Fetch board labels
+  const { data: boardLabels } = await supabase
+    .from("board_labels")
+    .select("*")
+    .eq("idea_id", id)
+    .order("created_at", { ascending: true });
+
+  // Fetch task-label assignments with label data
+  const { data: taskLabelRows } = await supabase
+    .from("board_task_labels")
+    .select("task_id, label:board_labels!board_task_labels_label_id_fkey(*)")
+    .in(
+      "task_id",
+      (rawTasks ?? []).map((t) => t.id)
+    );
+
+  // Build taskLabelsMap: Record<taskId, BoardLabel[]>
+  const taskLabelsMap: Record<string, BoardLabel[]> = {};
+  if (taskLabelRows) {
+    for (const row of taskLabelRows) {
+      if (!row.label) continue;
+      const label = row.label as unknown as BoardLabel;
+      if (!taskLabelsMap[row.task_id]) {
+        taskLabelsMap[row.task_id] = [];
+      }
+      taskLabelsMap[row.task_id].push(label);
+    }
+  }
+
+  // Fetch checklist items
+  const { data: rawChecklistItems } = await supabase
+    .from("board_checklist_items")
+    .select("*")
+    .eq("idea_id", id)
+    .order("position", { ascending: true });
+
+  // Build checklistItemsByTaskId
+  const checklistItemsByTaskId: Record<string, BoardChecklistItem[]> = {};
+  if (rawChecklistItems) {
+    for (const item of rawChecklistItems) {
+      if (!checklistItemsByTaskId[item.task_id]) {
+        checklistItemsByTaskId[item.task_id] = [];
+      }
+      checklistItemsByTaskId[item.task_id].push(item as BoardChecklistItem);
+    }
+  }
+
   // Fetch team members (author + collaborators)
   const { data: collabs } = await supabase
     .from("collaborators")
@@ -105,7 +158,7 @@ export default async function BoardPage({ params }: PageProps) {
     });
   }
 
-  // Assemble columns with tasks
+  // Assemble columns with tasks (including labels)
   const columns: BoardColumnWithTasks[] = (rawColumns ?? []).map((col) => ({
     ...col,
     tasks: (rawTasks ?? [])
@@ -113,6 +166,7 @@ export default async function BoardPage({ params }: PageProps) {
       .map((t) => ({
         ...t,
         assignee: (t.assignee as unknown as User) ?? null,
+        labels: taskLabelsMap[t.id] ?? [],
       })) as BoardTaskWithAssignee[],
   }));
 
@@ -132,7 +186,13 @@ export default async function BoardPage({ params }: PageProps) {
       </div>
 
       {/* Kanban Board */}
-      <KanbanBoard columns={columns} ideaId={id} teamMembers={teamMembers} />
+      <KanbanBoard
+        columns={columns}
+        ideaId={id}
+        teamMembers={teamMembers}
+        boardLabels={(boardLabels ?? []) as BoardLabel[]}
+        checklistItemsByTaskId={checklistItemsByTaskId}
+      />
     </div>
   );
 }

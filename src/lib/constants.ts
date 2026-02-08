@@ -61,6 +61,19 @@ export const DEFAULT_BOARD_COLUMNS = [
 
 export const POSITION_GAP = 1000;
 
+export const LABEL_COLORS = [
+  { value: "red", label: "Red", badgeClass: "bg-red-500/90 text-white", swatchColor: "bg-red-500" },
+  { value: "orange", label: "Orange", badgeClass: "bg-orange-500/90 text-white", swatchColor: "bg-orange-500" },
+  { value: "amber", label: "Amber", badgeClass: "bg-amber-500/90 text-white", swatchColor: "bg-amber-500" },
+  { value: "lime", label: "Lime", badgeClass: "bg-lime-500/90 text-white", swatchColor: "bg-lime-500" },
+  { value: "emerald", label: "Emerald", badgeClass: "bg-emerald-500/90 text-white", swatchColor: "bg-emerald-500" },
+  { value: "cyan", label: "Cyan", badgeClass: "bg-cyan-500/90 text-white", swatchColor: "bg-cyan-500" },
+  { value: "blue", label: "Blue", badgeClass: "bg-blue-500/90 text-white", swatchColor: "bg-blue-500" },
+  { value: "violet", label: "Violet", badgeClass: "bg-violet-500/90 text-white", swatchColor: "bg-violet-500" },
+  { value: "pink", label: "Pink", badgeClass: "bg-pink-500/90 text-white", swatchColor: "bg-pink-500" },
+  { value: "zinc", label: "Gray", badgeClass: "bg-zinc-500/90 text-white", swatchColor: "bg-zinc-500" },
+];
+
 export const SUGGESTED_TAGS = [
   "ai",
   "web",

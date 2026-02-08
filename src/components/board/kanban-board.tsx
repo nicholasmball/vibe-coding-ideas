@@ -23,6 +23,8 @@ import { POSITION_GAP } from "@/lib/constants";
 import type {
   BoardColumnWithTasks,
   BoardTaskWithAssignee,
+  BoardLabel,
+  BoardChecklistItem,
   User,
 } from "@/types";
 
@@ -30,12 +32,16 @@ interface KanbanBoardProps {
   columns: BoardColumnWithTasks[];
   ideaId: string;
   teamMembers: User[];
+  boardLabels: BoardLabel[];
+  checklistItemsByTaskId: Record<string, BoardChecklistItem[]>;
 }
 
 export function KanbanBoard({
   columns: initialColumns,
   ideaId,
   teamMembers,
+  boardLabels,
+  checklistItemsByTaskId,
 }: KanbanBoardProps) {
   const [columns, setColumns] = useState(initialColumns);
   const [activeTask, setActiveTask] = useState<BoardTaskWithAssignee | null>(
@@ -43,9 +49,20 @@ export function KanbanBoard({
   );
 
   // Update columns when server data changes (via realtime refresh)
-  // Use a key based on serialized column/task IDs to detect real changes
+  // Include task metadata (labels, due dates, checklist counts) in the key
   const serverKey = JSON.stringify(
-    initialColumns.map((c) => [c.id, c.tasks.map((t) => t.id)])
+    initialColumns.map((c) => [
+      c.id,
+      c.tasks.map((t) => [
+        t.id,
+        t.labels.map((l) => l.id).sort(),
+        t.due_date,
+        t.checklist_total,
+        t.checklist_done,
+        t.assignee_id,
+        t.title,
+      ]),
+    ])
   );
   const [lastServerKey, setLastServerKey] = useState(serverKey);
   if (serverKey !== lastServerKey && !activeTask) {
@@ -213,6 +230,8 @@ export function KanbanBoard({
               column={column}
               ideaId={ideaId}
               teamMembers={teamMembers}
+              boardLabels={boardLabels}
+              checklistItemsByTaskId={checklistItemsByTaskId}
             />
           ))}
         </SortableContext>

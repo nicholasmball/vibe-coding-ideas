@@ -40,7 +40,7 @@ src/
 │       └── profile/[id]    # User profile with tabs
 ├── actions/                # Server Actions
 │   ├── ideas.ts            # create, update, updateStatus, delete
-│   ├── board.ts            # initializeColumns, create/update/delete columns & tasks, reorder, move
+│   ├── board.ts            # initializeColumns, create/update/delete columns & tasks, reorder, move, labels (CRUD + assign/remove), checklists (CRUD + toggle)
 │   ├── votes.ts            # toggleVote
 │   ├── comments.ts         # create, incorporate, delete
 │   ├── collaborators.ts    # toggleCollaborator
@@ -52,15 +52,15 @@ src/
 │   ├── layout/             # navbar, theme-toggle, notification-bell
 │   ├── auth/               # oauth-buttons
 │   ├── ideas/              # card, feed, form, edit-form, vote-button, etc.
-│   ├── board/              # kanban-board, board-column, board-task-card, task-edit-dialog, column-edit-dialog, add-column-button, board-realtime
+│   ├── board/              # kanban-board, board-column, board-task-card, task-edit-dialog, task-detail-dialog, column-edit-dialog, add-column-button, board-realtime, label-picker, due-date-picker, due-date-badge, task-label-badges, checklist-section
 │   ├── comments/           # thread, item, form, type-badge
 │   └── profile/            # header, tabs, delete-user-button, edit-profile-dialog, notification-settings, complete-profile-banner
 ├── hooks/
 │   ├── use-user.ts         # Client-side auth state
 │   └── use-realtime.ts     # Supabase realtime subscription
 ├── lib/
-│   ├── constants.ts        # Status/comment type configs, sort options, tags, board defaults
-│   ├── utils.ts            # cn(), formatRelativeTime()
+│   ├── constants.ts        # Status/comment type configs, sort options, tags, board defaults, LABEL_COLORS
+│   ├── utils.ts            # cn(), formatRelativeTime(), getDueDateStatus(), formatDueDate(), getLabelColorConfig()
 │   └── supabase/
 │       ├── client.ts       # Browser client (createBrowserClient)
 │       ├── server.ts       # Server client (createServerClient + cookies)
@@ -69,7 +69,7 @@ src/
 │   ├── database.ts         # Supabase Database type (manual, includes Relationships)
 │   └── index.ts            # Derived types (IdeaWithAuthor, CommentWithAuthor, etc.)
 middleware.ts               # Root middleware (calls updateSession)
-supabase/migrations/        # 16 SQL migration files (run in order)
+supabase/migrations/        # 17 SQL migration files (run in order)
 ```
 
 ## Key Patterns
@@ -95,7 +95,7 @@ supabase/migrations/        # 16 SQL migration files (run in order)
 - `useUser()` hook for client-side auth state
 
 ### Database
-- 8 tables: users, ideas, comments, collaborators, votes, notifications, board_columns, board_tasks
+- 11 tables: users, ideas, comments, collaborators, votes, notifications, board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items
 - Denormalized counts on ideas (upvotes, comment_count, collaborator_count) maintained by triggers
 - Users auto-created from auth.users via trigger
 - Notifications auto-created via triggers on comments/votes/collaborators (respect user preferences)
@@ -105,9 +105,12 @@ supabase/migrations/        # 16 SQL migration files (run in order)
 - Admin role: `users.is_admin` — admins can delete any idea or non-admin user
 - `admin_delete_user` RPC (security definer) deletes from auth.users, cascading all data
 - `notifications.idea_id` is nullable (ON DELETE SET NULL) so notifications persist after user deletion
-- Board tables (board_columns, board_tasks) use `is_idea_team_member()` RLS function for team-only access
+- Board tables (board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items) use `is_idea_team_member()` RLS function for team-only access
 - Board columns lazy-initialized with "To Do", "In Progress", "Done" on first visit
 - Board uses @dnd-kit for drag-and-drop with optimistic UI updates
+- Board tasks support labels (colored, per-idea), due dates, and checklists (subtasks)
+- `board_tasks.checklist_total` and `checklist_done` are denormalized counts maintained by `update_checklist_counts()` trigger
+- Clicking a task card opens a rich detail dialog (task-detail-dialog) for editing all task properties
 
 ## Environment Variables
 
