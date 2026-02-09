@@ -36,7 +36,7 @@ export default async function LandingPage() {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (user) redirect("/feed");
+  if (user) redirect("/dashboard");
 
   const [{ count: ideaCount }, { count: userCount }, { count: collabCount }] =
     await Promise.all([
