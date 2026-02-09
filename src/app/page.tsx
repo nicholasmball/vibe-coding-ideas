@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Sparkles, Users, MessageSquare, Lightbulb, ArrowRight, Zap, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,9 @@ const features = [
 
 export default async function LandingPage() {
   const supabase = await createClient();
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) redirect("/feed");
 
   const [{ count: ideaCount }, { count: userCount }, { count: collabCount }] =
     await Promise.all([
