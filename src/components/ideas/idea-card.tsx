@@ -3,6 +3,11 @@ import { MessageSquare, Users, LayoutDashboard, Github } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { IdeaStatusBadge } from "./idea-status-badge";
 import { VoteButton } from "./vote-button";
 import { formatRelativeTime, stripMarkdown } from "@/lib/utils";
@@ -70,22 +75,44 @@ export function IdeaCard({ idea, hasVoted, taskCount }: IdeaCardProps) {
             <span>{formatRelativeTime(idea.created_at)}</span>
           </div>
           <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1">
-              <MessageSquare className="h-3.5 w-3.5" />
-              {idea.comment_count}
-            </span>
-            <span className="flex items-center gap-1">
-              <Users className="h-3.5 w-3.5" />
-              {idea.collaborator_count}
-            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="flex items-center gap-1">
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  {idea.comment_count}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Comments</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="flex items-center gap-1">
+                  <Users className="h-3.5 w-3.5" />
+                  {idea.collaborator_count}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Collaborators</TooltipContent>
+            </Tooltip>
             {taskCount != null && taskCount > 0 && (
-              <span className="flex items-center gap-1">
-                <LayoutDashboard className="h-3.5 w-3.5" />
-                {taskCount}
-              </span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex items-center gap-1">
+                    <LayoutDashboard className="h-3.5 w-3.5" />
+                    {taskCount}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Board tasks</TooltipContent>
+              </Tooltip>
             )}
             {idea.github_url && (
-              <Github className="h-3.5 w-3.5" />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="flex items-center gap-1">
+                    <Github className="h-3.5 w-3.5" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>GitHub repository</TooltipContent>
+              </Tooltip>
             )}
           </div>
         </div>

@@ -14,6 +14,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/utils";
 import { logTaskActivity } from "@/lib/activity";
@@ -305,12 +310,17 @@ export function TaskAttachmentsSection({
                 className="group relative flex items-center gap-2 rounded-md border border-border p-2"
               >
                 {isImageType(attachment.content_type) ? (
-                  <button
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted"
-                    onClick={() => handlePreview(attachment)}
-                  >
-                    <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                  </button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted"
+                        onClick={() => handlePreview(attachment)}
+                      >
+                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Preview</TooltipContent>
+                  </Tooltip>
                 ) : (
                   <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted">
                     <FileText className="h-4 w-4 text-muted-foreground" />
@@ -328,36 +338,54 @@ export function TaskAttachmentsSection({
                 <div className="flex shrink-0 gap-0.5 opacity-0 group-hover:opacity-100">
                   {isImageType(attachment.content_type) && (
                     attachment.storage_path === localCoverPath ? (
-                      <button
-                        className="rounded p-1 text-primary hover:text-primary/80"
-                        onClick={() => handleRemoveCover()}
-                        title="Remove cover"
-                      >
-                        <ImageOff className="h-3 w-3" />
-                      </button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            className="rounded p-1 text-primary hover:text-primary/80"
+                            onClick={() => handleRemoveCover()}
+                          >
+                            <ImageOff className="h-3 w-3" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Remove cover</TooltipContent>
+                      </Tooltip>
                     ) : (
-                      <button
-                        className="rounded p-1 text-muted-foreground hover:text-foreground"
-                        onClick={() => handleSetCover(attachment.storage_path)}
-                        title="Set as cover"
-                      >
-                        <ImagePlus className="h-3 w-3" />
-                      </button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            className="rounded p-1 text-muted-foreground hover:text-foreground"
+                            onClick={() => handleSetCover(attachment.storage_path)}
+                          >
+                            <ImagePlus className="h-3 w-3" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Set as cover</TooltipContent>
+                      </Tooltip>
                     )
                   )}
-                  <button
-                    className="rounded p-1 text-muted-foreground hover:text-foreground"
-                    onClick={() => handleDownload(attachment)}
-                  >
-                    <Download className="h-3 w-3" />
-                  </button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="rounded p-1 text-muted-foreground hover:text-foreground"
+                        onClick={() => handleDownload(attachment)}
+                      >
+                        <Download className="h-3 w-3" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Download</TooltipContent>
+                  </Tooltip>
                   {attachment.uploaded_by === currentUserId && (
-                    <button
-                      className="rounded p-1 text-muted-foreground hover:text-destructive"
-                      onClick={() => handleDelete(attachment)}
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          className="rounded p-1 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleDelete(attachment)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>Delete</TooltipContent>
+                    </Tooltip>
                   )}
                 </div>
               </div>
@@ -395,14 +423,19 @@ export function TaskAttachmentsSection({
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
           onClick={() => setPreviewUrl(null)}
         >
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-4 top-4 text-white hover:bg-white/20"
-            onClick={() => setPreviewUrl(null)}
-          >
-            <X className="h-5 w-5" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-4 top-4 text-white hover:bg-white/20"
+                onClick={() => setPreviewUrl(null)}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Close preview</TooltipContent>
+          </Tooltip>
           <img
             src={previewUrl}
             alt="Preview"

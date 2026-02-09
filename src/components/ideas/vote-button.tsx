@@ -3,6 +3,11 @@
 import { useOptimistic, useTransition } from "react";
 import { ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { toggleVote } from "@/actions/votes";
 import { cn } from "@/lib/utils";
 
@@ -30,19 +35,26 @@ export function VoteButton({ ideaId, upvotes, hasVoted }: VoteButtonProps) {
   };
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={handleVote}
-      disabled={isPending}
-      className={cn(
-        "flex flex-col items-center gap-0 px-3 py-2 h-auto",
-        optimisticState.hasVoted &&
-          "border-primary bg-primary/10 text-primary hover:bg-primary/20"
-      )}
-    >
-      <ChevronUp className="h-4 w-4" />
-      <span className="text-xs font-semibold">{optimisticState.upvotes}</span>
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleVote}
+          disabled={isPending}
+          className={cn(
+            "flex flex-col items-center gap-0 px-3 py-2 h-auto",
+            optimisticState.hasVoted &&
+              "border-primary bg-primary/10 text-primary hover:bg-primary/20"
+          )}
+        >
+          <ChevronUp className="h-4 w-4" />
+          <span className="text-xs font-semibold">{optimisticState.upvotes}</span>
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        {optimisticState.hasVoted ? "Remove upvote" : "Upvote"}
+      </TooltipContent>
+    </Tooltip>
   );
 }

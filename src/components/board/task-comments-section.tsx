@@ -4,6 +4,11 @@ import { useEffect, useState, useCallback } from "react";
 import { MessageSquare, Trash2, Send } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Markdown } from "@/components/ui/markdown";
@@ -168,12 +173,17 @@ export function TaskCommentsSection({
                         {formatRelativeTime(comment.created_at)}
                       </span>
                       {comment.author_id === currentUserId && (
-                        <button
-                          className="text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDelete(comment.id)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <button
+                              className="text-muted-foreground hover:text-destructive"
+                              onClick={() => handleDelete(comment.id)}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipContent>Delete comment</TooltipContent>
+                        </Tooltip>
                       )}
                     </div>
                     <div className="mt-0.5 text-xs prose-sm">
@@ -197,14 +207,19 @@ export function TaskCommentsSection({
           rows={2}
           className="min-h-[60px] text-xs"
         />
-        <Button
-          type="submit"
-          size="icon"
-          className="h-[60px] w-10 shrink-0"
-          disabled={submitting || !content.trim()}
-        >
-          <Send className="h-4 w-4" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="submit"
+              size="icon"
+              className="h-[60px] w-10 shrink-0"
+              disabled={submitting || !content.trim()}
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Send comment</TooltipContent>
+        </Tooltip>
       </form>
     </div>
   );

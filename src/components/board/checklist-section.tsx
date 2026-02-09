@@ -6,6 +6,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { createClient } from "@/lib/supabase/client";
 import { logTaskActivity } from "@/lib/activity";
 import type { BoardChecklistItem } from "@/types";
@@ -117,14 +122,19 @@ export function ChecklistSection({
               >
                 {item.title}
               </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                onClick={() => handleDelete(item.id)}
-              >
-                <Trash2 className="h-3 w-3 text-muted-foreground" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                    onClick={() => handleDelete(item.id)}
+                  >
+                    <Trash2 className="h-3 w-3 text-muted-foreground" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Delete item</TooltipContent>
+              </Tooltip>
             </div>
           ))}
       </div>
@@ -136,15 +146,20 @@ export function ChecklistSection({
           placeholder="Add an item..."
           className="h-8 text-sm"
         />
-        <Button
-          type="submit"
-          size="sm"
-          variant="outline"
-          className="h-8"
-          disabled={loading || !newTitle.trim()}
-        >
-          <Plus className="h-3 w-3" />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              type="submit"
+              size="sm"
+              variant="outline"
+              className="h-8"
+              disabled={loading || !newTitle.trim()}
+            >
+              <Plus className="h-3 w-3" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Add item</TooltipContent>
+        </Tooltip>
       </form>
     </div>
   );

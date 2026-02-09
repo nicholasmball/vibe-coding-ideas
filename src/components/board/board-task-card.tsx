@@ -5,6 +5,11 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, CheckSquare, Paperclip, Archive } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import { TaskLabelBadges } from "./task-label-badges";
 import { DueDateBadge } from "./due-date-badge";
 import { TaskDetailDialog } from "./task-detail-dialog";
@@ -191,33 +196,50 @@ export function BoardTaskCard({
                 )}
                 {task.due_date && <DueDateBadge dueDate={task.due_date} />}
                 {task.checklist_total > 0 && (
-                  <span
-                    className={`inline-flex items-center gap-1 text-[10px] font-medium ${
-                      task.checklist_done === task.checklist_total
-                        ? "text-emerald-400"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    <CheckSquare className="h-3 w-3" />
-                    {task.checklist_done}/{task.checklist_total}
-                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span
+                        className={`inline-flex items-center gap-1 text-[10px] font-medium ${
+                          task.checklist_done === task.checklist_total
+                            ? "text-emerald-400"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        <CheckSquare className="h-3 w-3" />
+                        {task.checklist_done}/{task.checklist_total}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Checklist</TooltipContent>
+                  </Tooltip>
                 )}
                 {!!attachmentCount && attachmentCount > 0 && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
-                    <Paperclip className="h-3 w-3" />
-                    {attachmentCount}
-                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+                        <Paperclip className="h-3 w-3" />
+                        {attachmentCount}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Attachments</TooltipContent>
+                  </Tooltip>
                 )}
               </div>
               {task.assignee && (
-                <Avatar className="h-5 w-5">
-                  <AvatarImage
-                    src={task.assignee.avatar_url ?? undefined}
-                  />
-                  <AvatarFallback className="text-[10px]">
-                    {assigneeInitials}
-                  </AvatarFallback>
-                </Avatar>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Avatar className="h-5 w-5">
+                      <AvatarImage
+                        src={task.assignee.avatar_url ?? undefined}
+                      />
+                      <AvatarFallback className="text-[10px]">
+                        {assigneeInitials}
+                      </AvatarFallback>
+                    </Avatar>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {task.assignee.full_name ?? "Assigned"}
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
           </div>
