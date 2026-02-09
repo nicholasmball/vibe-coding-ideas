@@ -12,13 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LABEL_COLORS } from "@/lib/constants";
 import { getLabelColorConfig } from "@/lib/utils";
-import {
-  createBoardLabel,
-  updateBoardLabel,
-  deleteBoardLabel,
-  addLabelToTask,
-  removeLabelFromTask,
-} from "@/actions/board";
+import { createClient } from "@/lib/supabase/client";
 import type { BoardLabel } from "@/types";
 
 interface LabelPickerProps {
@@ -48,7 +42,7 @@ export function LabelPicker({
     () => new Set(taskLabels.map((l) => l.id))
   );
 
-  // Sync with props when they change (after server revalidation)
+  // Sync with props when they change (after Realtime refresh)
   const [lastTaskLabelsKey, setLastTaskLabelsKey] = useState(
     () => taskLabels.map((l) => l.id).sort().join(",")
   );
@@ -72,13 +66,22 @@ export function LabelPicker({
       return next;
     });
 
-    try {
-      if (isCurrentlyAssigned) {
-        await removeLabelFromTask(taskId, labelId, ideaId);
-      } else {
-        await addLabelToTask(taskId, labelId, ideaId);
-      }
-    } catch {
+    const supabase = createClient();
+    let error;
+
+    if (isCurrentlyAssigned) {
+      ({ error } = await supabase
+        .from("board_task_labels")
+        .delete()
+        .eq("task_id", taskId)
+        .eq("label_id", labelId));
+    } else {
+      ({ error } = await supabase
+        .from("board_task_labels")
+        .insert({ task_id: taskId, label_id: labelId }));
+    }
+
+    if (error) {
       // Revert on error
       setLocalLabelIds((prev) => {
         const next = new Set(prev);
@@ -97,47 +100,49 @@ export function LabelPicker({
     if (!newName.trim()) return;
 
     setSaving(true);
-    try {
-      await createBoardLabel(ideaId, newName.trim(), newColor);
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("board_labels")
+      .insert({ idea_id: ideaId, name: newName.trim(), color: newColor });
+
+    if (!error) {
       setNewName("");
       setNewColor("blue");
       setCreating(false);
-    } catch {
-      // RLS
-    } finally {
-      setSaving(false);
     }
+    setSaving(false);
   }
 
   async function handleUpdate(labelId: string) {
     if (!newName.trim()) return;
 
     setSaving(true);
-    try {
-      await updateBoardLabel(labelId, ideaId, {
-        name: newName.trim(),
-        color: newColor,
-      });
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("board_labels")
+      .update({ name: newName.trim(), color: newColor })
+      .eq("id", labelId);
+
+    if (!error) {
       setEditingId(null);
       setNewName("");
       setNewColor("blue");
-    } catch {
-      // RLS
-    } finally {
-      setSaving(false);
     }
+    setSaving(false);
   }
 
   async function handleDelete(labelId: string) {
     setSaving(true);
-    try {
-      await deleteBoardLabel(labelId, ideaId);
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("board_labels")
+      .delete()
+      .eq("id", labelId);
+
+    if (!error) {
       setEditingId(null);
-    } catch {
-      // RLS
-    } finally {
-      setSaving(false);
     }
+    setSaving(false);
   }
 
   function startEdit(label: BoardLabel) {
