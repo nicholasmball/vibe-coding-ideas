@@ -74,12 +74,12 @@ export function ImportBulkTextTab({
       } else {
         toast.success(`Imported ${result.created} task${result.created !== 1 ? "s" : ""}`);
       }
+      onImportingChange(false);
       onComplete();
     } catch (err) {
       toast.error("Import failed", {
         description: err instanceof Error ? err.message : "Unknown error",
       });
-    } finally {
       onImportingChange(false);
     }
   }
