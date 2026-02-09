@@ -53,17 +53,22 @@ export function getLabelColorConfig(color: string) {
 
 export function stripMarkdown(text: string): string {
   return text
-    .replace(/#{1,6}\s+/g, "")          // headings
+    .replace(/```[\s\S]*?```/g, "")      // fenced code blocks
+    .replace(/^#{1,6}\s+.*$/gm, "")      // entire heading lines
+    .replace(/^[-*_]{3,}\s*$/gm, "")     // horizontal rules
     .replace(/\*\*\*(.*?)\*\*\*/g, "$1") // bold italic
     .replace(/\*\*(.*?)\*\*/g, "$1")     // bold
     .replace(/\*(.*?)\*/g, "$1")         // italic
     .replace(/~~(.*?)~~/g, "$1")         // strikethrough
-    .replace(/`{1,3}[^`]*`{1,3}/g, "")  // inline/block code
+    .replace(/`([^`]*)`/g, "$1")         // inline code
     .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // links
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, "") // images
     .replace(/^[-*+]\s+/gm, "")         // unordered list markers
     .replace(/^\d+\.\s+/gm, "")         // ordered list markers
     .replace(/^>\s+/gm, "")             // blockquotes
+    .replace(/\|[^\n]*\|/g, "")         // table rows
     .replace(/\n{2,}/g, " ")            // collapse multiple newlines
     .replace(/\n/g, " ")                // remaining newlines
+    .replace(/\s{2,}/g, " ")            // collapse multiple spaces
     .trim();
 }
