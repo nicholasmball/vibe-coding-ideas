@@ -299,20 +299,46 @@ export function KanbanBoard({
       const col = columns.find((c) => c.id === activeColumnId);
       if (!col) return;
 
-      const taskIndex = col.tasks.findIndex((t) => t.id === active.id);
-      if (taskIndex === -1) return;
+      const activeIndex = col.tasks.findIndex((t) => t.id === active.id);
+      if (activeIndex === -1) return;
 
+      // Determine the target index from the over item
+      const overData = over.data.current;
+      let overIndex: number;
+      if (overData?.type === "task") {
+        overIndex = col.tasks.findIndex((t) => t.id === over.id);
+        if (overIndex === -1) overIndex = activeIndex;
+      } else {
+        // Dropped on column droppable (empty area) — keep current spot
+        overIndex = activeIndex;
+      }
+
+      // If position unchanged, nothing to persist
+      if (activeIndex === overIndex && col.tasks[activeIndex].column_id === activeColumnId) {
+        return;
+      }
+
+      // Reorder the task list optimistically (handles same-column reorder)
+      const reordered = arrayMove(col.tasks, activeIndex, overIndex);
+      setColumns((prev) =>
+        prev.map((c) =>
+          c.id === activeColumnId ? { ...c, tasks: reordered } : c
+        )
+      );
+
+      // Calculate position based on the reordered array
+      const taskIndex = overIndex;
       let newPosition: number;
-      if (col.tasks.length === 1) {
+      if (reordered.length === 1) {
         newPosition = 0;
       } else if (taskIndex === 0) {
-        newPosition = col.tasks[1].position - POSITION_GAP;
-      } else if (taskIndex === col.tasks.length - 1) {
-        newPosition = col.tasks[taskIndex - 1].position + POSITION_GAP;
+        newPosition = reordered[1].position - POSITION_GAP;
+      } else if (taskIndex === reordered.length - 1) {
+        newPosition = reordered[taskIndex - 1].position + POSITION_GAP;
       } else {
         newPosition = Math.round(
-          (col.tasks[taskIndex - 1].position +
-            col.tasks[taskIndex + 1].position) /
+          (reordered[taskIndex - 1].position +
+            reordered[taskIndex + 1].position) /
             2
         );
       }
