@@ -9,7 +9,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { updateBoardTask } from "@/actions/board";
+import { createClient } from "@/lib/supabase/client";
 import { formatDueDate, getDueDateStatus } from "@/lib/utils";
 
 interface DueDatePickerProps {
@@ -20,10 +20,11 @@ interface DueDatePickerProps {
 
 export function DueDatePicker({ taskId, ideaId, dueDate }: DueDatePickerProps) {
   const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [optimisticDate, setOptimisticDate] = useState<string | null | undefined>(undefined);
 
-  const selected = dueDate ? new Date(dueDate) : undefined;
-  const status = dueDate ? getDueDateStatus(dueDate) : null;
+  const displayDate = optimisticDate !== undefined ? optimisticDate : dueDate;
+  const selected = displayDate ? new Date(displayDate) : undefined;
+  const status = displayDate ? getDueDateStatus(displayDate) : null;
 
   const statusStyles = {
     overdue: "text-red-400",
@@ -32,21 +33,26 @@ export function DueDatePicker({ taskId, ideaId, dueDate }: DueDatePickerProps) {
   };
 
   async function handleSelect(date: Date | undefined) {
-    setLoading(true);
-    try {
-      await updateBoardTask(taskId, ideaId, {
-        due_date: date ? date.toISOString() : null,
-      });
-      if (!date) setOpen(false);
-    } catch {
-      // RLS will block unauthorized
-    } finally {
-      setLoading(false);
+    const isoDate = date ? date.toISOString() : null;
+    setOptimisticDate(isoDate);
+    setOpen(false);
+
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("board_tasks")
+      .update({ due_date: isoDate })
+      .eq("id", taskId);
+
+    if (error) {
+      // Revert on failure
+      setOptimisticDate(undefined);
     }
+    // Realtime will pick up the change and refresh the page,
+    // at which point the server prop will be correct.
   }
 
-  async function handleClear() {
-    await handleSelect(undefined);
+  function handleClear() {
+    handleSelect(undefined);
   }
 
   return (
@@ -56,10 +62,9 @@ export function DueDatePicker({ taskId, ideaId, dueDate }: DueDatePickerProps) {
           variant="outline"
           size="sm"
           className={`h-8 gap-1.5 text-xs ${status ? statusStyles[status] : ""}`}
-          disabled={loading}
         >
           <CalendarDays className="h-3.5 w-3.5" />
-          {dueDate ? formatDueDate(dueDate) : "Set due date"}
+          {displayDate ? formatDueDate(displayDate) : "Set due date"}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-0" align="start">
@@ -69,14 +74,13 @@ export function DueDatePicker({ taskId, ideaId, dueDate }: DueDatePickerProps) {
           onSelect={handleSelect}
           initialFocus
         />
-        {dueDate && (
+        {displayDate && (
           <div className="border-t p-2">
             <Button
               variant="ghost"
               size="sm"
               className="w-full gap-1.5 text-xs text-muted-foreground"
               onClick={handleClear}
-              disabled={loading}
             >
               <X className="h-3 w-3" />
               Remove due date
