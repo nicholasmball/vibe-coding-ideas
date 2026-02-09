@@ -35,7 +35,7 @@ export function AddColumnButton({ ideaId }: AddColumnButtonProps) {
     return (
       <Button
         variant="outline"
-        className="h-auto min-h-[200px] min-w-[280px] border-dashed"
+        className="h-auto min-w-[280px] self-start border-dashed py-6"
         onClick={() => setIsAdding(true)}
       >
         <Plus className="mr-2 h-4 w-4" />
