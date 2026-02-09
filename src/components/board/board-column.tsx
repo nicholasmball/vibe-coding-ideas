@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { useDroppable } from "@dnd-kit/core";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { MoreHorizontal, Plus, Pencil, Trash2 } from "lucide-react";
+import { MoreHorizontal, Plus, Pencil, Trash2, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -27,27 +28,46 @@ import type {
 
 interface BoardColumnProps {
   column: BoardColumnWithTasks;
+  totalTaskCount: number;
   ideaId: string;
   teamMembers: User[];
   boardLabels: BoardLabel[];
   checklistItemsByTaskId: Record<string, BoardChecklistItem[]>;
+  highlightQuery?: string;
+  currentUserId: string;
 }
 
 export function BoardColumn({
   column,
+  totalTaskCount,
   ideaId,
   teamMembers,
   boardLabels,
   checklistItemsByTaskId,
+  highlightQuery,
+  currentUserId,
 }: BoardColumnProps) {
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  const { setNodeRef, isOver } = useDroppable({
-    id: `column-${column.id}`,
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+    isOver,
+  } = useSortable({
+    id: column.id,
     data: { type: "column", columnId: column.id },
   });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
 
   const taskIds = column.tasks.map((t) => t.id);
 
@@ -63,16 +83,27 @@ export function BoardColumn({
   return (
     <>
       <div
+        ref={setNodeRef}
+        style={style}
         className={`flex min-w-[280px] max-w-[320px] shrink-0 flex-col rounded-lg border border-border bg-muted/50 ${
           isOver ? "ring-2 ring-primary/50" : ""
-        }`}
+        } ${isDragging ? "opacity-50" : ""}`}
       >
         {/* Column header */}
         <div className="flex items-center justify-between border-b border-border px-3 py-2">
-          <h3 className="text-sm font-semibold">
-            {column.title}{" "}
-            <span className="text-muted-foreground">({column.tasks.length})</span>
-          </h3>
+          <div className="flex items-center gap-1.5">
+            <button
+              className="cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
+              {...attributes}
+              {...listeners}
+            >
+              <GripVertical className="h-4 w-4" />
+            </button>
+            <h3 className="text-sm font-semibold">
+              {column.title}{" "}
+              <span className="text-muted-foreground">({totalTaskCount})</span>
+            </h3>
+          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-7 w-7">
@@ -97,7 +128,7 @@ export function BoardColumn({
         </div>
 
         {/* Task list */}
-        <div ref={setNodeRef} className="flex-1 space-y-2 overflow-y-auto p-2" style={{ minHeight: "100px" }}>
+        <div className="flex-1 space-y-2 overflow-y-auto p-2" style={{ minHeight: "100px" }}>
           <SortableContext
             items={taskIds}
             strategy={verticalListSortingStrategy}
@@ -111,6 +142,8 @@ export function BoardColumn({
                 teamMembers={teamMembers}
                 boardLabels={boardLabels}
                 checklistItems={checklistItemsByTaskId[task.id] ?? []}
+                highlightQuery={highlightQuery}
+                currentUserId={currentUserId}
               />
             ))}
           </SortableContext>

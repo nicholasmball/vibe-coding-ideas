@@ -299,6 +299,8 @@ export type Database = {
           due_date: string | null;
           checklist_total: number;
           checklist_done: number;
+          archived: boolean;
+          attachment_count: number;
           created_at: string;
           updated_at: string;
         };
@@ -313,6 +315,8 @@ export type Database = {
           due_date?: string | null;
           checklist_total?: number;
           checklist_done?: number;
+          archived?: boolean;
+          attachment_count?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -327,6 +331,8 @@ export type Database = {
           due_date?: string | null;
           checklist_total?: number;
           checklist_done?: number;
+          archived?: boolean;
+          attachment_count?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -463,6 +469,168 @@ export type Database = {
             columns: ["idea_id"];
             isOneToOne: false;
             referencedRelation: "ideas";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      board_task_activity: {
+        Row: {
+          id: string;
+          task_id: string;
+          idea_id: string;
+          actor_id: string;
+          action: string;
+          details: Json | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          task_id: string;
+          idea_id: string;
+          actor_id: string;
+          action: string;
+          details?: Json | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          task_id?: string;
+          idea_id?: string;
+          actor_id?: string;
+          action?: string;
+          details?: Json | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "board_task_activity_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "board_tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "board_task_activity_idea_id_fkey";
+            columns: ["idea_id"];
+            isOneToOne: false;
+            referencedRelation: "ideas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "board_task_activity_actor_id_fkey";
+            columns: ["actor_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      board_task_comments: {
+        Row: {
+          id: string;
+          task_id: string;
+          idea_id: string;
+          author_id: string;
+          content: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          task_id: string;
+          idea_id: string;
+          author_id: string;
+          content: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          task_id?: string;
+          idea_id?: string;
+          author_id?: string;
+          content?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "board_task_comments_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "board_tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "board_task_comments_idea_id_fkey";
+            columns: ["idea_id"];
+            isOneToOne: false;
+            referencedRelation: "ideas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "board_task_comments_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      board_task_attachments: {
+        Row: {
+          id: string;
+          task_id: string;
+          idea_id: string;
+          uploaded_by: string;
+          file_name: string;
+          file_size: number;
+          content_type: string;
+          storage_path: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          task_id: string;
+          idea_id: string;
+          uploaded_by: string;
+          file_name: string;
+          file_size: number;
+          content_type: string;
+          storage_path: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          task_id?: string;
+          idea_id?: string;
+          uploaded_by?: string;
+          file_name?: string;
+          file_size?: number;
+          content_type?: string;
+          storage_path?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "board_task_attachments_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "board_tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "board_task_attachments_idea_id_fkey";
+            columns: ["idea_id"];
+            isOneToOne: false;
+            referencedRelation: "ideas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "board_task_attachments_uploaded_by_fkey";
+            columns: ["uploaded_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
             referencedColumns: ["id"];
           },
         ];

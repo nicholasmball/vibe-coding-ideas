@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { LABEL_COLORS } from "@/lib/constants";
 import { getLabelColorConfig } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { logTaskActivity } from "@/lib/activity";
 import type { BoardLabel } from "@/types";
 
 interface LabelPickerProps {
@@ -20,6 +21,7 @@ interface LabelPickerProps {
   taskLabels: BoardLabel[];
   taskId: string;
   ideaId: string;
+  currentUserId?: string;
   children: React.ReactNode;
 }
 
@@ -28,6 +30,7 @@ export function LabelPicker({
   taskLabels,
   taskId,
   ideaId,
+  currentUserId,
   children,
 }: LabelPickerProps) {
   const [open, setOpen] = useState(false);
@@ -92,6 +95,15 @@ export function LabelPicker({
         }
         return next;
       });
+    } else if (currentUserId) {
+      const label = boardLabels.find((l) => l.id === labelId);
+      logTaskActivity(
+        taskId,
+        ideaId,
+        currentUserId,
+        isCurrentlyAssigned ? "label_removed" : "label_added",
+        { label_name: label?.name ?? "Unknown" }
+      );
     }
   }
 

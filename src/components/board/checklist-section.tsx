@@ -6,28 +6,25 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  createChecklistItem,
-  toggleChecklistItem,
-  deleteChecklistItem,
-} from "@/actions/board";
+import { createClient } from "@/lib/supabase/client";
+import { logTaskActivity } from "@/lib/activity";
 import type { BoardChecklistItem } from "@/types";
 
 interface ChecklistSectionProps {
   items: BoardChecklistItem[];
   taskId: string;
   ideaId: string;
+  currentUserId?: string;
 }
 
 export function ChecklistSection({
   items,
   taskId,
   ideaId,
+  currentUserId,
 }: ChecklistSectionProps) {
   const [newTitle, setNewTitle] = useState("");
   const [loading, setLoading] = useState(false);
-  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
-  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
 
   const total = items.length;
   const done = items.filter((i) => i.completed).length;
@@ -38,44 +35,52 @@ export function ChecklistSection({
     if (!newTitle.trim()) return;
 
     setLoading(true);
-    try {
-      await createChecklistItem(taskId, ideaId, newTitle.trim());
+    const supabase = createClient();
+    const maxPos = items.length > 0
+      ? Math.max(...items.map((i) => i.position))
+      : -1;
+
+    const { error } = await supabase.from("board_checklist_items").insert({
+      task_id: taskId,
+      idea_id: ideaId,
+      title: newTitle.trim(),
+      position: maxPos + 1,
+    });
+
+    if (!error) {
+      if (currentUserId) {
+        logTaskActivity(taskId, ideaId, currentUserId, "checklist_item_added", {
+          title: newTitle.trim(),
+        });
+      }
       setNewTitle("");
-    } catch {
-      // RLS will block unauthorized
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   }
 
   async function handleToggle(itemId: string) {
-    setTogglingIds((prev) => new Set(prev).add(itemId));
-    try {
-      await toggleChecklistItem(itemId, ideaId);
-    } catch {
-      // RLS will block unauthorized
-    } finally {
-      setTogglingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(itemId);
-        return next;
+    const item = items.find((i) => i.id === itemId);
+    if (!item) return;
+
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("board_checklist_items")
+      .update({ completed: !item.completed })
+      .eq("id", itemId);
+
+    if (!error && currentUserId && !item.completed) {
+      logTaskActivity(taskId, ideaId, currentUserId, "checklist_item_completed", {
+        title: item.title,
       });
     }
   }
 
   async function handleDelete(itemId: string) {
-    setDeletingIds((prev) => new Set(prev).add(itemId));
-    try {
-      await deleteChecklistItem(itemId, ideaId);
-    } catch {
-      // RLS will block unauthorized
-    } finally {
-      setDeletingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(itemId);
-        return next;
-      });
-    }
+    const supabase = createClient();
+    await supabase
+      .from("board_checklist_items")
+      .delete()
+      .eq("id", itemId);
   }
 
   return (
@@ -102,7 +107,6 @@ export function ChecklistSection({
               <Checkbox
                 checked={item.completed}
                 onCheckedChange={() => handleToggle(item.id)}
-                disabled={togglingIds.has(item.id)}
               />
               <span
                 className={`flex-1 text-sm ${
@@ -118,7 +122,6 @@ export function ChecklistSection({
                 size="icon"
                 className="h-6 w-6 opacity-0 group-hover:opacity-100"
                 onClick={() => handleDelete(item.id)}
-                disabled={deletingIds.has(item.id)}
               >
                 <Trash2 className="h-3 w-3 text-muted-foreground" />
               </Button>

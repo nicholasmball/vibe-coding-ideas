@@ -50,11 +50,16 @@ export type BoardTask = Database["public"]["Tables"]["board_tasks"]["Row"];
 export type BoardLabel = Database["public"]["Tables"]["board_labels"]["Row"];
 export type BoardTaskLabel = Database["public"]["Tables"]["board_task_labels"]["Row"];
 export type BoardChecklistItem = Database["public"]["Tables"]["board_checklist_items"]["Row"];
+export type BoardTaskActivity = Database["public"]["Tables"]["board_task_activity"]["Row"];
+export type BoardTaskComment = Database["public"]["Tables"]["board_task_comments"]["Row"];
+export type BoardTaskAttachment = Database["public"]["Tables"]["board_task_attachments"]["Row"];
 export type BoardTaskWithAssignee = BoardTask & {
   assignee: User | null;
   labels: BoardLabel[];
 };
 export type BoardColumnWithTasks = BoardColumn & { tasks: BoardTaskWithAssignee[] };
+export type BoardTaskActivityWithActor = BoardTaskActivity & { actor: User };
+export type BoardTaskCommentWithAuthor = BoardTaskComment & { author: User };
 
 // Dashboard types
 export type DashboardTask = BoardTask & {

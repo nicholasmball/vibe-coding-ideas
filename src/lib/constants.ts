@@ -74,6 +74,26 @@ export const LABEL_COLORS = [
   { value: "zinc", label: "Gray", badgeClass: "bg-zinc-500/90 text-white", swatchColor: "bg-zinc-500" },
 ];
 
+export const ACTIVITY_ACTIONS: Record<string, { label: string; icon: string }> = {
+  created: { label: "created this task", icon: "Plus" },
+  moved: { label: "moved this task", icon: "ArrowRight" },
+  assigned: { label: "assigned", icon: "UserPlus" },
+  unassigned: { label: "unassigned", icon: "UserMinus" },
+  due_date_set: { label: "set the due date", icon: "CalendarDays" },
+  due_date_removed: { label: "removed the due date", icon: "CalendarX" },
+  label_added: { label: "added a label", icon: "Tag" },
+  label_removed: { label: "removed a label", icon: "TagX" },
+  archived: { label: "archived this task", icon: "Archive" },
+  unarchived: { label: "unarchived this task", icon: "ArchiveRestore" },
+  title_changed: { label: "changed the title", icon: "Pencil" },
+  description_changed: { label: "updated the description", icon: "FileText" },
+  checklist_item_added: { label: "added a checklist item", icon: "ListPlus" },
+  checklist_item_completed: { label: "completed a checklist item", icon: "CheckSquare" },
+  comment_added: { label: "added a comment", icon: "MessageSquare" },
+  attachment_added: { label: "added an attachment", icon: "Paperclip" },
+  attachment_removed: { label: "removed an attachment", icon: "Trash2" },
+};
+
 export const SUGGESTED_TAGS = [
   "ai",
   "web",

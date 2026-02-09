@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -15,11 +15,14 @@ import {
 import {
   SortableContext,
   horizontalListSortingStrategy,
+  arrayMove,
 } from "@dnd-kit/sortable";
 import { BoardColumn } from "./board-column";
 import { AddColumnButton } from "./add-column-button";
-import { moveBoardTask } from "@/actions/board";
+import { BoardToolbar } from "./board-toolbar";
+import { moveBoardTask, reorderBoardColumns } from "@/actions/board";
 import { POSITION_GAP } from "@/lib/constants";
+import { getDueDateStatus } from "@/lib/utils";
 import type {
   BoardColumnWithTasks,
   BoardTaskWithAssignee,
@@ -34,6 +37,7 @@ interface KanbanBoardProps {
   teamMembers: User[];
   boardLabels: BoardLabel[];
   checklistItemsByTaskId: Record<string, BoardChecklistItem[]>;
+  currentUserId: string;
 }
 
 export function KanbanBoard({
@@ -42,17 +46,27 @@ export function KanbanBoard({
   teamMembers,
   boardLabels,
   checklistItemsByTaskId,
+  currentUserId,
 }: KanbanBoardProps) {
   const [columns, setColumns] = useState(initialColumns);
   const [activeTask, setActiveTask] = useState<BoardTaskWithAssignee | null>(
     null
   );
+  const [activeColumn, setActiveColumn] =
+    useState<BoardColumnWithTasks | null>(null);
+
+  // Filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [assigneeFilter, setAssigneeFilter] = useState("all");
+  const [labelFilter, setLabelFilter] = useState<string[]>([]);
+  const [dueDateFilter, setDueDateFilter] = useState("all");
+  const [showArchived, setShowArchived] = useState(false);
 
   // Update columns when server data changes (via realtime refresh)
-  // Include task metadata (labels, due dates, checklist counts) in the key
   const serverKey = JSON.stringify(
     initialColumns.map((c) => [
       c.id,
+      c.position,
       c.tasks.map((t) => [
         t.id,
         t.labels.map((l) => l.id).sort(),
@@ -61,14 +75,89 @@ export function KanbanBoard({
         t.checklist_done,
         t.assignee_id,
         t.title,
+        (t as BoardTaskWithAssignee & { archived?: boolean }).archived,
+        (t as BoardTaskWithAssignee & { attachment_count?: number })
+          .attachment_count,
       ]),
     ])
   );
   const [lastServerKey, setLastServerKey] = useState(serverKey);
-  if (serverKey !== lastServerKey && !activeTask) {
+  if (serverKey !== lastServerKey && !activeTask && !activeColumn) {
     setColumns(initialColumns);
     setLastServerKey(serverKey);
   }
+
+  // Count archived tasks across all columns
+  const archivedCount = useMemo(
+    () =>
+      columns.reduce(
+        (acc, col) =>
+          acc +
+          col.tasks.filter(
+            (t) =>
+              (t as BoardTaskWithAssignee & { archived?: boolean }).archived
+          ).length,
+        0
+      ),
+    [columns]
+  );
+
+  // Derive filtered columns
+  const filteredColumns = useMemo(() => {
+    return columns.map((col) => ({
+      ...col,
+      tasks: col.tasks.filter((task) => {
+        // Archived filter
+        const isArchived = (
+          task as BoardTaskWithAssignee & { archived?: boolean }
+        ).archived;
+        if (isArchived && !showArchived) return false;
+
+        // Search filter
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
+          const matchesTitle = task.title.toLowerCase().includes(q);
+          const matchesDesc = task.description?.toLowerCase().includes(q);
+          if (!matchesTitle && !matchesDesc) return false;
+        }
+
+        // Assignee filter
+        if (assigneeFilter === "unassigned" && task.assignee_id) return false;
+        if (
+          assigneeFilter !== "all" &&
+          assigneeFilter !== "unassigned" &&
+          task.assignee_id !== assigneeFilter
+        )
+          return false;
+
+        // Label filter (task must have ALL selected labels)
+        if (labelFilter.length > 0) {
+          const taskLabelIds = task.labels.map((l) => l.id);
+          if (!labelFilter.every((id) => taskLabelIds.includes(id)))
+            return false;
+        }
+
+        // Due date filter
+        if (dueDateFilter !== "all" && task.due_date) {
+          const status = getDueDateStatus(task.due_date);
+          if (dueDateFilter === "overdue" && status !== "overdue") return false;
+          if (dueDateFilter === "due_soon" && status !== "due_soon")
+            return false;
+        } else if (dueDateFilter !== "all" && !task.due_date) {
+          return false;
+        }
+
+        return true;
+      }),
+    }));
+  }, [
+    columns,
+    searchQuery,
+    assigneeFilter,
+    labelFilter,
+    dueDateFilter,
+    showArchived,
+  ]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -76,11 +165,21 @@ export function KanbanBoard({
     })
   );
 
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    const { active } = event;
-    const task = active.data.current?.task as BoardTaskWithAssignee | undefined;
-    if (task) setActiveTask(task);
-  }, []);
+  const handleDragStart = useCallback(
+    (event: DragStartEvent) => {
+      const { active } = event;
+      const data = active.data.current;
+
+      if (data?.type === "column") {
+        const col = columns.find((c) => c.id === data.columnId);
+        if (col) setActiveColumn(col);
+      } else {
+        const task = data?.task as BoardTaskWithAssignee | undefined;
+        if (task) setActiveTask(task);
+      }
+    },
+    [columns]
+  );
 
   const handleDragOver = useCallback(
     (event: DragOverEvent) => {
@@ -100,7 +199,6 @@ export function KanbanBoard({
       } else if (overData?.type === "task") {
         overColumnId = overData.columnId as string;
       } else {
-        // Droppable area (column-xxx)
         const overId = String(over.id);
         if (overId.startsWith("column-")) {
           overColumnId = overId.replace("column-", "");
@@ -132,7 +230,6 @@ export function KanbanBoard({
             };
           }
           if (col.id === overColumnId) {
-            // Find insertion index
             let insertIndex = col.tasks.length;
             if (overData?.type === "task") {
               const overTaskIndex = col.tasks.findIndex(
@@ -151,7 +248,6 @@ export function KanbanBoard({
         });
       });
 
-      // Update the active task's column reference for further drag operations
       if (active.data.current) {
         active.data.current.columnId = overColumnId;
       }
@@ -162,23 +258,48 @@ export function KanbanBoard({
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       const { active, over } = event;
+      const activeData = active.data.current;
+
+      // Column drag end
+      if (activeData?.type === "column") {
+        setActiveColumn(null);
+        if (!over) return;
+
+        const activeId = activeData.columnId as string;
+        const overId = over.data.current?.columnId as string | undefined;
+        if (!overId || activeId === overId) return;
+
+        const oldIndex = columns.findIndex((c) => c.id === activeId);
+        const newIndex = columns.findIndex((c) => c.id === overId);
+        if (oldIndex === -1 || newIndex === -1) return;
+
+        const newColumns = arrayMove(columns, oldIndex, newIndex);
+        setColumns(newColumns);
+
+        try {
+          await reorderBoardColumns(
+            ideaId,
+            newColumns.map((c) => c.id)
+          );
+        } catch {
+          setColumns(initialColumns);
+        }
+        return;
+      }
+
+      // Task drag end
       setActiveTask(null);
 
       if (!over) return;
-
-      const activeData = active.data.current;
       if (!activeData || activeData.type !== "task") return;
 
       const activeColumnId = activeData.columnId as string;
-
-      // Find the task in the current (optimistic) state
       const col = columns.find((c) => c.id === activeColumnId);
       if (!col) return;
 
       const taskIndex = col.tasks.findIndex((t) => t.id === active.id);
       if (taskIndex === -1) return;
 
-      // Calculate position based on neighbors
       let newPosition: number;
       if (col.tasks.length === 1) {
         newPosition = 0;
@@ -202,48 +323,78 @@ export function KanbanBoard({
           newPosition
         );
       } catch {
-        // Revert on error - server refresh will fix state
         setColumns(initialColumns);
       }
     },
     [columns, ideaId, initialColumns]
   );
 
-  const columnIds = columns.map((c) => `column-${c.id}`);
+  const columnIds = columns.map((c) => c.id);
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="flex gap-4 overflow-x-auto pb-4">
-        <SortableContext
-          items={columnIds}
-          strategy={horizontalListSortingStrategy}
-        >
-          {columns.map((column) => (
-            <BoardColumn
-              key={column.id}
-              column={column}
-              ideaId={ideaId}
-              teamMembers={teamMembers}
-              boardLabels={boardLabels}
-              checklistItemsByTaskId={checklistItemsByTaskId}
-            />
-          ))}
-        </SortableContext>
-        <AddColumnButton ideaId={ideaId} />
-      </div>
-      <DragOverlay>
-        {activeTask && (
-          <div className="w-[280px] rounded-md border border-primary bg-background p-3 shadow-lg">
-            <p className="text-sm font-medium">{activeTask.title}</p>
-          </div>
-        )}
-      </DragOverlay>
-    </DndContext>
+    <>
+      <BoardToolbar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        assigneeFilter={assigneeFilter}
+        onAssigneeChange={setAssigneeFilter}
+        labelFilter={labelFilter}
+        onLabelFilterChange={setLabelFilter}
+        dueDateFilter={dueDateFilter}
+        onDueDateChange={setDueDateFilter}
+        teamMembers={teamMembers}
+        boardLabels={boardLabels}
+        showArchived={showArchived}
+        onShowArchivedChange={setShowArchived}
+        archivedCount={archivedCount}
+      />
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex gap-4 overflow-x-auto pb-4">
+          <SortableContext
+            items={columnIds}
+            strategy={horizontalListSortingStrategy}
+          >
+            {filteredColumns.map((filteredCol) => {
+              const fullCol = columns.find((c) => c.id === filteredCol.id)!;
+              return (
+                <BoardColumn
+                  key={filteredCol.id}
+                  column={filteredCol}
+                  totalTaskCount={fullCol.tasks.length}
+                  ideaId={ideaId}
+                  teamMembers={teamMembers}
+                  boardLabels={boardLabels}
+                  checklistItemsByTaskId={checklistItemsByTaskId}
+                  highlightQuery={searchQuery}
+                  currentUserId={currentUserId}
+                />
+              );
+            })}
+          </SortableContext>
+          <AddColumnButton ideaId={ideaId} />
+        </div>
+        <DragOverlay>
+          {activeTask && (
+            <div className="w-[280px] rounded-md border border-primary bg-background p-3 shadow-lg">
+              <p className="text-sm font-medium">{activeTask.title}</p>
+            </div>
+          )}
+          {activeColumn && (
+            <div className="w-[280px] rounded-lg border border-primary bg-muted/50 p-3 shadow-lg opacity-80">
+              <p className="text-sm font-semibold">{activeColumn.title}</p>
+              <p className="text-xs text-muted-foreground">
+                {activeColumn.tasks.length} tasks
+              </p>
+            </div>
+          )}
+        </DragOverlay>
+      </DndContext>
+    </>
   );
 }

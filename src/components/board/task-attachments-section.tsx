@@ -1,0 +1,342 @@
+"use client";
+
+import { useEffect, useState, useCallback, useRef } from "react";
+import {
+  Paperclip,
+  Trash2,
+  Upload,
+  FileText,
+  Image as ImageIcon,
+  Download,
+  X,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { createClient } from "@/lib/supabase/client";
+import { formatRelativeTime } from "@/lib/utils";
+import { logTaskActivity } from "@/lib/activity";
+import type { BoardTaskAttachment } from "@/types";
+
+interface TaskAttachmentsSectionProps {
+  taskId: string;
+  ideaId: string;
+  currentUserId: string;
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1048576).toFixed(1)} MB`;
+}
+
+function isImageType(contentType: string): boolean {
+  return contentType.startsWith("image/");
+}
+
+export function TaskAttachmentsSection({
+  taskId,
+  ideaId,
+  currentUserId,
+}: TaskAttachmentsSectionProps) {
+  const [attachments, setAttachments] = useState<BoardTaskAttachment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const fetchAttachments = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("board_task_attachments")
+      .select("*")
+      .eq("task_id", taskId)
+      .order("created_at", { ascending: false });
+
+    setAttachments(data ?? []);
+    setLoading(false);
+  }, [taskId]);
+
+  useEffect(() => {
+    fetchAttachments();
+  }, [fetchAttachments]);
+
+  // Realtime
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`task-attachments-${taskId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "board_task_attachments",
+          filter: `task_id=eq.${taskId}`,
+        },
+        async (payload) => {
+          const { data } = await supabase
+            .from("board_task_attachments")
+            .select("*")
+            .eq("id", payload.new.id)
+            .single();
+
+          if (data) {
+            setAttachments((prev) => {
+              if (prev.some((a) => a.id === data.id)) return prev;
+              return [data, ...prev];
+            });
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "board_task_attachments",
+          filter: `task_id=eq.${taskId}`,
+        },
+        (payload) => {
+          setAttachments((prev) =>
+            prev.filter((a) => a.id !== payload.old.id)
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [taskId]);
+
+  // Paste handler for images
+  useEffect(() => {
+    function handlePaste(e: ClipboardEvent) {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      for (const item of items) {
+        if (item.type.startsWith("image/")) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) uploadFile(file);
+          break;
+        }
+      }
+    }
+
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [taskId, ideaId, currentUserId]);
+
+  async function uploadFile(file: File) {
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size must be under 10MB");
+      return;
+    }
+
+    setUploading(true);
+    const supabase = createClient();
+
+    const ext = file.name.split(".").pop() ?? "";
+    const uniqueName = `${crypto.randomUUID()}.${ext}`;
+    const storagePath = `${ideaId}/${taskId}/${uniqueName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("task-attachments")
+      .upload(storagePath, file);
+
+    if (uploadError) {
+      console.error("Upload failed:", uploadError.message);
+      setUploading(false);
+      return;
+    }
+
+    const { error: dbError } = await supabase
+      .from("board_task_attachments")
+      .insert({
+        task_id: taskId,
+        idea_id: ideaId,
+        uploaded_by: currentUserId,
+        file_name: file.name,
+        file_size: file.size,
+        content_type: file.type,
+        storage_path: storagePath,
+      });
+
+    if (!dbError) {
+      logTaskActivity(taskId, ideaId, currentUserId, "attachment_added", {
+        file_name: file.name,
+      });
+    }
+    setUploading(false);
+  }
+
+  async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files?.length) return;
+
+    for (const file of files) {
+      await uploadFile(file);
+    }
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
+  async function handleDelete(attachment: BoardTaskAttachment) {
+    const supabase = createClient();
+
+    // Delete from storage
+    await supabase.storage
+      .from("task-attachments")
+      .remove([attachment.storage_path]);
+
+    // Delete from DB
+    const { error } = await supabase
+      .from("board_task_attachments")
+      .delete()
+      .eq("id", attachment.id);
+
+    if (!error) {
+      logTaskActivity(taskId, ideaId, currentUserId, "attachment_removed", {
+        file_name: attachment.file_name,
+      });
+    }
+  }
+
+  async function handleDownload(attachment: BoardTaskAttachment) {
+    const supabase = createClient();
+    const { data } = await supabase.storage
+      .from("task-attachments")
+      .createSignedUrl(attachment.storage_path, 60);
+
+    if (data?.signedUrl) {
+      window.open(data.signedUrl, "_blank");
+    }
+  }
+
+  async function handlePreview(attachment: BoardTaskAttachment) {
+    const supabase = createClient();
+    const { data } = await supabase.storage
+      .from("task-attachments")
+      .createSignedUrl(attachment.storage_path, 300);
+
+    if (data?.signedUrl) {
+      setPreviewUrl(data.signedUrl);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Paperclip className="h-4 w-4" />
+        <span className="text-sm font-medium">
+          Attachments{attachments.length > 0 ? ` (${attachments.length})` : ""}
+        </span>
+      </div>
+
+      {loading ? (
+        <p className="text-xs text-muted-foreground">Loading...</p>
+      ) : attachments.length > 0 ? (
+        <ScrollArea className="max-h-48">
+          <div className="grid grid-cols-2 gap-2 pr-4">
+            {attachments.map((attachment) => (
+              <div
+                key={attachment.id}
+                className="group relative flex items-center gap-2 rounded-md border border-border p-2"
+              >
+                {isImageType(attachment.content_type) ? (
+                  <button
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted"
+                    onClick={() => handlePreview(attachment)}
+                  >
+                    <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                ) : (
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[11px] font-medium">
+                    {attachment.file_name}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {formatFileSize(attachment.file_size)} &middot;{" "}
+                    {formatRelativeTime(attachment.created_at)}
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-0.5 opacity-0 group-hover:opacity-100">
+                  <button
+                    className="rounded p-1 text-muted-foreground hover:text-foreground"
+                    onClick={() => handleDownload(attachment)}
+                  >
+                    <Download className="h-3 w-3" />
+                  </button>
+                  {attachment.uploaded_by === currentUserId && (
+                    <button
+                      className="rounded p-1 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleDelete(attachment)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      ) : null}
+
+      <div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          className="hidden"
+          onChange={handleFileSelect}
+          multiple
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5 text-xs"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+        >
+          <Upload className="h-3.5 w-3.5" />
+          {uploading ? "Uploading..." : "Upload file"}
+        </Button>
+        <p className="mt-1 text-[10px] text-muted-foreground">
+          Max 10MB. Paste images from clipboard.
+        </p>
+      </div>
+
+      {/* Image preview overlay */}
+      {previewUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+          onClick={() => setPreviewUrl(null)}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-4 top-4 text-white hover:bg-white/20"
+            onClick={() => setPreviewUrl(null)}
+          >
+            <X className="h-5 w-5" />
+          </Button>
+          <img
+            src={previewUrl}
+            alt="Preview"
+            className="max-h-[80vh] max-w-[80vw] rounded-lg object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+    </div>
+  );
+}

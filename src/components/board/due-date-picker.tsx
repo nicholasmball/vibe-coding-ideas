@@ -11,14 +11,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { formatDueDate, getDueDateStatus } from "@/lib/utils";
+import { logTaskActivity } from "@/lib/activity";
 
 interface DueDatePickerProps {
   taskId: string;
   ideaId: string;
   dueDate: string | null;
+  currentUserId?: string;
 }
 
-export function DueDatePicker({ taskId, ideaId, dueDate }: DueDatePickerProps) {
+export function DueDatePicker({ taskId, ideaId, dueDate, currentUserId }: DueDatePickerProps) {
   const [open, setOpen] = useState(false);
   const [optimisticDate, setOptimisticDate] = useState<string | null | undefined>(undefined);
 
@@ -46,9 +48,14 @@ export function DueDatePicker({ taskId, ideaId, dueDate }: DueDatePickerProps) {
     if (error) {
       // Revert on failure
       setOptimisticDate(undefined);
+    } else if (currentUserId) {
+      logTaskActivity(
+        taskId,
+        ideaId,
+        currentUserId,
+        isoDate ? "due_date_set" : "due_date_removed"
+      );
     }
-    // Realtime will pick up the change and refresh the page,
-    // at which point the server prop will be correct.
   }
 
   function handleClear() {

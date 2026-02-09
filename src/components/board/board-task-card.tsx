@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, CheckSquare } from "lucide-react";
+import { GripVertical, CheckSquare, Paperclip, Archive } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TaskLabelBadges } from "./task-label-badges";
 import { DueDateBadge } from "./due-date-badge";
@@ -22,6 +22,35 @@ interface BoardTaskCardProps {
   teamMembers: User[];
   boardLabels: BoardLabel[];
   checklistItems: BoardChecklistItem[];
+  highlightQuery?: string;
+  currentUserId: string;
+}
+
+function HighlightedText({
+  text,
+  query,
+}: {
+  text: string;
+  query: string;
+}) {
+  if (!query) return <>{text}</>;
+
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
+  const parts = text.split(regex);
+
+  return (
+    <>
+      {parts.map((part, i) =>
+        regex.test(part) ? (
+          <mark key={i} className="bg-yellow-500/30 rounded-sm">
+            {part}
+          </mark>
+        ) : (
+          part
+        )
+      )}
+    </>
+  );
 }
 
 export function BoardTaskCard({
@@ -31,8 +60,16 @@ export function BoardTaskCard({
   teamMembers,
   boardLabels,
   checklistItems,
+  highlightQuery,
+  currentUserId,
 }: BoardTaskCardProps) {
   const [detailOpen, setDetailOpen] = useState(false);
+
+  const isArchived = (task as BoardTaskWithAssignee & { archived?: boolean })
+    .archived;
+  const attachmentCount = (
+    task as BoardTaskWithAssignee & { attachment_count?: number }
+  ).attachment_count;
 
   const {
     attributes,
@@ -41,19 +78,26 @@ export function BoardTaskCard({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id, data: { type: "task", task, columnId } });
+  } = useSortable({
+    id: task.id,
+    data: { type: "task", task, columnId },
+    disabled: !!isArchived,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   };
 
-  const assigneeInitials =
-    task.assignee?.full_name
-      ?.split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase() ?? null;
+  const assigneeInitials = useMemo(
+    () =>
+      task.assignee?.full_name
+        ?.split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase() ?? null,
+    [task.assignee?.full_name]
+  );
 
   return (
     <>
@@ -62,18 +106,20 @@ export function BoardTaskCard({
         style={style}
         className={`group cursor-pointer rounded-md border border-border bg-background p-3 shadow-sm ${
           isDragging ? "opacity-50" : ""
-        }`}
+        } ${isArchived ? "opacity-50" : ""}`}
         onClick={() => setDetailOpen(true)}
       >
         <div className="flex items-start gap-2">
-          <button
-            className="mt-0.5 cursor-grab text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
-            {...attributes}
-            {...listeners}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <GripVertical className="h-4 w-4" />
-          </button>
+          {!isArchived && (
+            <button
+              className="mt-0.5 cursor-grab text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
+              {...attributes}
+              {...listeners}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <GripVertical className="h-4 w-4" />
+            </button>
+          )}
           <div className="min-w-0 flex-1">
             {/* Labels */}
             {task.labels.length > 0 && (
@@ -82,17 +128,36 @@ export function BoardTaskCard({
               </div>
             )}
 
-            <p className="text-sm font-medium leading-snug">{task.title}</p>
+            <p className="text-sm font-medium leading-snug">
+              {highlightQuery ? (
+                <HighlightedText text={task.title} query={highlightQuery} />
+              ) : (
+                task.title
+              )}
+            </p>
 
             {task.description && (
               <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-                {task.description}
+                {highlightQuery ? (
+                  <HighlightedText
+                    text={task.description}
+                    query={highlightQuery}
+                  />
+                ) : (
+                  task.description
+                )}
               </p>
             )}
 
-            {/* Metadata row: due date, checklist count, assignee */}
+            {/* Metadata row */}
             <div className="mt-2 flex items-center gap-2">
               <div className="flex flex-1 flex-wrap items-center gap-1.5">
+                {isArchived && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+                    <Archive className="h-3 w-3" />
+                    Archived
+                  </span>
+                )}
                 {task.due_date && <DueDateBadge dueDate={task.due_date} />}
                 {task.checklist_total > 0 && (
                   <span
@@ -104,6 +169,12 @@ export function BoardTaskCard({
                   >
                     <CheckSquare className="h-3 w-3" />
                     {task.checklist_done}/{task.checklist_total}
+                  </span>
+                )}
+                {!!attachmentCount && attachmentCount > 0 && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+                    <Paperclip className="h-3 w-3" />
+                    {attachmentCount}
                   </span>
                 )}
               </div>
@@ -129,6 +200,7 @@ export function BoardTaskCard({
         boardLabels={boardLabels}
         checklistItems={checklistItems}
         teamMembers={teamMembers}
+        currentUserId={currentUserId}
       />
     </>
   );

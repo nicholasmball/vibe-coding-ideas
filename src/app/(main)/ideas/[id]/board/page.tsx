@@ -192,6 +192,7 @@ export default async function BoardPage({ params }: PageProps) {
         teamMembers={teamMembers}
         boardLabels={(boardLabels ?? []) as BoardLabel[]}
         checklistItemsByTaskId={checklistItemsByTaskId}
+        currentUserId={user.id}
       />
     </div>
   );

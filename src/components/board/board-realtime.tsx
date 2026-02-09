@@ -61,6 +61,36 @@ export function BoardRealtime({ ideaId }: { ideaId: string }) {
         },
         () => router.refresh()
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "board_task_activity",
+          filter: `idea_id=eq.${ideaId}`,
+        },
+        () => router.refresh()
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "board_task_comments",
+          filter: `idea_id=eq.${ideaId}`,
+        },
+        () => router.refresh()
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "board_task_attachments",
+          filter: `idea_id=eq.${ideaId}`,
+        },
+        () => router.refresh()
+      )
       .subscribe();
 
     return () => {

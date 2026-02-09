@@ -53,7 +53,7 @@ src/
 │   ├── layout/             # navbar, theme-toggle, notification-bell
 │   ├── auth/               # oauth-buttons
 │   ├── ideas/              # card, feed, form, edit-form, vote-button, etc.
-│   ├── board/              # kanban-board, board-column, board-task-card, task-edit-dialog, task-detail-dialog, column-edit-dialog, add-column-button, board-realtime, label-picker, due-date-picker, due-date-badge, task-label-badges, checklist-section
+│   ├── board/              # kanban-board, board-column, board-task-card, board-toolbar, task-edit-dialog, task-detail-dialog, column-edit-dialog, add-column-button, board-realtime, label-picker, due-date-picker, due-date-badge, task-label-badges, checklist-section, activity-timeline, task-comments-section, task-attachments-section
 │   ├── dashboard/          # stats-cards, my-tasks-list, activity-feed
 │   ├── comments/           # thread, item, form, type-badge
 │   └── profile/            # header, tabs, delete-user-button, edit-profile-dialog, notification-settings, complete-profile-banner
@@ -61,7 +61,8 @@ src/
 │   ├── use-user.ts         # Client-side auth state
 │   └── use-realtime.ts     # Supabase realtime subscription
 ├── lib/
-│   ├── constants.ts        # Status/comment type configs, sort options, tags, board defaults, LABEL_COLORS
+│   ├── activity.ts         # logTaskActivity() — client-side fire-and-forget activity logging
+│   ├── constants.ts        # Status/comment type configs, sort options, tags, board defaults, LABEL_COLORS, ACTIVITY_ACTIONS
 │   ├── utils.ts            # cn(), formatRelativeTime(), getDueDateStatus(), formatDueDate(), getLabelColorConfig()
 │   └── supabase/
 │       ├── client.ts       # Browser client (createBrowserClient)
@@ -71,7 +72,7 @@ src/
 │   ├── database.ts         # Supabase Database type (manual, includes Relationships)
 │   └── index.ts            # Derived types (IdeaWithAuthor, CommentWithAuthor, DashboardTask, etc.)
 middleware.ts               # Root middleware (calls updateSession)
-supabase/migrations/        # 17 SQL migration files (run in order)
+supabase/migrations/        # 23 SQL migration files (run in order)
 ```
 
 ## Key Patterns
@@ -97,7 +98,7 @@ supabase/migrations/        # 17 SQL migration files (run in order)
 - `useUser()` hook for client-side auth state
 
 ### Database
-- 11 tables: users, ideas, comments, collaborators, votes, notifications, board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items
+- 14 tables: users, ideas, comments, collaborators, votes, notifications, board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items, board_task_activity, board_task_comments, board_task_attachments
 - Denormalized counts on ideas (upvotes, comment_count, collaborator_count) maintained by triggers
 - Users auto-created from auth.users via trigger
 - Notifications auto-created via triggers on comments/votes/collaborators (respect user preferences)
@@ -113,6 +114,15 @@ supabase/migrations/        # 17 SQL migration files (run in order)
 - Board tasks support labels (colored, per-idea), due dates, and checklists (subtasks)
 - `board_tasks.checklist_total` and `checklist_done` are denormalized counts maintained by `update_checklist_counts()` trigger
 - Clicking a task card opens a rich detail dialog (task-detail-dialog) for editing all task properties
+- Board toolbar provides search, assignee/label/due-date filters, and archived toggle
+- Columns are draggable (reorderable) via drag handle in column header
+- Tasks can be archived/unarchived from the detail dialog; archived tasks are hidden by default
+- `board_tasks.archived` (boolean) and `board_tasks.attachment_count` (denormalized, trigger-maintained)
+- `board_task_activity` tracks all task changes with actor, action, and details (JSONB)
+- Activity is logged client-side via `logTaskActivity()` fire-and-forget calls
+- `board_task_comments` stores markdown comments per task, with Realtime subscription
+- `board_task_attachments` + `task-attachments` storage bucket (private, 10MB limit)
+- `update_attachment_count()` trigger maintains `board_tasks.attachment_count`
 
 ## Environment Variables
 
