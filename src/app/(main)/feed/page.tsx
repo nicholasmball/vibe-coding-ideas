@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { IdeaFeed } from "@/components/ideas/idea-feed";
 import { CompleteProfileBanner } from "@/components/profile/complete-profile-banner";
-import type { SortOption, IdeaWithAuthor } from "@/types";
+import type { SortOption, IdeaStatus, IdeaWithAuthor } from "@/types";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -14,12 +14,13 @@ const PAGE_SIZE = 10;
 export default async function FeedPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sort?: string; q?: string; tag?: string; page?: string }>;
+  searchParams: Promise<{ sort?: string; q?: string; tag?: string; status?: string; page?: string }>;
 }) {
   const params = await searchParams;
   const sort = (params.sort as SortOption) || "newest";
   const search = params.q || "";
   const tag = params.tag || "";
+  const status = (params.status as IdeaStatus) || "";
   const page = Math.max(1, parseInt(params.page || "1", 10));
   const supabase = await createClient();
 
@@ -39,6 +40,11 @@ export default async function FeedPage({
   // Tag filter
   if (tag) {
     query = query.contains("tags", [tag]);
+  }
+
+  // Status filter
+  if (status) {
+    query = query.eq("status", status);
   }
 
   // Sorting
@@ -110,6 +116,7 @@ export default async function FeedPage({
         currentSort={sort}
         currentSearch={search}
         currentTag={tag}
+        currentStatus={status}
         currentPage={page}
         totalPages={totalPages}
         allTags={allTags}

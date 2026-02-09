@@ -14,8 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SORT_OPTIONS } from "@/lib/constants";
-import type { IdeaWithAuthor, SortOption } from "@/types";
+import { SORT_OPTIONS, STATUS_CONFIG } from "@/lib/constants";
+import type { IdeaWithAuthor, IdeaStatus, SortOption } from "@/types";
 
 interface IdeaFeedProps {
   ideas: IdeaWithAuthor[];
@@ -24,6 +24,7 @@ interface IdeaFeedProps {
   currentSort: SortOption;
   currentSearch: string;
   currentTag: string;
+  currentStatus: string;
   currentPage: number;
   totalPages: number;
   allTags: string[];
@@ -36,6 +37,7 @@ export function IdeaFeed({
   currentSort,
   currentSearch,
   currentTag,
+  currentStatus,
   currentPage,
   totalPages,
   allTags,
@@ -74,21 +76,41 @@ export function IdeaFeed({
     <div>
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Idea Feed</h1>
-        <Select
-          value={currentSort}
-          onValueChange={(v) => updateParams({ sort: v })}
-        >
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Sort by" />
-          </SelectTrigger>
-          <SelectContent>
-            {SORT_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select
+            value={currentStatus || "all"}
+            onValueChange={(v) => updateParams({ status: v === "all" ? "" : v })}
+          >
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All statuses</SelectItem>
+              {(Object.entries(STATUS_CONFIG) as [IdeaStatus, { label: string }][]).map(
+                ([value, config]) => (
+                  <SelectItem key={value} value={value}>
+                    {config.label}
+                  </SelectItem>
+                )
+              )}
+            </SelectContent>
+          </Select>
+          <Select
+            value={currentSort}
+            onValueChange={(v) => updateParams({ sort: v })}
+          >
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Search bar */}
@@ -140,7 +162,7 @@ export function IdeaFeed({
       )}
 
       {/* Active filters */}
-      {(currentSearch || currentTag) && (
+      {(currentSearch || currentTag || currentStatus) && (
         <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
           <span>Showing results for:</span>
           {currentSearch && (
@@ -159,6 +181,14 @@ export function IdeaFeed({
               </button>
             </Badge>
           )}
+          {currentStatus && (
+            <Badge variant="secondary" className="gap-1">
+              {STATUS_CONFIG[currentStatus as IdeaStatus]?.label ?? currentStatus}
+              <button onClick={() => updateParams({ status: "" })}>
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
         </div>
       )}
 
@@ -166,7 +196,7 @@ export function IdeaFeed({
       {ideas.length === 0 ? (
         <div className="py-16 text-center">
           <p className="text-lg text-muted-foreground">
-            {currentSearch || currentTag
+            {currentSearch || currentTag || currentStatus
               ? "No ideas match your filters."
               : "No ideas yet. Be the first to share one!"}
           </p>
