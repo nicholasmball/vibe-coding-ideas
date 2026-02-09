@@ -32,6 +32,7 @@ src/
 │   │   └── callback/       # OAuth callback route handler
 │   └── (main)/             # Authenticated routes (with navbar)
 │       ├── layout.tsx      # Navbar wrapper
+│       ├── dashboard/      # Personal dashboard (stats, tasks, ideas, activity)
 │       ├── feed/           # Idea feed with search/filter/pagination
 │       ├── ideas/new       # Submit idea form
 │       ├── ideas/[id]      # Idea detail (votes, comments, collaborators)
@@ -53,6 +54,7 @@ src/
 │   ├── auth/               # oauth-buttons
 │   ├── ideas/              # card, feed, form, edit-form, vote-button, etc.
 │   ├── board/              # kanban-board, board-column, board-task-card, task-edit-dialog, task-detail-dialog, column-edit-dialog, add-column-button, board-realtime, label-picker, due-date-picker, due-date-badge, task-label-badges, checklist-section
+│   ├── dashboard/          # stats-cards, my-tasks-list, activity-feed
 │   ├── comments/           # thread, item, form, type-badge
 │   └── profile/            # header, tabs, delete-user-button, edit-profile-dialog, notification-settings, complete-profile-banner
 ├── hooks/
@@ -67,7 +69,7 @@ src/
 │       └── middleware.ts    # Session refresh + route protection
 ├── types/
 │   ├── database.ts         # Supabase Database type (manual, includes Relationships)
-│   └── index.ts            # Derived types (IdeaWithAuthor, CommentWithAuthor, etc.)
+│   └── index.ts            # Derived types (IdeaWithAuthor, CommentWithAuthor, DashboardTask, etc.)
 middleware.ts               # Root middleware (calls updateSession)
 supabase/migrations/        # 17 SQL migration files (run in order)
 ```
@@ -88,7 +90,7 @@ supabase/migrations/        # 17 SQL migration files (run in order)
 - Client components use `"use client"` directive
 
 ### Auth Flow
-- Middleware protects `/feed`, `/ideas`, `/profile` routes (redirects to `/login`)
+- Middleware protects `/dashboard`, `/feed`, `/ideas`, `/profile` routes (redirects to `/login`)
 - Middleware redirects logged-in users away from `/login`, `/signup`
 - OAuth callback at `/callback` exchanges code for session
 - Email/password with forgot/reset password flow

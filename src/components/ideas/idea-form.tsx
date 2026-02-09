@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,7 +15,12 @@ import {
 import { TagInput } from "./tag-input";
 import { createIdea } from "@/actions/ideas";
 
-export function IdeaForm() {
+interface IdeaFormProps {
+  githubUsername?: string | null;
+}
+
+export function IdeaForm({ githubUsername }: IdeaFormProps) {
+  const router = useRouter();
   const [tags, setTags] = useState<string[]>([]);
 
   return (
@@ -37,6 +43,7 @@ export function IdeaForm() {
               placeholder="A catchy title for your idea"
               required
               maxLength={200}
+              autoFocus
             />
           </div>
 
@@ -66,13 +73,24 @@ export function IdeaForm() {
               id="github_url"
               name="github_url"
               type="url"
-              placeholder="https://github.com/username/repo"
+              placeholder={githubUsername ? `https://github.com/${githubUsername}/repo` : "https://github.com/username/repo"}
             />
           </div>
 
-          <Button type="submit" className="w-full" size="lg">
-            Submit Idea
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              className="flex-1"
+              onClick={() => router.back()}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" size="lg" className="flex-1">
+              Submit Idea
+            </Button>
+          </div>
         </form>
       </CardContent>
     </Card>

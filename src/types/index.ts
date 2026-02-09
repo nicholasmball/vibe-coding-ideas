@@ -56,5 +56,13 @@ export type BoardTaskWithAssignee = BoardTask & {
 };
 export type BoardColumnWithTasks = BoardColumn & { tasks: BoardTaskWithAssignee[] };
 
+// Dashboard types
+export type DashboardTask = BoardTask & {
+  assignee: User | null;
+  labels: BoardLabel[];
+  column: { id: string; title: string };
+  idea: { id: string; title: string };
+};
+
 // Sort options
 export type SortOption = "newest" | "popular" | "discussed";

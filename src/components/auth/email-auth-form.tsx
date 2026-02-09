@@ -39,7 +39,7 @@ export function EmailAuthForm({ mode }: EmailAuthFormProps) {
         setError(error.message);
         setLoading(false);
       } else {
-        router.push("/feed");
+        router.push("/dashboard");
       }
     } else {
       const { data, error } = await supabase.auth.signUp({

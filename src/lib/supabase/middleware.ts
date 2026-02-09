@@ -34,7 +34,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Protect authenticated routes
-  const protectedPaths = ["/feed", "/ideas", "/profile"];
+  const protectedPaths = ["/dashboard", "/feed", "/ideas", "/profile"];
   const isProtectedPath = protectedPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)
   );
@@ -54,7 +54,7 @@ export async function updateSession(request: NextRequest) {
 
   if (user && isAuthPath) {
     const url = request.nextUrl.clone();
-    url.pathname = "/feed";
+    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 

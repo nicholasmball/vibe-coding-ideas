@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server";
 import { IdeaForm } from "@/components/ideas/idea-form";
 import type { Metadata } from "next";
 
@@ -6,10 +7,25 @@ export const metadata: Metadata = {
   description: "Share your vibe coding project idea with the community",
 };
 
-export default function NewIdeaPage() {
+export default async function NewIdeaPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let githubUsername: string | null = null;
+  if (user) {
+    const { data } = await supabase
+      .from("users")
+      .select("github_username")
+      .eq("id", user.id)
+      .maybeSingle();
+    githubUsername = data?.github_username ?? null;
+  }
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
-      <IdeaForm />
+      <IdeaForm githubUsername={githubUsername} />
     </div>
   );
 }
