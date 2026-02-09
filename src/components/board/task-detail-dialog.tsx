@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Tag, Trash2 } from "lucide-react";
 import {
   Dialog,
@@ -57,6 +57,7 @@ export function TaskDetailDialog({
   const [savingTitle, setSavingTitle] = useState(false);
   const [savingDesc, setSavingDesc] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Sync state when task prop changes
   const [lastTaskId, setLastTaskId] = useState(task.id);
@@ -104,14 +105,22 @@ export function TaskDetailDialog({
     }
   }
 
-  async function handleDelete() {
-    setDeleting(true);
-    try {
-      await deleteBoardTask(task.id, ideaId);
-      onOpenChange(false);
-    } catch {
-      setDeleting(false);
+  const confirmTimer = useRef<ReturnType<typeof setTimeout>>(null);
+
+  function handleDeleteClick() {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      confirmTimer.current = setTimeout(() => setConfirmDelete(false), 3000);
+      return;
     }
+    if (confirmTimer.current) clearTimeout(confirmTimer.current);
+    setDeleting(true);
+    deleteBoardTask(task.id, ideaId)
+      .then(() => onOpenChange(false))
+      .catch(() => {
+        setDeleting(false);
+        setConfirmDelete(false);
+      });
   }
 
   const assigneeInitials =
@@ -233,14 +242,14 @@ export function TaskDetailDialog({
           {/* Actions */}
           <div className="flex justify-end">
             <Button
-              variant="destructive"
+              variant="ghost"
               size="sm"
-              className="gap-1.5"
-              onClick={handleDelete}
+              className={`gap-1.5 ${confirmDelete ? "text-destructive font-medium" : "text-muted-foreground"}`}
+              onClick={handleDeleteClick}
               disabled={deleting}
             >
               <Trash2 className="h-3.5 w-3.5" />
-              {deleting ? "Deleting..." : "Delete task"}
+              {deleting ? "Deleting..." : confirmDelete ? "Are you sure?" : "Delete task"}
             </Button>
           </div>
         </div>
