@@ -121,6 +121,22 @@ export default async function DashboardPage() {
 
   const collabIdeas = (collabIdeasResult.data ?? []) as unknown as IdeaWithAuthor[];
 
+  // Fetch task counts for all displayed ideas
+  const allDisplayedIdeaIds = [
+    ...myIdeas.map((i) => i.id),
+    ...collabIdeas.map((i) => i.id),
+  ];
+  const taskCounts: Record<string, number> = {};
+  if (allDisplayedIdeaIds.length > 0) {
+    const { data: taskRows } = await supabase
+      .from("board_tasks")
+      .select("idea_id")
+      .in("idea_id", allDisplayedIdeaIds);
+    for (const row of taskRows ?? []) {
+      taskCounts[row.idea_id] = (taskCounts[row.idea_id] ?? 0) + 1;
+    }
+  }
+
   // Build labels map
   const labelsMap = new Map<string, BoardLabel[]>();
   for (const row of taskLabelsResult.data ?? []) {
@@ -197,6 +213,7 @@ export default async function DashboardPage() {
                 key={idea.id}
                 idea={idea}
                 hasVoted={votedIdeaIds.has(idea.id)}
+                taskCount={taskCounts[idea.id]}
               />
             ))}
           </div>
@@ -238,6 +255,7 @@ export default async function DashboardPage() {
                 key={idea.id}
                 idea={idea}
                 hasVoted={votedIdeaIds.has(idea.id)}
+                taskCount={taskCounts[idea.id]}
               />
             ))}
           </div>

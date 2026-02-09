@@ -20,6 +20,7 @@ import type { IdeaWithAuthor, SortOption } from "@/types";
 interface IdeaFeedProps {
   ideas: IdeaWithAuthor[];
   userVotes: string[];
+  taskCounts: Record<string, number>;
   currentSort: SortOption;
   currentSearch: string;
   currentTag: string;
@@ -31,6 +32,7 @@ interface IdeaFeedProps {
 export function IdeaFeed({
   ideas,
   userVotes,
+  taskCounts,
   currentSort,
   currentSearch,
   currentTag,
@@ -176,6 +178,7 @@ export function IdeaFeed({
               key={idea.id}
               idea={idea}
               hasVoted={userVotes.includes(idea.id)}
+              taskCount={taskCounts[idea.id]}
             />
           ))}
         </div>

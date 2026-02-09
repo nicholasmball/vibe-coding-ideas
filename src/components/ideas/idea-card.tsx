@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MessageSquare, Users } from "lucide-react";
+import { MessageSquare, Users, LayoutDashboard, Github } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -11,9 +11,10 @@ import type { IdeaWithAuthor } from "@/types";
 interface IdeaCardProps {
   idea: IdeaWithAuthor;
   hasVoted: boolean;
+  taskCount?: number;
 }
 
-export function IdeaCard({ idea, hasVoted }: IdeaCardProps) {
+export function IdeaCard({ idea, hasVoted, taskCount }: IdeaCardProps) {
   const initials =
     idea.author.full_name
       ?.split(" ")
@@ -77,6 +78,15 @@ export function IdeaCard({ idea, hasVoted }: IdeaCardProps) {
               <Users className="h-3.5 w-3.5" />
               {idea.collaborator_count}
             </span>
+            {taskCount != null && taskCount > 0 && (
+              <span className="flex items-center gap-1">
+                <LayoutDashboard className="h-3.5 w-3.5" />
+                {taskCount}
+              </span>
+            )}
+            {idea.github_url && (
+              <Github className="h-3.5 w-3.5" />
+            )}
           </div>
         </div>
       </CardContent>

@@ -81,11 +81,22 @@ export default async function FeedPage({
     showProfileBanner = !profile?.full_name || !profile?.bio || !profile?.contact_info;
   }
 
-  // Get all unique tags for the filter
-  const { data: allIdeas } = await supabase
-    .from("ideas")
-    .select("tags");
-  const allTags = [...new Set((allIdeas ?? []).flatMap((i) => i.tags))].sort();
+  // Get all unique tags for the filter and task counts
+  const ideaIds = (ideas ?? []).map((i) => i.id);
+  const [allIdeasResult, taskCountsResult] = await Promise.all([
+    supabase.from("ideas").select("tags"),
+    ideaIds.length > 0
+      ? supabase
+          .from("board_tasks")
+          .select("idea_id")
+          .in("idea_id", ideaIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+  const allTags = [...new Set((allIdeasResult.data ?? []).flatMap((i) => i.tags))].sort();
+  const taskCounts: Record<string, number> = {};
+  for (const row of taskCountsResult.data ?? []) {
+    taskCounts[row.idea_id] = (taskCounts[row.idea_id] ?? 0) + 1;
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8">
@@ -95,6 +106,7 @@ export default async function FeedPage({
       <IdeaFeed
         ideas={(ideas as unknown as IdeaWithAuthor[]) ?? []}
         userVotes={userVotes}
+        taskCounts={taskCounts}
         currentSort={sort}
         currentSearch={search}
         currentTag={tag}

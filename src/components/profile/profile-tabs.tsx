@@ -11,6 +11,7 @@ interface ProfileTabsProps {
   collaborations: IdeaWithAuthor[];
   comments: (CommentWithAuthor & { idea_id: string; idea_title?: string })[];
   userVotes: string[];
+  taskCounts: Record<string, number>;
 }
 
 export function ProfileTabs({
@@ -18,6 +19,7 @@ export function ProfileTabs({
   collaborations,
   comments,
   userVotes,
+  taskCounts,
 }: ProfileTabsProps) {
   return (
     <Tabs defaultValue="ideas" className="mt-6">
@@ -40,6 +42,7 @@ export function ProfileTabs({
                 key={idea.id}
                 idea={idea}
                 hasVoted={userVotes.includes(idea.id)}
+                taskCount={taskCounts[idea.id]}
               />
             ))}
           </div>
@@ -57,6 +60,7 @@ export function ProfileTabs({
                 key={idea.id}
                 idea={idea}
                 hasVoted={userVotes.includes(idea.id)}
+                taskCount={taskCounts[idea.id]}
               />
             ))}
           </div>

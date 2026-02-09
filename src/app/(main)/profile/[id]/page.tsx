@@ -113,6 +113,22 @@ export default async function ProfilePage({ params }: PageProps) {
     isCurrentUserAdmin = adminCheck?.is_admin ?? false;
   }
 
+  // Fetch task counts for displayed ideas
+  const allProfileIdeaIds = [
+    ...(ideas ?? []).map((i) => i.id),
+    ...collabIdeas.map((i) => i.id),
+  ];
+  const taskCounts: Record<string, number> = {};
+  if (allProfileIdeaIds.length > 0) {
+    const { data: taskRows } = await supabase
+      .from("board_tasks")
+      .select("idea_id")
+      .in("idea_id", allProfileIdeaIds);
+    for (const row of taskRows ?? []) {
+      taskCounts[row.idea_id] = (taskCounts[row.idea_id] ?? 0) + 1;
+    }
+  }
+
   const showDeleteButton =
     isCurrentUserAdmin &&
     currentUser?.id !== id &&
@@ -144,6 +160,7 @@ export default async function ProfilePage({ params }: PageProps) {
         collaborations={collabIdeas}
         comments={comments as any}
         userVotes={userVotes}
+        taskCounts={taskCounts}
       />
     </div>
   );
