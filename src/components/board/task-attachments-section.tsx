@@ -9,6 +9,8 @@ import {
   Image as ImageIcon,
   Download,
   X,
+  ImagePlus,
+  ImageOff,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -21,6 +23,8 @@ interface TaskAttachmentsSectionProps {
   taskId: string;
   ideaId: string;
   currentUserId: string;
+  coverImagePath?: string | null;
+  onCoverChange?: (path: string | null) => void;
 }
 
 function formatFileSize(bytes: number): string {
@@ -37,12 +41,22 @@ export function TaskAttachmentsSection({
   taskId,
   ideaId,
   currentUserId,
+  coverImagePath: initialCoverPath,
+  onCoverChange,
 }: TaskAttachmentsSectionProps) {
   const [attachments, setAttachments] = useState<BoardTaskAttachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [localCoverPath, setLocalCoverPath] = useState<string | null>(initialCoverPath ?? null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync from prop when task changes
+  const [lastTaskId, setLastTaskId] = useState(taskId);
+  if (taskId !== lastTaskId) {
+    setLocalCoverPath(initialCoverPath ?? null);
+    setLastTaskId(taskId);
+  }
 
   const fetchAttachments = useCallback(async () => {
     const supabase = createClient();
@@ -169,6 +183,15 @@ export function TaskAttachmentsSection({
       logTaskActivity(taskId, ideaId, currentUserId, "attachment_added", {
         file_name: file.name,
       });
+
+      // Auto-set as cover if it's an image and no cover exists
+      if (isImageType(file.type) && !localCoverPath) {
+        await supabase
+          .from("board_tasks")
+          .update({ cover_image_path: storagePath })
+          .eq("id", taskId);
+        updateCover(storagePath);
+      }
     }
     setUploading(false);
   }
@@ -190,6 +213,15 @@ export function TaskAttachmentsSection({
   async function handleDelete(attachment: BoardTaskAttachment) {
     const supabase = createClient();
 
+    // If deleting the cover image, clear the cover
+    if (attachment.storage_path === localCoverPath) {
+      await supabase
+        .from("board_tasks")
+        .update({ cover_image_path: null })
+        .eq("id", taskId);
+      updateCover(null);
+    }
+
     // Delete from storage
     await supabase.storage
       .from("task-attachments")
@@ -206,6 +238,29 @@ export function TaskAttachmentsSection({
         file_name: attachment.file_name,
       });
     }
+  }
+
+  function updateCover(path: string | null) {
+    setLocalCoverPath(path);
+    onCoverChange?.(path);
+  }
+
+  async function handleSetCover(storagePath: string) {
+    updateCover(storagePath);
+    const supabase = createClient();
+    await supabase
+      .from("board_tasks")
+      .update({ cover_image_path: storagePath })
+      .eq("id", taskId);
+  }
+
+  async function handleRemoveCover() {
+    updateCover(null);
+    const supabase = createClient();
+    await supabase
+      .from("board_tasks")
+      .update({ cover_image_path: null })
+      .eq("id", taskId);
   }
 
   async function handleDownload(attachment: BoardTaskAttachment) {
@@ -271,6 +326,25 @@ export function TaskAttachmentsSection({
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-0.5 opacity-0 group-hover:opacity-100">
+                  {isImageType(attachment.content_type) && (
+                    attachment.storage_path === localCoverPath ? (
+                      <button
+                        className="rounded p-1 text-primary hover:text-primary/80"
+                        onClick={() => handleRemoveCover()}
+                        title="Remove cover"
+                      >
+                        <ImageOff className="h-3 w-3" />
+                      </button>
+                    ) : (
+                      <button
+                        className="rounded p-1 text-muted-foreground hover:text-foreground"
+                        onClick={() => handleSetCover(attachment.storage_path)}
+                        title="Set as cover"
+                      >
+                        <ImagePlus className="h-3 w-3" />
+                      </button>
+                    )
+                  )}
                   <button
                     className="rounded p-1 text-muted-foreground hover:text-foreground"
                     onClick={() => handleDownload(attachment)}

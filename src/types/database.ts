@@ -301,6 +301,7 @@ export type Database = {
           checklist_done: number;
           archived: boolean;
           attachment_count: number;
+          cover_image_path: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -317,6 +318,7 @@ export type Database = {
           checklist_done?: number;
           archived?: boolean;
           attachment_count?: number;
+          cover_image_path?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -333,6 +335,7 @@ export type Database = {
           checklist_done?: number;
           archived?: boolean;
           attachment_count?: number;
+          cover_image_path?: string | null;
           created_at?: string;
           updated_at?: string;
         };

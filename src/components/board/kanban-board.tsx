@@ -78,6 +78,8 @@ export function KanbanBoard({
         (t as BoardTaskWithAssignee & { archived?: boolean }).archived,
         (t as BoardTaskWithAssignee & { attachment_count?: number })
           .attachment_count,
+        (t as BoardTaskWithAssignee & { cover_image_path?: string | null })
+          .cover_image_path,
       ]),
     ])
   );
@@ -355,7 +357,7 @@ export function KanbanBoard({
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-4 overflow-x-auto pb-4">
+        <div className="flex items-start gap-4 overflow-x-auto pb-4">
           <SortableContext
             items={columnIds}
             strategy={horizontalListSortingStrategy}

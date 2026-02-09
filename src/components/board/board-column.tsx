@@ -128,7 +128,7 @@ export function BoardColumn({
         </div>
 
         {/* Task list */}
-        <div className="flex-1 space-y-2 overflow-y-auto p-2" style={{ minHeight: "100px" }}>
+        <div className="space-y-2 p-2" style={{ minHeight: "60px" }}>
           <SortableContext
             items={taskIds}
             strategy={verticalListSortingStrategy}

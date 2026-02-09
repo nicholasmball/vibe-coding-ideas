@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, CheckSquare, Paperclip, Archive } from "lucide-react";
@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TaskLabelBadges } from "./task-label-badges";
 import { DueDateBadge } from "./due-date-badge";
 import { TaskDetailDialog } from "./task-detail-dialog";
+import { createClient } from "@/lib/supabase/client";
 import type {
   BoardTaskWithAssignee,
   BoardLabel,
@@ -64,12 +65,33 @@ export function BoardTaskCard({
   currentUserId,
 }: BoardTaskCardProps) {
   const [detailOpen, setDetailOpen] = useState(false);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
 
   const isArchived = (task as BoardTaskWithAssignee & { archived?: boolean })
     .archived;
   const attachmentCount = (
     task as BoardTaskWithAssignee & { attachment_count?: number }
   ).attachment_count;
+  const coverImagePath = (
+    task as BoardTaskWithAssignee & { cover_image_path?: string | null }
+  ).cover_image_path;
+
+  // Fetch signed URL for cover image
+  useEffect(() => {
+    if (!coverImagePath) {
+      setCoverUrl(null);
+      return;
+    }
+    let cancelled = false;
+    const supabase = createClient();
+    supabase.storage
+      .from("task-attachments")
+      .createSignedUrl(coverImagePath, 3600)
+      .then(({ data }) => {
+        if (!cancelled && data?.signedUrl) setCoverUrl(data.signedUrl);
+      });
+    return () => { cancelled = true; };
+  }, [coverImagePath]);
 
   const {
     attributes,
@@ -104,12 +126,21 @@ export function BoardTaskCard({
       <div
         ref={setNodeRef}
         style={style}
-        className={`group cursor-pointer rounded-md border border-border bg-background p-3 shadow-sm ${
+        className={`group cursor-pointer overflow-hidden rounded-md border border-border bg-background shadow-sm ${
           isDragging ? "opacity-50" : ""
         } ${isArchived ? "opacity-50" : ""}`}
         onClick={() => setDetailOpen(true)}
       >
-        <div className="flex items-start gap-2">
+        {coverUrl && (
+          <div className="h-32 w-full">
+            <img
+              src={coverUrl}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          </div>
+        )}
+        <div className="flex items-start gap-2 p-3">
           {!isArchived && (
             <button
               className="mt-0.5 cursor-grab text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Tag, Trash2, Archive, ArchiveRestore } from "lucide-react";
 import {
   Dialog,
@@ -178,6 +178,35 @@ export function TaskDetailDialog({
   const attachmentCount = (
     task as BoardTaskWithAssignee & { attachment_count?: number }
   ).attachment_count;
+  const propCoverPath = (
+    task as BoardTaskWithAssignee & { cover_image_path?: string | null }
+  ).cover_image_path ?? null;
+
+  const [localCoverPath, setLocalCoverPath] = useState<string | null>(propCoverPath);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+
+  // Sync from prop when task changes (e.g. via Realtime refresh)
+  const [lastCoverProp, setLastCoverProp] = useState(propCoverPath);
+  if (propCoverPath !== lastCoverProp) {
+    setLocalCoverPath(propCoverPath);
+    setLastCoverProp(propCoverPath);
+  }
+
+  useEffect(() => {
+    if (!localCoverPath) {
+      setCoverUrl(null);
+      return;
+    }
+    let cancelled = false;
+    const supabase = createClient();
+    supabase.storage
+      .from("task-attachments")
+      .createSignedUrl(localCoverPath, 3600)
+      .then(({ data }) => {
+        if (!cancelled && data?.signedUrl) setCoverUrl(data.signedUrl);
+      });
+    return () => { cancelled = true; };
+  }, [localCoverPath]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -185,8 +214,19 @@ export function TaskDetailDialog({
         className="flex max-h-[85vh] flex-col gap-0 p-0 sm:max-w-lg"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
+        {/* Cover image */}
+        {coverUrl && (
+          <div className="h-40 w-full shrink-0 overflow-hidden">
+            <img
+              src={coverUrl}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          </div>
+        )}
+
         {/* Header — always visible */}
-        <DialogHeader className="px-6 pt-6 pb-0">
+        <DialogHeader className={`px-6 pb-0 ${coverUrl ? "pt-4" : "pt-6"}`}>
           <DialogTitle className="sr-only">Task Details</DialogTitle>
           <Input
             value={title}
@@ -332,6 +372,8 @@ export function TaskDetailDialog({
               taskId={task.id}
               ideaId={ideaId}
               currentUserId={currentUserId}
+              coverImagePath={localCoverPath}
+              onCoverChange={setLocalCoverPath}
             />
           </TabsContent>
 
