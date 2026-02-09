@@ -171,7 +171,7 @@ export default async function BoardPage({ params }: PageProps) {
   }));
 
   return (
-    <div className="flex h-full flex-col overflow-hidden px-4">
+    <div className="flex h-full flex-col overflow-hidden px-4 sm:px-6 lg:px-8">
       <BoardRealtime ideaId={id} />
 
       {/* Header */}
