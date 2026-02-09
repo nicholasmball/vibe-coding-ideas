@@ -171,11 +171,11 @@ export default async function BoardPage({ params }: PageProps) {
   }));
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8">
+    <div className="flex h-full flex-col overflow-hidden px-4">
       <BoardRealtime ideaId={id} />
 
       {/* Header */}
-      <div className="mb-6 flex items-center gap-4">
+      <div className="flex shrink-0 items-center gap-4 py-4">
         <Link href={`/ideas/${id}`}>
           <Button variant="ghost" size="sm" className="gap-2">
             <ArrowLeft className="h-4 w-4" />

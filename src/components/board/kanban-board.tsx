@@ -334,7 +334,7 @@ export function KanbanBoard({
   const columnIds = columns.map((c) => c.id);
 
   return (
-    <>
+    <div className="flex min-h-0 flex-1 flex-col">
       <BoardToolbar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -357,7 +357,7 @@ export function KanbanBoard({
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex items-start gap-4 overflow-x-auto pb-4">
+        <div className="flex min-h-0 flex-1 items-start gap-4 overflow-x-auto pb-4">
           <SortableContext
             items={columnIds}
             strategy={horizontalListSortingStrategy}
@@ -397,6 +397,6 @@ export function KanbanBoard({
           )}
         </DragOverlay>
       </DndContext>
-    </>
+    </div>
   );
 }

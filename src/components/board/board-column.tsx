@@ -85,7 +85,7 @@ export function BoardColumn({
       <div
         ref={setNodeRef}
         style={style}
-        className={`flex min-w-[280px] max-w-[320px] shrink-0 flex-col rounded-lg border border-border bg-muted/50 ${
+        className={`flex max-h-full min-w-[280px] max-w-[320px] shrink-0 flex-col rounded-lg border border-border bg-muted/50 ${
           isOver ? "ring-2 ring-primary/50" : ""
         } ${isDragging ? "opacity-50" : ""}`}
       >
@@ -128,7 +128,7 @@ export function BoardColumn({
         </div>
 
         {/* Task list */}
-        <div className="space-y-2 p-2" style={{ minHeight: "60px" }}>
+        <div className="min-h-[60px] flex-1 space-y-2 overflow-y-auto p-2">
           <SortableContext
             items={taskIds}
             strategy={verticalListSortingStrategy}
