@@ -349,6 +349,9 @@ export function KanbanBoard({
         showArchived={showArchived}
         onShowArchivedChange={setShowArchived}
         archivedCount={archivedCount}
+        columns={columns}
+        ideaId={ideaId}
+        currentUserId={currentUserId}
       />
       <DndContext
         sensors={sensors}

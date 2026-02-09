@@ -92,6 +92,7 @@ export const ACTIVITY_ACTIONS: Record<string, { label: string; icon: string }> =
   comment_added: { label: "added a comment", icon: "MessageSquare" },
   attachment_added: { label: "added an attachment", icon: "Paperclip" },
   attachment_removed: { label: "removed an attachment", icon: "Trash2" },
+  bulk_imported: { label: "imported this task", icon: "Upload" },
 };
 
 export const SUGGESTED_TAGS = [

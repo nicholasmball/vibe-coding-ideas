@@ -53,7 +53,7 @@ src/
 │   ├── layout/             # navbar, theme-toggle, notification-bell
 │   ├── auth/               # oauth-buttons
 │   ├── ideas/              # card, feed, form, edit-form, vote-button, etc.
-│   ├── board/              # kanban-board, board-column, board-task-card, board-toolbar, task-edit-dialog, task-detail-dialog, column-edit-dialog, add-column-button, board-realtime, label-picker, due-date-picker, due-date-badge, task-label-badges, checklist-section, activity-timeline, task-comments-section, task-attachments-section
+│   ├── board/              # kanban-board, board-column, board-task-card, board-toolbar, task-edit-dialog, task-detail-dialog, column-edit-dialog, add-column-button, board-realtime, label-picker, due-date-picker, due-date-badge, task-label-badges, checklist-section, activity-timeline, task-comments-section, task-attachments-section, import-dialog, import-csv-tab, import-json-tab, import-bulk-text-tab, import-column-mapper, import-preview-table
 │   ├── dashboard/          # stats-cards, my-tasks-list, activity-feed
 │   ├── comments/           # thread, item, form, type-badge
 │   └── profile/            # header, tabs, delete-user-button, edit-profile-dialog, notification-settings, complete-profile-banner
@@ -63,6 +63,7 @@ src/
 ├── lib/
 │   ├── activity.ts         # logTaskActivity() — client-side fire-and-forget activity logging
 │   ├── constants.ts        # Status/comment type configs, sort options, tags, board defaults, LABEL_COLORS, ACTIVITY_ACTIONS
+│   ├── import.ts           # CSV/JSON/bulk-text parsers, auto-mapping, executeBulkImport()
 │   ├── utils.ts            # cn(), formatRelativeTime(), getDueDateStatus(), formatDueDate(), getLabelColorConfig()
 │   └── supabase/
 │       ├── client.ts       # Browser client (createBrowserClient)
@@ -123,6 +124,11 @@ supabase/migrations/        # 23 SQL migration files (run in order)
 - `board_task_comments` stores markdown comments per task, with Realtime subscription
 - `board_task_attachments` + `task-attachments` storage bucket (private, 10MB limit)
 - `update_attachment_count()` trigger maintains `board_tasks.attachment_count`
+- Board import: CSV (with header mapping), JSON (Trello export + custom format), bulk text paste
+  - Import uses client-side Supabase for batch inserts (avoids N revalidatePath round-trips)
+  - Auto-maps column names case-insensitively, supports "Create new column"
+  - Max 500 tasks per import, inserted in batches of 50
+  - Creates labels/columns on-the-fly, resolves assignees by name/email
 
 ## Environment Variables
 

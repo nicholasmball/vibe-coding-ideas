@@ -1,6 +1,7 @@
 "use client";
 
-import { Search, X } from "lucide-react";
+import { useState } from "react";
+import { Search, X, Upload } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -17,7 +18,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getLabelColorConfig } from "@/lib/utils";
-import type { BoardLabel, User } from "@/types";
+import { ImportDialog } from "./import-dialog";
+import type { BoardColumnWithTasks, BoardLabel, User } from "@/types";
 
 interface BoardToolbarProps {
   searchQuery: string;
@@ -33,6 +35,9 @@ interface BoardToolbarProps {
   showArchived: boolean;
   onShowArchivedChange: (value: boolean) => void;
   archivedCount: number;
+  columns: BoardColumnWithTasks[];
+  ideaId: string;
+  currentUserId: string;
 }
 
 export function BoardToolbar({
@@ -49,7 +54,12 @@ export function BoardToolbar({
   showArchived,
   onShowArchivedChange,
   archivedCount,
+  columns,
+  ideaId,
+  currentUserId,
 }: BoardToolbarProps) {
+  const [importOpen, setImportOpen] = useState(false);
+
   function handleLabelToggle(labelId: string) {
     if (labelFilter.includes(labelId)) {
       onLabelFilterChange(labelFilter.filter((id) => id !== labelId));
@@ -172,6 +182,28 @@ export function BoardToolbar({
           Clear
         </Button>
       )}
+
+      <div className="ml-auto">
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5 text-xs"
+          onClick={() => setImportOpen(true)}
+        >
+          <Upload className="h-3.5 w-3.5" />
+          Import
+        </Button>
+      </div>
+
+      <ImportDialog
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        ideaId={ideaId}
+        currentUserId={currentUserId}
+        columns={columns}
+        boardLabels={boardLabels}
+        teamMembers={teamMembers}
+      />
     </div>
   );
 }
