@@ -70,11 +70,14 @@ export function TaskDetailDialog({
   const isArchived = (task as BoardTaskWithAssignee & { archived?: boolean })
     .archived;
 
+  const [localAssigneeId, setLocalAssigneeId] = useState<string | null>(task.assignee_id);
+
   // Sync state when task prop changes
   const [lastTaskId, setLastTaskId] = useState(task.id);
   if (task.id !== lastTaskId) {
     setTitle(task.title);
     setDescription(task.description ?? "");
+    setLocalAssigneeId(task.assignee_id);
     setLastTaskId(task.id);
   }
 
@@ -114,8 +117,15 @@ export function TaskDetailDialog({
 
   async function handleAssigneeChange(value: string) {
     const assigneeId = value === "unassigned" ? null : value;
-    try {
-      await updateBoardTask(task.id, ideaId, { assignee_id: assigneeId });
+    setLocalAssigneeId(assigneeId);
+
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("board_tasks")
+      .update({ assignee_id: assigneeId })
+      .eq("id", task.id);
+
+    if (!error) {
       if (assigneeId) {
         const member = teamMembers.find((m) => m.id === assigneeId);
         logTaskActivity(task.id, ideaId, currentUserId, "assigned", {
@@ -124,8 +134,8 @@ export function TaskDetailDialog({
       } else {
         logTaskActivity(task.id, ideaId, currentUserId, "unassigned");
       }
-    } catch {
-      // RLS
+    } else {
+      setLocalAssigneeId(task.assignee_id);
     }
   }
 
@@ -167,8 +177,11 @@ export function TaskDetailDialog({
       });
   }
 
+  const localAssignee = localAssigneeId
+    ? teamMembers.find((m) => m.id === localAssigneeId) ?? task.assignee
+    : null;
   const assigneeInitials =
-    task.assignee?.full_name
+    localAssignee?.full_name
       ?.split(" ")
       .map((n) => n[0])
       .join("")
@@ -289,16 +302,16 @@ export function TaskDetailDialog({
                 <div className="space-y-1.5">
                   <span className="text-sm font-medium">Assignee</span>
                   <div className="flex items-center gap-2">
-                    {task.assignee && (
+                    {localAssignee && (
                       <Avatar className="h-6 w-6">
-                        <AvatarImage src={task.assignee.avatar_url ?? undefined} />
+                        <AvatarImage src={localAssignee.avatar_url ?? undefined} />
                         <AvatarFallback className="text-[10px]">
                           {assigneeInitials}
                         </AvatarFallback>
                       </Avatar>
                     )}
                     <Select
-                      value={task.assignee_id ?? "unassigned"}
+                      value={localAssigneeId ?? "unassigned"}
                       onValueChange={handleAssigneeChange}
                     >
                       <SelectTrigger className="h-8 w-40 text-xs">
