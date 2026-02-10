@@ -84,11 +84,10 @@ export function KanbanBoard({
         t.checklist_done,
         t.assignee_id,
         t.title,
-        (t as BoardTaskWithAssignee & { archived?: boolean }).archived,
-        (t as BoardTaskWithAssignee & { attachment_count?: number })
-          .attachment_count,
-        (t as BoardTaskWithAssignee & { cover_image_path?: string | null })
-          .cover_image_path,
+        t.description,
+        t.archived,
+        t.attachment_count,
+        t.cover_image_path,
       ]),
     ])
   );
@@ -104,10 +103,7 @@ export function KanbanBoard({
       columns.reduce(
         (acc, col) =>
           acc +
-          col.tasks.filter(
-            (t) =>
-              (t as BoardTaskWithAssignee & { archived?: boolean }).archived
-          ).length,
+          col.tasks.filter((t) => t.archived).length,
         0
       ),
     [columns]
@@ -119,10 +115,7 @@ export function KanbanBoard({
       ...col,
       tasks: col.tasks.filter((task) => {
         // Archived filter
-        const isArchived = (
-          task as BoardTaskWithAssignee & { archived?: boolean }
-        ).archived;
-        if (isArchived && !showArchived) return false;
+        if (task.archived && !showArchived) return false;
 
         // Search filter
         if (searchQuery) {

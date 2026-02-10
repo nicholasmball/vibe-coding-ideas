@@ -13,9 +13,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Markdown } from "@/components/ui/markdown";
 import { MentionAutocomplete } from "./mention-autocomplete";
+import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/utils";
 import { logTaskActivity } from "@/lib/activity";
+import { createTaskComment, deleteTaskComment } from "@/actions/board";
 import type { BoardTaskCommentWithAuthor, User } from "@/types";
 
 interface TaskCommentsSectionProps {
@@ -218,30 +220,26 @@ export function TaskCommentsSection({
     if (!content.trim()) return;
 
     setSubmitting(true);
-    const supabase = createClient();
-    const { error } = await supabase.from("board_task_comments").insert({
-      task_id: taskId,
-      idea_id: ideaId,
-      author_id: currentUserId,
-      content: content.trim(),
-    });
-
-    if (!error) {
+    try {
+      await createTaskComment(taskId, ideaId, content.trim());
       logTaskActivity(taskId, ideaId, currentUserId, "comment_added");
       sendMentionNotifications();
       setContent("");
       setMentionQuery(null);
       setMentionedUserIds(new Set());
+    } catch {
+      toast.error("Failed to post comment");
+    } finally {
+      setSubmitting(false);
     }
-    setSubmitting(false);
   }
 
   async function handleDelete(commentId: string) {
-    const supabase = createClient();
-    await supabase
-      .from("board_task_comments")
-      .delete()
-      .eq("id", commentId);
+    try {
+      await deleteTaskComment(commentId, ideaId);
+    } catch {
+      toast.error("Failed to delete comment");
+    }
   }
 
   return (

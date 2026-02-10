@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Check } from "lucide-react";
 import {
   Popover,
@@ -92,7 +93,7 @@ export function LabelPicker({
         );
       }
     } catch {
-      // Revert on error
+      toast.error("Failed to update label");
       setLocalLabelIds((prev) => {
         const next = new Set(prev);
         if (isCurrentlyAssigned) {
@@ -116,7 +117,7 @@ export function LabelPicker({
       setNewColor("blue");
       setCreating(false);
     } catch {
-      // keep form open on error
+      toast.error("Failed to create label");
     } finally {
       setSaving(false);
     }
@@ -132,7 +133,7 @@ export function LabelPicker({
       setNewName("");
       setNewColor("blue");
     } catch {
-      // keep form open on error
+      toast.error("Failed to update label");
     } finally {
       setSaving(false);
     }
@@ -144,7 +145,7 @@ export function LabelPicker({
       await deleteBoardLabel(labelId, ideaId);
       setEditingId(null);
     } catch {
-      // stay open on error
+      toast.error("Failed to delete label");
     } finally {
       setSaving(false);
     }

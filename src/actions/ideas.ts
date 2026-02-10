@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { validateTitle, validateDescription, validateGithubUrl, validateTags } from "@/lib/validation";
 import type { IdeaStatus } from "@/types";
 
 export async function createIdea(formData: FormData) {
@@ -15,18 +16,11 @@ export async function createIdea(formData: FormData) {
     redirect("/login");
   }
 
-  const title = formData.get("title") as string;
-  const description = formData.get("description") as string;
-  const tagsRaw = formData.get("tags") as string;
-  const githubUrl = (formData.get("github_url") as string) || null;
+  const title = validateTitle(formData.get("title") as string);
+  const description = validateDescription(formData.get("description") as string);
+  const tags = validateTags(formData.get("tags") as string);
+  const githubUrl = validateGithubUrl((formData.get("github_url") as string) || null);
   const visibility = formData.get("visibility") === "private" ? "private" as const : "public" as const;
-
-  const tags = tagsRaw
-    ? tagsRaw
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean)
-    : [];
 
   const { data, error } = await supabase
     .from("ideas")
@@ -58,18 +52,11 @@ export async function updateIdea(ideaId: string, formData: FormData) {
     throw new Error("Not authenticated");
   }
 
-  const title = formData.get("title") as string;
-  const description = formData.get("description") as string;
-  const tagsRaw = formData.get("tags") as string;
-  const githubUrl = (formData.get("github_url") as string) || null;
+  const title = validateTitle(formData.get("title") as string);
+  const description = validateDescription(formData.get("description") as string);
+  const tags = validateTags(formData.get("tags") as string);
+  const githubUrl = validateGithubUrl((formData.get("github_url") as string) || null);
   const visibility = formData.get("visibility") === "private" ? "private" as const : "public" as const;
-
-  const tags = tagsRaw
-    ? tagsRaw
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean)
-    : [];
 
   const { error } = await supabase
     .from("ideas")

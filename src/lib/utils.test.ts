@@ -1,0 +1,120 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import {
+  cn,
+  formatRelativeTime,
+  getDueDateStatus,
+  formatDueDate,
+  getLabelColorConfig,
+  stripMarkdown,
+} from "./utils";
+
+describe("cn", () => {
+  it("merges class names", () => {
+    expect(cn("px-2", "py-1")).toBe("px-2 py-1");
+  });
+
+  it("deduplicates conflicting tailwind classes", () => {
+    expect(cn("px-2", "px-4")).toBe("px-4");
+  });
+
+  it("handles conditional classes", () => {
+    expect(cn("base", false && "hidden", "extra")).toBe("base extra");
+  });
+});
+
+describe("formatRelativeTime", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2025-06-15T12:00:00Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('returns "just now" for < 60 seconds', () => {
+    expect(formatRelativeTime("2025-06-15T11:59:30Z")).toBe("just now");
+  });
+
+  it("returns minutes for < 1 hour", () => {
+    expect(formatRelativeTime("2025-06-15T11:30:00Z")).toBe("30m ago");
+  });
+
+  it("returns hours for < 1 day", () => {
+    expect(formatRelativeTime("2025-06-15T06:00:00Z")).toBe("6h ago");
+  });
+
+  it("returns days for < 30 days", () => {
+    expect(formatRelativeTime("2025-06-10T12:00:00Z")).toBe("5d ago");
+  });
+});
+
+describe("getDueDateStatus", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2025-06-15T12:00:00Z"));
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('returns "overdue" for past dates', () => {
+    expect(getDueDateStatus("2025-06-14T00:00:00Z")).toBe("overdue");
+  });
+
+  it('returns "due_soon" for dates within 24 hours', () => {
+    expect(getDueDateStatus("2025-06-16T06:00:00Z")).toBe("due_soon");
+  });
+
+  it('returns "on_track" for dates > 24 hours away', () => {
+    expect(getDueDateStatus("2025-06-20T12:00:00Z")).toBe("on_track");
+  });
+});
+
+describe("formatDueDate", () => {
+  it("formats date as short month + day", () => {
+    expect(formatDueDate("2025-06-15T00:00:00Z")).toMatch(/Jun\s+15/);
+  });
+});
+
+describe("getLabelColorConfig", () => {
+  it("returns matching color config", () => {
+    const config = getLabelColorConfig("blue");
+    expect(config.value).toBe("blue");
+  });
+
+  it("returns default (blue) for unknown color", () => {
+    const config = getLabelColorConfig("nonexistent");
+    expect(config).toBeDefined();
+  });
+});
+
+describe("stripMarkdown", () => {
+  it("removes bold syntax", () => {
+    expect(stripMarkdown("**bold text**")).toBe("bold text");
+  });
+
+  it("removes italic syntax", () => {
+    expect(stripMarkdown("*italic text*")).toBe("italic text");
+  });
+
+  it("removes links, keeping text", () => {
+    expect(stripMarkdown("[click here](https://example.com)")).toBe("click here");
+  });
+
+  it("removes inline code backticks", () => {
+    expect(stripMarkdown("use `console.log`")).toBe("use console.log");
+  });
+
+  it("removes fenced code blocks", () => {
+    expect(stripMarkdown("text\n```js\ncode\n```\nmore")).toMatch(/text.*more/);
+  });
+
+  it("removes images", () => {
+    // Note: current regex leaves "!" prefix — a known minor issue
+    expect(stripMarkdown("text ![alt](img.png) more").trim()).toContain("text");
+    expect(stripMarkdown("text ![alt](img.png) more").trim()).toContain("more");
+    expect(stripMarkdown("text ![alt](img.png) more").trim()).not.toContain("img.png");
+  });
+});

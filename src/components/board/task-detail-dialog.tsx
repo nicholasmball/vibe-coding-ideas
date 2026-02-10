@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { toast } from "sonner";
 import { Tag, Trash2, Archive, ArchiveRestore } from "lucide-react";
 import {
   Dialog,
@@ -67,8 +68,7 @@ export function TaskDetailDialog({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [archiving, setArchiving] = useState(false);
 
-  const isArchived = (task as BoardTaskWithAssignee & { archived?: boolean })
-    .archived;
+  const isArchived = task.archived;
 
   const [localAssigneeId, setLocalAssigneeId] = useState<string | null>(task.assignee_id);
 
@@ -95,6 +95,7 @@ export function TaskDetailDialog({
         to: title.trim(),
       });
     } catch {
+      toast.error("Failed to update title");
       setTitle(task.title);
     } finally {
       setSavingTitle(false);
@@ -109,6 +110,7 @@ export function TaskDetailDialog({
       await updateBoardTask(task.id, ideaId, { description: newDesc });
       logTaskActivity(task.id, ideaId, currentUserId, "description_changed");
     } catch {
+      toast.error("Failed to update description");
       setDescription(task.description ?? "");
     } finally {
       setSavingDesc(false);
@@ -130,6 +132,7 @@ export function TaskDetailDialog({
         logTaskActivity(task.id, ideaId, currentUserId, "unassigned");
       }
     } catch {
+      toast.error("Failed to update assignee");
       setLocalAssigneeId(task.assignee_id);
     }
   }
@@ -146,7 +149,7 @@ export function TaskDetailDialog({
         newArchived ? "archived" : "unarchived"
       );
     } catch {
-      // revert silently
+      toast.error("Failed to update archive status");
     } finally {
       setArchiving(false);
     }
@@ -181,12 +184,8 @@ export function TaskDetailDialog({
       .toUpperCase() ?? null;
 
   const commentCount = 0; // Will be populated by the component's own fetch
-  const attachmentCount = (
-    task as BoardTaskWithAssignee & { attachment_count?: number }
-  ).attachment_count;
-  const propCoverPath = (
-    task as BoardTaskWithAssignee & { cover_image_path?: string | null }
-  ).cover_image_path ?? null;
+  const attachmentCount = task.attachment_count;
+  const propCoverPath = task.cover_image_path ?? null;
 
   const [localCoverPath, setLocalCoverPath] = useState<string | null>(propCoverPath);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);

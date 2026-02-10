@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { IdeaForm } from "@/components/ideas/idea-form";
 import type { Metadata } from "next";
@@ -13,8 +14,10 @@ export default async function NewIdeaPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) redirect("/login");
+
   let githubUsername: string | null = null;
-  if (user) {
+  {
     const { data } = await supabase
       .from("users")
       .select("github_username")

@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 import { createBoardTask } from "@/actions/board";
 import { logTaskActivity } from "@/lib/activity";
 import type { User } from "@/types";
@@ -64,7 +65,7 @@ export function TaskEditDialog({
       setDescription("");
       setAssigneeId("");
     } catch {
-      // RLS will block unauthorized access
+      toast.error("Failed to create task");
     } finally {
       setLoading(false);
     }

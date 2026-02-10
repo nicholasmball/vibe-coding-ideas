@@ -672,7 +672,7 @@ export type Database = {
           id?: string;
           user_id?: string;
           actor_id?: string;
-          type?: "comment" | "vote" | "collaborator" | "user_deleted" | "status_change";
+          type?: "comment" | "vote" | "collaborator" | "user_deleted" | "status_change" | "task_mention";
           idea_id?: string | null;
           comment_id?: string | null;
           read?: boolean;

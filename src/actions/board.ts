@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_BOARD_COLUMNS, POSITION_GAP } from "@/lib/constants";
+import { validateTitle, validateOptionalDescription, validateLabelName, validateLabelColor, validateComment } from "@/lib/validation";
 
 export async function initializeBoardColumns(ideaId: string) {
   const supabase = await createClient();
@@ -40,6 +41,8 @@ export async function createBoardColumn(ideaId: string, title: string) {
 
   if (!user) throw new Error("Not authenticated");
 
+  title = validateTitle(title);
+
   // Get max position
   const { data: cols } = await supabase
     .from("board_columns")
@@ -73,6 +76,8 @@ export async function updateBoardColumn(
   } = await supabase.auth.getUser();
 
   if (!user) throw new Error("Not authenticated");
+
+  title = validateTitle(title);
 
   const updates: { title: string; is_done_column?: boolean } = { title };
   if (isDoneColumn !== undefined) {
@@ -148,6 +153,9 @@ export async function createBoardTask(
 
   if (!user) throw new Error("Not authenticated");
 
+  title = validateTitle(title);
+  description = validateOptionalDescription(description ?? null) ?? undefined;
+
   // Get max position in this column
   const { data: tasks } = await supabase
     .from("board_tasks")
@@ -195,6 +203,13 @@ export async function updateBoardTask(
   } = await supabase.auth.getUser();
 
   if (!user) throw new Error("Not authenticated");
+
+  if (updates.title !== undefined) {
+    updates.title = validateTitle(updates.title);
+  }
+  if (updates.description !== undefined) {
+    updates.description = validateOptionalDescription(updates.description ?? null);
+  }
 
   const { error } = await supabase
     .from("board_tasks")
@@ -266,6 +281,9 @@ export async function createBoardLabel(
 
   if (!user) throw new Error("Not authenticated");
 
+  name = validateLabelName(name);
+  color = validateLabelColor(color);
+
   const { error } = await supabase.from("board_labels").insert({
     idea_id: ideaId,
     name,
@@ -288,6 +306,13 @@ export async function updateBoardLabel(
   } = await supabase.auth.getUser();
 
   if (!user) throw new Error("Not authenticated");
+
+  if (updates.name !== undefined) {
+    updates.name = validateLabelName(updates.name);
+  }
+  if (updates.color !== undefined) {
+    updates.color = validateLabelColor(updates.color);
+  }
 
   const { error } = await supabase
     .from("board_labels")
@@ -380,6 +405,8 @@ export async function createChecklistItem(
 
   if (!user) throw new Error("Not authenticated");
 
+  title = validateTitle(title);
+
   // Get max position
   const { data: items } = await supabase
     .from("board_checklist_items")
@@ -443,6 +470,10 @@ export async function updateChecklistItem(
 
   if (!user) throw new Error("Not authenticated");
 
+  if (updates.title !== undefined) {
+    updates.title = validateTitle(updates.title);
+  }
+
   const { error } = await supabase
     .from("board_checklist_items")
     .update(updates)
@@ -467,6 +498,55 @@ export async function deleteChecklistItem(itemId: string, ideaId: string) {
     .delete()
     .eq("id", itemId)
     .eq("idea_id", ideaId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/ideas/${ideaId}/board`);
+}
+
+// ============================================================
+// Task comment actions
+// ============================================================
+
+export async function createTaskComment(
+  taskId: string,
+  ideaId: string,
+  content: string
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+
+  content = validateComment(content);
+
+  const { error } = await supabase.from("board_task_comments").insert({
+    task_id: taskId,
+    idea_id: ideaId,
+    author_id: user.id,
+    content,
+  });
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/ideas/${ideaId}/board`);
+}
+
+export async function deleteTaskComment(commentId: string, ideaId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+
+  const { error } = await supabase
+    .from("board_task_comments")
+    .delete()
+    .eq("id", commentId)
+    .eq("author_id", user.id);
 
   if (error) throw new Error(error.message);
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
@@ -53,7 +54,7 @@ export function ChecklistSection({
       }
       setNewTitle("");
     } catch {
-      // keep input on error
+      toast.error("Failed to add checklist item");
     } finally {
       setLoading(false);
     }
@@ -71,7 +72,7 @@ export function ChecklistSection({
         });
       }
     } catch {
-      // silent revert via revalidation
+      toast.error("Failed to update checklist item");
     }
   }
 

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { validateComment } from "@/lib/validation";
 import type { CommentType } from "@/types";
 
 export async function createComment(
@@ -18,6 +19,8 @@ export async function createComment(
   if (!user) {
     throw new Error("Not authenticated");
   }
+
+  content = validateComment(content);
 
   const { error } = await supabase.from("comments").insert({
     idea_id: ideaId,

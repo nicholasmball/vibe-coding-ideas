@@ -23,18 +23,22 @@ export async function toggleVote(ideaId: string) {
 
   if (existingVote) {
     // Remove vote
-    await supabase
+    const { error } = await supabase
       .from("votes")
       .delete()
       .eq("idea_id", ideaId)
       .eq("user_id", user.id);
+
+    if (error) throw new Error(error.message);
   } else {
     // Add vote
-    await supabase.from("votes").insert({
+    const { error } = await supabase.from("votes").insert({
       idea_id: ideaId,
       user_id: user.id,
       type: "upvote",
     });
+
+    if (error) throw new Error(error.message);
   }
 
   revalidatePath(`/ideas/${ideaId}`);

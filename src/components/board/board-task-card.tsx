@@ -72,14 +72,9 @@ export function BoardTaskCard({
   const [detailOpen, setDetailOpen] = useState(false);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
 
-  const isArchived = (task as BoardTaskWithAssignee & { archived?: boolean })
-    .archived;
-  const attachmentCount = (
-    task as BoardTaskWithAssignee & { attachment_count?: number }
-  ).attachment_count;
-  const coverImagePath = (
-    task as BoardTaskWithAssignee & { cover_image_path?: string | null }
-  ).cover_image_path;
+  const isArchived = task.archived;
+  const attachmentCount = task.attachment_count;
+  const coverImagePath = task.cover_image_path;
 
   // Fetch signed URL for cover image
   useEffect(() => {
