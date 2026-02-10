@@ -11,6 +11,7 @@ import {
   X,
   ImagePlus,
   ImageOff,
+  Camera,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -54,7 +55,10 @@ export function TaskAttachmentsSection({
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [localCoverPath, setLocalCoverPath] = useState<string | null>(initialCoverPath ?? null);
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const dragCounterRef = useRef(0);
 
   // Sync from prop when task changes
   const [lastTaskId, setLastTaskId] = useState(taskId);
@@ -290,6 +294,43 @@ export function TaskAttachmentsSection({
     }
   }
 
+  function handleDragEnter(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+    if (e.dataTransfer.types.includes("Files")) {
+      setIsDragging(true);
+    }
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
+      setIsDragging(false);
+    }
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  async function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounterRef.current = 0;
+
+    const files = e.dataTransfer.files;
+    if (!files?.length) return;
+
+    for (const file of files) {
+      await uploadFile(file);
+    }
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -303,7 +344,7 @@ export function TaskAttachmentsSection({
         <p className="text-xs text-muted-foreground">Loading...</p>
       ) : attachments.length > 0 ? (
         <ScrollArea className="max-h-48">
-          <div className="grid grid-cols-2 gap-2 pr-4">
+          <div className="grid grid-cols-1 gap-2 pr-4 sm:grid-cols-2">
             {attachments.map((attachment) => (
               <div
                 key={attachment.id}
@@ -335,7 +376,7 @@ export function TaskAttachmentsSection({
                     {formatRelativeTime(attachment.created_at)}
                   </p>
                 </div>
-                <div className="flex shrink-0 gap-0.5 opacity-0 group-hover:opacity-100">
+                <div className="flex shrink-0 gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
                   {isImageType(attachment.content_type) && (
                     attachment.storage_path === localCoverPath ? (
                       <Tooltip>
@@ -394,27 +435,77 @@ export function TaskAttachmentsSection({
         </ScrollArea>
       ) : null}
 
-      <div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          className="hidden"
-          onChange={handleFileSelect}
-          multiple
-        />
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1.5 text-xs"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-        >
-          <Upload className="h-3.5 w-3.5" />
-          {uploading ? "Uploading..." : "Upload file"}
-        </Button>
-        <p className="mt-1 text-[10px] text-muted-foreground">
-          Max 10MB. Paste images from clipboard.
-        </p>
+      {/* Drop zone + upload buttons */}
+      <div
+        className={`relative rounded-lg border-2 border-dashed p-4 text-center transition-colors ${
+          isDragging
+            ? "border-primary bg-primary/5"
+            : "border-border"
+        }`}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
+        {isDragging ? (
+          <p className="text-sm text-primary">Drop files here</p>
+        ) : (
+          <>
+            <input
+              ref={fileInputRef}
+              id={`file-upload-${taskId}`}
+              type="file"
+              className="hidden"
+              accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip"
+              onChange={handleFileSelect}
+              multiple
+            />
+            <input
+              ref={cameraInputRef}
+              id={`camera-upload-${taskId}`}
+              type="file"
+              className="hidden"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileSelect}
+            />
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <label htmlFor={`file-upload-${taskId}`}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="pointer-events-none gap-1.5 text-xs"
+                  disabled={uploading}
+                  tabIndex={-1}
+                  asChild
+                >
+                  <span>
+                    <Upload className="h-3.5 w-3.5" />
+                    {uploading ? "Uploading..." : "Choose file"}
+                  </span>
+                </Button>
+              </label>
+              <label htmlFor={`camera-upload-${taskId}`}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="pointer-events-none gap-1.5 text-xs"
+                  disabled={uploading}
+                  tabIndex={-1}
+                  asChild
+                >
+                  <span>
+                    <Camera className="h-3.5 w-3.5" />
+                    Camera
+                  </span>
+                </Button>
+              </label>
+            </div>
+            <p className="mt-2 text-[10px] text-muted-foreground">
+              Max 10MB. Drag &amp; drop, paste, or pick from gallery / files.
+            </p>
+          </>
+        )}
       </div>
 
       {/* Image preview overlay */}
