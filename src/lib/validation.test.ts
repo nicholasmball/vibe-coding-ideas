@@ -9,6 +9,7 @@ import {
   validateLabelColor,
   validateLabelName,
   validateBio,
+  validateAvatarUrl,
   ValidationError,
   MAX_TITLE_LENGTH,
   MAX_DESCRIPTION_LENGTH,
@@ -17,6 +18,7 @@ import {
   MAX_TAG_LENGTH,
   MAX_TAGS,
   MAX_LABEL_NAME_LENGTH,
+  MAX_AVATAR_URL_LENGTH,
 } from "./validation";
 
 describe("validateTitle", () => {
@@ -163,6 +165,33 @@ describe("validateLabelName", () => {
     expect(() =>
       validateLabelName("a".repeat(MAX_LABEL_NAME_LENGTH + 1))
     ).toThrow(ValidationError);
+  });
+});
+
+describe("validateAvatarUrl", () => {
+  it("returns null for null/empty", () => {
+    expect(validateAvatarUrl(null)).toBeNull();
+    expect(validateAvatarUrl("")).toBeNull();
+    expect(validateAvatarUrl("   ")).toBeNull();
+  });
+
+  it("accepts valid URLs", () => {
+    expect(validateAvatarUrl("https://example.com/avatar.png")).toBe(
+      "https://example.com/avatar.png"
+    );
+    expect(validateAvatarUrl("  https://cdn.supabase.co/storage/v1/object/public/avatars/123/avatar  ")).toBe(
+      "https://cdn.supabase.co/storage/v1/object/public/avatars/123/avatar"
+    );
+  });
+
+  it("rejects non-URLs", () => {
+    expect(() => validateAvatarUrl("not-a-url")).toThrow(ValidationError);
+    expect(() => validateAvatarUrl("just some text")).toThrow(ValidationError);
+  });
+
+  it("rejects too-long URLs", () => {
+    const longUrl = "https://example.com/" + "a".repeat(MAX_AVATAR_URL_LENGTH);
+    expect(() => validateAvatarUrl(longUrl)).toThrow(ValidationError);
   });
 });
 

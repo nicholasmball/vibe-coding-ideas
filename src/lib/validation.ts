@@ -101,6 +101,22 @@ export function validateLabelName(name: string): string {
   return trimmed;
 }
 
+export const MAX_AVATAR_URL_LENGTH = 2000;
+
+export function validateAvatarUrl(url: string | null): string | null {
+  if (!url || !url.trim()) return null;
+  const trimmed = url.trim();
+  if (trimmed.length > MAX_AVATAR_URL_LENGTH) {
+    throw new ValidationError("Avatar URL is too long");
+  }
+  try {
+    new URL(trimmed);
+  } catch {
+    throw new ValidationError("Invalid avatar URL");
+  }
+  return trimmed;
+}
+
 export function validateBio(bio: string | null): string | null {
   if (!bio) return null;
   const trimmed = bio.trim();
