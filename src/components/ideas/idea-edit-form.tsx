@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +20,15 @@ import type { Idea } from "@/types";
 
 interface IdeaEditFormProps {
   idea: Idea;
+}
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" className="flex-1" size="lg" disabled={pending}>
+      {pending ? "Saving..." : "Save Changes"}
+    </Button>
+  );
 }
 
 export function IdeaEditForm({ idea }: IdeaEditFormProps) {
@@ -99,9 +109,7 @@ export function IdeaEditForm({ idea }: IdeaEditFormProps) {
           </div>
 
           <div className="flex gap-3">
-            <Button type="submit" className="flex-1" size="lg">
-              Save Changes
-            </Button>
+            <SubmitButton />
             <Button
               type="button"
               variant="outline"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +20,15 @@ import { createIdea } from "@/actions/ideas";
 
 interface IdeaFormProps {
   githubUsername?: string | null;
+}
+
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" size="lg" className="flex-1" disabled={pending}>
+      {pending ? "Submitting..." : "Submit Idea"}
+    </Button>
+  );
 }
 
 export function IdeaForm({ githubUsername }: IdeaFormProps) {
@@ -110,9 +120,7 @@ export function IdeaForm({ githubUsername }: IdeaFormProps) {
             >
               Cancel
             </Button>
-            <Button type="submit" size="lg" className="flex-1">
-              Submit Idea
-            </Button>
+            <SubmitButton />
           </div>
         </form>
       </CardContent>
