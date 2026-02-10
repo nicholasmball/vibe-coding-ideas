@@ -90,6 +90,8 @@ supabase/migrations/        # 28 SQL migration files (run in order)
 - `cookies()` from `next/headers` is async — must `await` it
 - Server Actions are in `src/actions/` with `"use server"` directive
 - Client components use `"use client"` directive
+- `redirect()` in server actions throws a special error — when calling server actions that redirect from client code wrapped in try/catch, re-throw errors with `digest` starting with `NEXT_REDIRECT`
+- Forms using server actions should use `useFormStatus` to disable submit buttons during pending state
 
 ### Auth Flow
 - Middleware protects `/dashboard`, `/feed`, `/ideas`, `/profile` routes (redirects to `/login`)
@@ -116,10 +118,10 @@ supabase/migrations/        # 28 SQL migration files (run in order)
 - Board columns lazy-initialized with "To Do", "In Progress", "Done" (done column) on first visit
 - `board_columns.is_done_column` (boolean) marks columns where tasks are considered complete
 - Dashboard excludes archived tasks and tasks in done columns
-- Board uses @dnd-kit for drag-and-drop with optimistic UI updates
+- Board uses @dnd-kit for drag-and-drop with optimistic UI updates (MouseSensor + TouchSensor + KeyboardSensor for desktop/mobile/a11y)
 - Board tasks support labels (colored, per-idea), due dates, and checklists (subtasks)
 - `board_tasks.checklist_total` and `checklist_done` are denormalized counts maintained by `update_checklist_counts()` trigger
-- Clicking a task card opens a rich detail dialog (task-detail-dialog) for editing all task properties
+- Clicking a task card opens a rich detail dialog (task-detail-dialog) for editing all task properties; all mutations use server actions (not direct client calls) to ensure `revalidatePath` fires
 - Board toolbar provides search, assignee/label/due-date filters, and archived toggle
 - Columns are draggable (reorderable) via drag handle in column header
 - Tasks can be archived/unarchived from the detail dialog; archived tasks are hidden by default
