@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MessageSquare, Users, LayoutDashboard, Github } from "lucide-react";
+import { MessageSquare, Users, LayoutDashboard, Github, Lock } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -37,12 +37,22 @@ export function IdeaCard({ idea, hasVoted, taskCount }: IdeaCardProps) {
             hasVoted={hasVoted}
           />
           <div className="flex-1 min-w-0">
-            <Link
-              href={`/ideas/${idea.id}`}
-              className="text-lg font-semibold hover:text-primary transition-colors line-clamp-1"
-            >
-              {idea.title}
-            </Link>
+            <div className="flex items-center gap-1.5">
+              <Link
+                href={`/ideas/${idea.id}`}
+                className="text-lg font-semibold hover:text-primary transition-colors line-clamp-1"
+              >
+                {idea.title}
+              </Link>
+              {idea.visibility === "private" && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent>Private</TooltipContent>
+                </Tooltip>
+              )}
+            </div>
             <p className="mt-1 text-sm text-muted-foreground line-clamp-2">
               {stripMarkdown(idea.description)}
             </p>

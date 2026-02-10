@@ -23,6 +23,7 @@ export type Database = {
             votes: boolean;
             collaborators: boolean;
             status_changes: boolean;
+            task_mentions: boolean;
           };
           is_admin: boolean;
           created_at: string;
@@ -41,6 +42,7 @@ export type Database = {
             votes: boolean;
             collaborators: boolean;
             status_changes: boolean;
+            task_mentions: boolean;
           };
           is_admin?: boolean;
           created_at?: string;
@@ -59,6 +61,7 @@ export type Database = {
             votes: boolean;
             collaborators: boolean;
             status_changes: boolean;
+            task_mentions: boolean;
           };
           is_admin?: boolean;
           created_at?: string;
@@ -73,6 +76,7 @@ export type Database = {
           description: string;
           author_id: string;
           status: "open" | "in_progress" | "completed" | "archived";
+          visibility: "public" | "private";
           tags: string[];
           github_url: string | null;
           upvotes: number;
@@ -87,6 +91,7 @@ export type Database = {
           description: string;
           author_id: string;
           status?: "open" | "in_progress" | "completed" | "archived";
+          visibility?: "public" | "private";
           tags?: string[];
           github_url?: string | null;
           upvotes?: number;
@@ -101,6 +106,7 @@ export type Database = {
           description?: string;
           author_id?: string;
           status?: "open" | "in_progress" | "completed" | "archived";
+          visibility?: "public" | "private";
           tags?: string[];
           github_url?: string | null;
           upvotes?: number;
@@ -646,7 +652,7 @@ export type Database = {
           id: string;
           user_id: string;
           actor_id: string;
-          type: "comment" | "vote" | "collaborator" | "user_deleted" | "status_change";
+          type: "comment" | "vote" | "collaborator" | "user_deleted" | "status_change" | "task_mention";
           idea_id: string | null;
           comment_id: string | null;
           read: boolean;
@@ -656,7 +662,7 @@ export type Database = {
           id?: string;
           user_id: string;
           actor_id: string;
-          type: "comment" | "vote" | "collaborator" | "user_deleted" | "status_change";
+          type: "comment" | "vote" | "collaborator" | "user_deleted" | "status_change" | "task_mention";
           idea_id?: string | null;
           comment_id?: string | null;
           read?: boolean;
@@ -715,9 +721,10 @@ export type Database = {
     };
     Enums: {
       idea_status: "open" | "in_progress" | "completed" | "archived";
+      idea_visibility: "public" | "private";
       comment_type: "comment" | "suggestion" | "question";
       vote_type: "upvote" | "downvote";
-      notification_type: "comment" | "vote" | "collaborator" | "user_deleted" | "status_change";
+      notification_type: "comment" | "vote" | "collaborator" | "user_deleted" | "status_change" | "task_mention";
     };
     CompositeTypes: {
       [_ in never]: never;

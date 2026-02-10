@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, MessageSquare, ChevronUp, Users, Trash2, ArrowRightLeft } from "lucide-react";
+import { Bell, MessageSquare, ChevronUp, Users, Trash2, ArrowRightLeft, AtSign } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatRelativeTime } from "@/lib/utils";
 import type { NotificationWithDetails } from "@/types";
@@ -12,6 +12,7 @@ const iconMap = {
   collaborator: Users,
   user_deleted: Trash2,
   status_change: ArrowRightLeft,
+  task_mention: AtSign,
 };
 
 const messageMap = {
@@ -20,6 +21,7 @@ const messageMap = {
   collaborator: "wants to build",
   user_deleted: "removed an idea you were collaborating on",
   status_change: "updated the status of",
+  task_mention: "mentioned you in a task on",
 };
 
 interface ActivityFeedProps {
@@ -77,10 +79,14 @@ export function ActivityFeed({ notifications }: ActivityFeedProps) {
               }`;
 
               if (notification.idea_id) {
+                const href =
+                  notification.type === "task_mention"
+                    ? `/ideas/${notification.idea_id}/board`
+                    : `/ideas/${notification.idea_id}`;
                 return (
                   <Link
                     key={notification.id}
-                    href={`/ideas/${notification.idea_id}`}
+                    href={href}
                     className={`block ${className}`}
                   >
                     {content}

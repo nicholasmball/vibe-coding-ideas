@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { MessageSquare, Trash2, Send } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -12,26 +12,42 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Markdown } from "@/components/ui/markdown";
+import { MentionAutocomplete } from "./mention-autocomplete";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/utils";
 import { logTaskActivity } from "@/lib/activity";
-import type { BoardTaskCommentWithAuthor } from "@/types";
+import type { BoardTaskCommentWithAuthor, User } from "@/types";
 
 interface TaskCommentsSectionProps {
   taskId: string;
   ideaId: string;
   currentUserId: string;
+  teamMembers: User[];
 }
 
 export function TaskCommentsSection({
   taskId,
   ideaId,
   currentUserId,
+  teamMembers,
 }: TaskCommentsSectionProps) {
   const [comments, setComments] = useState<BoardTaskCommentWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const [mentionedUserIds, setMentionedUserIds] = useState<Set<string>>(
+    new Set()
+  );
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const filteredMembers = useMemo(() => {
+    if (mentionQuery === null) return [];
+    return teamMembers.filter((m) =>
+      m.full_name?.toLowerCase().includes(mentionQuery.toLowerCase())
+    );
+  }, [teamMembers, mentionQuery]);
 
   const fetchComments = useCallback(async () => {
     const supabase = createClient();
@@ -73,7 +89,6 @@ export function TaskCommentsSection({
 
           if (data) {
             setComments((prev) => {
-              // Avoid duplicates
               if (prev.some((c) => c.id === data.id)) return prev;
               return [
                 ...prev,
@@ -104,6 +119,100 @@ export function TaskCommentsSection({
     };
   }, [taskId]);
 
+  function detectMention(value: string, cursorPos: number) {
+    const textBeforeCursor = value.slice(0, cursorPos);
+    // Match @ at start of text or after whitespace, followed by any characters (names can have spaces)
+    const match = textBeforeCursor.match(/(?:^|[\s])@([^@]*)$/);
+    if (match) {
+      setMentionQuery(match[1]);
+      setMentionIndex(0);
+    } else {
+      setMentionQuery(null);
+    }
+  }
+
+  function handleInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const value = e.target.value;
+    setContent(value);
+    detectMention(value, e.target.selectionStart);
+  }
+
+  function handleMentionSelect(user: User) {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const cursorPos = textarea.selectionStart;
+    const textBeforeCursor = content.slice(0, cursorPos);
+    const textAfterCursor = content.slice(cursorPos);
+
+    const atIndex = textBeforeCursor.lastIndexOf("@");
+    if (atIndex === -1) return;
+
+    const name = user.full_name ?? user.email;
+    const newText =
+      textBeforeCursor.slice(0, atIndex) + `@${name} ` + textAfterCursor;
+    setContent(newText);
+    setMentionQuery(null);
+
+    // Track this user for notification on submit
+    setMentionedUserIds((prev) => new Set(prev).add(user.id));
+
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const newCursorPos = atIndex + name.length + 2;
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    });
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (mentionQuery === null || filteredMembers.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setMentionIndex((prev) =>
+        prev < filteredMembers.length - 1 ? prev + 1 : 0
+      );
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setMentionIndex((prev) =>
+        prev > 0 ? prev - 1 : filteredMembers.length - 1
+      );
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      handleMentionSelect(filteredMembers[mentionIndex]);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setMentionQuery(null);
+    }
+  }
+
+  function sendMentionNotifications() {
+    if (mentionedUserIds.size === 0) return;
+
+    const supabase = createClient();
+
+    for (const userId of mentionedUserIds) {
+      if (userId === currentUserId) continue;
+
+      const member = teamMembers.find((m) => m.id === userId);
+      if (!member) continue;
+      if (!member.notification_preferences?.task_mentions) continue;
+
+      supabase
+        .from("notifications")
+        .insert({
+          user_id: userId,
+          actor_id: currentUserId,
+          type: "task_mention" as const,
+          idea_id: ideaId,
+        })
+        .then(({ error }) => {
+          if (error)
+            console.error("Failed to send mention notification:", error.message);
+        });
+    }
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!content.trim()) return;
@@ -119,7 +228,10 @@ export function TaskCommentsSection({
 
     if (!error) {
       logTaskActivity(taskId, ideaId, currentUserId, "comment_added");
+      sendMentionNotifications();
       setContent("");
+      setMentionQuery(null);
+      setMentionedUserIds(new Set());
     }
     setSubmitting(false);
   }
@@ -199,11 +311,20 @@ export function TaskCommentsSection({
         <p className="text-xs text-muted-foreground">No comments yet</p>
       )}
 
-      <form onSubmit={handleSubmit} className="flex gap-2">
+      <form onSubmit={handleSubmit} className="relative flex gap-2">
+        {mentionQuery !== null && (
+          <MentionAutocomplete
+            filteredMembers={filteredMembers}
+            selectedIndex={mentionIndex}
+            onSelect={handleMentionSelect}
+          />
+        )}
         <Textarea
+          ref={textareaRef}
           value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Write a comment... (markdown supported)"
+          onChange={handleInputChange}
+          onKeyDown={handleKeyDown}
+          placeholder="Write a comment... (@ to mention)"
           rows={2}
           className="min-h-[60px] text-xs"
         />

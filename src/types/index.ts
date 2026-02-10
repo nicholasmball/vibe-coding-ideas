@@ -10,6 +10,7 @@ export type Notification = Database["public"]["Tables"]["notifications"]["Row"];
 
 // Enums
 export type IdeaStatus = Database["public"]["Enums"]["idea_status"];
+export type IdeaVisibility = Database["public"]["Enums"]["idea_visibility"];
 export type CommentType = Database["public"]["Enums"]["comment_type"];
 export type VoteType = Database["public"]["Enums"]["vote_type"];
 export type NotificationType = Database["public"]["Enums"]["notification_type"];

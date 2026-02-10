@@ -26,6 +26,7 @@ const labels: Record<keyof NotificationPreferences, string> = {
   votes: "Votes on your ideas",
   collaborators: "New collaborators",
   status_changes: "Idea status updates",
+  task_mentions: "Task mentions",
 };
 
 export function NotificationSettings({

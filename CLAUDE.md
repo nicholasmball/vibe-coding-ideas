@@ -44,7 +44,7 @@ src/
 │   ├── board.ts            # initializeColumns, create/update/delete columns & tasks, reorder, move, labels (CRUD + assign/remove), checklists (CRUD + toggle)
 │   ├── votes.ts            # toggleVote
 │   ├── comments.ts         # create, incorporate, delete
-│   ├── collaborators.ts    # toggleCollaborator
+│   ├── collaborators.ts    # toggleCollaborator, addCollaborator, removeCollaborator
 │   ├── notifications.ts    # markRead, markAllRead, updateNotificationPreferences
 │   ├── profile.ts          # updateProfile
 │   └── users.ts            # deleteUser (admin only)
@@ -52,8 +52,8 @@ src/
 │   ├── ui/                 # shadcn/ui (don't edit manually, except markdown.tsx)
 │   ├── layout/             # navbar, theme-toggle, notification-bell
 │   ├── auth/               # oauth-buttons
-│   ├── ideas/              # card, feed, form, edit-form, vote-button, etc.
-│   ├── board/              # kanban-board, board-column, board-task-card, board-toolbar, task-edit-dialog, task-detail-dialog, column-edit-dialog, add-column-button, board-realtime, label-picker, due-date-picker, due-date-badge, task-label-badges, checklist-section, activity-timeline, task-comments-section, task-attachments-section, import-dialog, import-csv-tab, import-json-tab, import-bulk-text-tab, import-column-mapper, import-preview-table
+│   ├── ideas/              # card, feed, form, edit-form, vote-button, collaborator-button, add-collaborator-popover, remove-collaborator-button, etc.
+│   ├── board/              # kanban-board, board-column, board-task-card, board-toolbar, task-edit-dialog, task-detail-dialog, column-edit-dialog, add-column-button, board-realtime, label-picker, due-date-picker, due-date-badge, task-label-badges, checklist-section, activity-timeline, task-comments-section, task-attachments-section, mention-autocomplete, import-dialog, import-csv-tab, import-json-tab, import-bulk-text-tab, import-column-mapper, import-preview-table
 │   ├── dashboard/          # stats-cards, my-tasks-list, activity-feed
 │   ├── comments/           # thread, item, form, type-badge
 │   └── profile/            # header, tabs, delete-user-button, edit-profile-dialog, notification-settings, complete-profile-banner
@@ -73,7 +73,7 @@ src/
 │   ├── database.ts         # Supabase Database type (manual, includes Relationships)
 │   └── index.ts            # Derived types (IdeaWithAuthor, CommentWithAuthor, DashboardTask, etc.)
 middleware.ts               # Root middleware (calls updateSession)
-supabase/migrations/        # 25 SQL migration files (run in order)
+supabase/migrations/        # 28 SQL migration files (run in order)
 ```
 
 ## Key Patterns
@@ -105,7 +105,10 @@ supabase/migrations/        # 25 SQL migration files (run in order)
 - Notifications auto-created via triggers on comments/votes/collaborators (respect user preferences)
 - `notification_preferences` JSONB on users controls which notification types are received
 - Status change notifications sent to collaborators when idea status updates
-- RLS: public read, authenticated write, owner-only update/delete
+- `ideas.visibility` (`public`/`private`) — private ideas only visible to author, collaborators, and admins (enforced by RLS SELECT policy)
+- RLS: visibility-aware read, authenticated write, owner-only update/delete; collaborators INSERT/DELETE allows idea author
+- Authors can add/remove collaborators directly (solves private idea chicken-and-egg problem)
+- Collaborator notifications are bidirectional: author-adds-user notifies user, self-join notifies author
 - Admin role: `users.is_admin` — admins can delete any idea or non-admin user
 - `admin_delete_user` RPC (security definer) deletes from auth.users, cascading all data
 - `notifications.idea_id` is nullable (ON DELETE SET NULL) so notifications persist after user deletion
@@ -126,6 +129,8 @@ supabase/migrations/        # 25 SQL migration files (run in order)
 - `board_task_comments` stores markdown comments per task, with Realtime subscription
 - `board_task_attachments` + `task-attachments` storage bucket (private, 10MB limit)
 - `update_attachment_count()` trigger maintains `board_tasks.attachment_count`
+- Task comments support @mentions: typing `@` triggers autocomplete for team members, selecting inserts `@Full Name`, submitting creates `task_mention` notifications (fire-and-forget, respects `notification_preferences.task_mentions`)
+- @mentions render with primary color styling in markdown via `renderMentions()` in `markdown.tsx`
 - Board import: CSV (with header mapping), JSON (Trello export + custom format), bulk text paste
   - Import uses client-side Supabase for batch inserts (avoids N revalidatePath round-trips)
   - Auto-maps column names case-insensitively, supports "Create new column"

@@ -11,6 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Lock } from "lucide-react";
 import { TagInput } from "./tag-input";
 import { updateIdea } from "@/actions/ideas";
 import type { Idea } from "@/types";
@@ -21,6 +23,7 @@ interface IdeaEditFormProps {
 
 export function IdeaEditForm({ idea }: IdeaEditFormProps) {
   const [tags, setTags] = useState<string[]>(idea.tags);
+  const [isPrivate, setIsPrivate] = useState(idea.visibility === "private");
   const updateIdeaWithId = updateIdea.bind(null, idea.id);
 
   return (
@@ -73,6 +76,26 @@ export function IdeaEditForm({ idea }: IdeaEditFormProps) {
               defaultValue={idea.github_url ?? ""}
               placeholder="https://github.com/username/repo"
             />
+          </div>
+
+          <div className="flex items-center justify-between rounded-lg border border-border p-4">
+            <div className="flex items-center gap-3">
+              <Lock className="h-4 w-4 text-muted-foreground" />
+              <div className="space-y-0.5">
+                <label htmlFor="private-toggle" className="text-sm font-medium">
+                  Private idea
+                </label>
+                <p className="text-xs text-muted-foreground">
+                  Only you and collaborators can see this idea
+                </p>
+              </div>
+            </div>
+            <Switch
+              id="private-toggle"
+              checked={isPrivate}
+              onCheckedChange={setIsPrivate}
+            />
+            <input type="hidden" name="visibility" value={isPrivate ? "private" : "public"} />
           </div>
 
           <div className="flex gap-3">

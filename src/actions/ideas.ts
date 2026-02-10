@@ -19,6 +19,7 @@ export async function createIdea(formData: FormData) {
   const description = formData.get("description") as string;
   const tagsRaw = formData.get("tags") as string;
   const githubUrl = (formData.get("github_url") as string) || null;
+  const visibility = formData.get("visibility") === "private" ? "private" as const : "public" as const;
 
   const tags = tagsRaw
     ? tagsRaw
@@ -35,6 +36,7 @@ export async function createIdea(formData: FormData) {
       author_id: user.id,
       tags,
       github_url: githubUrl,
+      visibility,
     })
     .select("id")
     .single();
@@ -60,6 +62,7 @@ export async function updateIdea(ideaId: string, formData: FormData) {
   const description = formData.get("description") as string;
   const tagsRaw = formData.get("tags") as string;
   const githubUrl = (formData.get("github_url") as string) || null;
+  const visibility = formData.get("visibility") === "private" ? "private" as const : "public" as const;
 
   const tags = tagsRaw
     ? tagsRaw
@@ -70,7 +73,7 @@ export async function updateIdea(ideaId: string, formData: FormData) {
 
   const { error } = await supabase
     .from("ideas")
-    .update({ title, description, tags, github_url: githubUrl })
+    .update({ title, description, tags, github_url: githubUrl, visibility })
     .eq("id", ideaId)
     .eq("author_id", user.id);
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { Bell, MessageSquare, ChevronUp, Users, Check, Trash2, ArrowRightLeft } from "lucide-react";
+import { Bell, MessageSquare, ChevronUp, Users, Check, Trash2, ArrowRightLeft, AtSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -71,6 +71,7 @@ export function NotificationBell() {
     collaborator: Users,
     user_deleted: Trash2,
     status_change: ArrowRightLeft,
+    task_mention: AtSign,
   };
 
   const messageMap = {
@@ -79,6 +80,7 @@ export function NotificationBell() {
     collaborator: "wants to build",
     user_deleted: "removed an idea you were collaborating on",
     status_change: "updated the status of",
+    task_mention: "mentioned you in a task on",
   };
 
   return (
@@ -155,10 +157,14 @@ export function NotificationBell() {
               }`;
 
               if (notification.idea_id) {
+                const href =
+                  notification.type === "task_mention"
+                    ? `/ideas/${notification.idea_id}/board`
+                    : `/ideas/${notification.idea_id}`;
                 return (
                   <Link
                     key={notification.id}
-                    href={`/ideas/${notification.idea_id}`}
+                    href={href}
                     onClick={() => setOpen(false)}
                     className={className}
                   >

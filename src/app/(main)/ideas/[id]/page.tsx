@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ExternalLink, Github, Users, Pencil, LayoutDashboard } from "lucide-react";
+import { ExternalLink, Github, Users, Pencil, LayoutDashboard, Lock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +13,8 @@ import { StatusSelect } from "@/components/ideas/status-select";
 import { CommentThread } from "@/components/comments/comment-thread";
 import { IdeaDetailRealtime } from "@/components/ideas/idea-detail-realtime";
 import { DeleteIdeaButton } from "@/components/ideas/delete-idea-button";
+import { AddCollaboratorPopover } from "@/components/ideas/add-collaborator-popover";
+import { RemoveCollaboratorButton } from "@/components/ideas/remove-collaborator-button";
 import { Markdown } from "@/components/ui/markdown";
 import { formatRelativeTime } from "@/lib/utils";
 import type { CommentWithAuthor, CollaboratorWithUser } from "@/types";
@@ -145,7 +147,15 @@ export default async function IdeaDetailPage({ params }: PageProps) {
           hasVoted={hasVoted}
         />
         <div className="flex-1">
-          <h1 className="text-2xl font-bold">{idea.title}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold">{idea.title}</h1>
+            {idea.visibility === "private" && (
+              <Badge variant="outline" className="gap-1">
+                <Lock className="h-3 w-3" />
+                Private
+              </Badge>
+            )}
+          </div>
           <div className="mt-2 flex items-center gap-3">
             <Link
               href={`/profile/${idea.author_id}`}
@@ -232,16 +242,23 @@ export default async function IdeaDetailPage({ params }: PageProps) {
       </div>
 
       {/* Collaborators */}
-      {(collaborators as unknown as CollaboratorWithUser[])?.length > 0 && (
+      {(isAuthor || (collaborators as unknown as CollaboratorWithUser[])?.length > 0) && (
         <>
           <Separator className="my-6" />
           <div>
             <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
               <Users className="h-4 w-4" />
-              Collaborators ({(collaborators as unknown as CollaboratorWithUser[]).length})
+              Collaborators ({(collaborators as unknown as CollaboratorWithUser[])?.length ?? 0})
+              {isAuthor && (
+                <AddCollaboratorPopover
+                  ideaId={idea.id}
+                  authorId={idea.author_id}
+                  existingCollaboratorIds={(collaborators as unknown as CollaboratorWithUser[])?.map((c) => c.user_id) ?? []}
+                />
+              )}
             </h3>
             <div className="flex flex-wrap gap-2">
-              {(collaborators as unknown as CollaboratorWithUser[]).map((collab) => {
+              {(collaborators as unknown as CollaboratorWithUser[])?.map((collab) => {
                 const collabInitials =
                   collab.user.full_name
                     ?.split(" ")
@@ -249,19 +266,29 @@ export default async function IdeaDetailPage({ params }: PageProps) {
                     .join("")
                     .toUpperCase() ?? "?";
                 return (
-                  <Link
+                  <div
                     key={collab.id}
-                    href={`/profile/${collab.user_id}`}
                     className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-sm transition-colors hover:border-primary"
                   >
-                    <Avatar className="h-5 w-5">
-                      <AvatarImage src={collab.user.avatar_url ?? undefined} />
-                      <AvatarFallback className="text-[10px]">
-                        {collabInitials}
-                      </AvatarFallback>
-                    </Avatar>
-                    {collab.user.full_name ?? "Anonymous"}
-                  </Link>
+                    <Link
+                      href={`/profile/${collab.user_id}`}
+                      className="flex items-center gap-1.5"
+                    >
+                      <Avatar className="h-5 w-5">
+                        <AvatarImage src={collab.user.avatar_url ?? undefined} />
+                        <AvatarFallback className="text-[10px]">
+                          {collabInitials}
+                        </AvatarFallback>
+                      </Avatar>
+                      {collab.user.full_name ?? "Anonymous"}
+                    </Link>
+                    {isAuthor && (
+                      <RemoveCollaboratorButton
+                        ideaId={idea.id}
+                        userId={collab.user_id}
+                      />
+                    )}
+                  </div>
                 );
               })}
             </div>

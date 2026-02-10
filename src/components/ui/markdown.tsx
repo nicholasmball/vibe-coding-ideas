@@ -1,11 +1,37 @@
 "use client";
 
+import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 interface MarkdownProps {
   children: string;
   className?: string;
+}
+
+function renderMentions(text: string): React.ReactNode[] {
+  const mentionRegex = /@([A-Za-z][\w]*(?:\s[A-Za-z][\w]*)*)/g;
+  const parts: React.ReactNode[] = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = mentionRegex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    parts.push(
+      <span key={match.index} className="text-primary font-medium">
+        @{match[1]}
+      </span>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : [text];
 }
 
 export function Markdown({ children, className }: MarkdownProps) {
@@ -82,6 +108,12 @@ export function Markdown({ children, className }: MarkdownProps) {
         strong: ({ children }) => (
           <strong className="font-semibold">{children}</strong>
         ),
+        text: ({ children }) => {
+          if (typeof children === "string" && children.includes("@")) {
+            return <>{renderMentions(children)}</>;
+          }
+          return <>{children}</>;
+        },
       }}
     >
       {children}

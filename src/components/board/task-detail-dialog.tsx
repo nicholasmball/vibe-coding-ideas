@@ -376,6 +376,7 @@ export function TaskDetailDialog({
               taskId={task.id}
               ideaId={ideaId}
               currentUserId={currentUserId}
+              teamMembers={teamMembers}
             />
           </TabsContent>
 
