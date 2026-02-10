@@ -147,6 +147,7 @@ export function Navbar() {
           {/* Mobile menu button */}
           <div className="flex items-center gap-2 md:hidden">
             <ThemeToggle />
+            {user && <NotificationBell />}
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
