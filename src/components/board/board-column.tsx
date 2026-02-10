@@ -98,7 +98,7 @@ export function BoardColumn({
         <div className="flex items-center justify-between border-b border-border px-3 py-2">
           <div className="flex items-center gap-1.5">
             <button
-              className="cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
+              className="cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing touch-none"
               {...attributes}
               {...listeners}
             >

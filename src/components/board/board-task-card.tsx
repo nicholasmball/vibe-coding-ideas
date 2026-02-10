@@ -148,7 +148,7 @@ export function BoardTaskCard({
         <div className="flex items-start gap-2 p-3">
           {!isArchived && (
             <button
-              className="mt-0.5 cursor-grab text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
+              className="mt-0.5 cursor-grab text-muted-foreground opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 active:cursor-grabbing touch-none"
               {...attributes}
               {...listeners}
               onClick={(e) => e.stopPropagation()}
