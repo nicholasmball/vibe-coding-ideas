@@ -20,6 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { createBoardTask } from "@/actions/board";
+import { logTaskActivity } from "@/lib/activity";
 import type { User } from "@/types";
 
 interface TaskEditDialogProps {
@@ -28,6 +29,7 @@ interface TaskEditDialogProps {
   ideaId: string;
   columnId: string;
   teamMembers: User[];
+  currentUserId: string;
 }
 
 export function TaskEditDialog({
@@ -36,6 +38,7 @@ export function TaskEditDialog({
   ideaId,
   columnId,
   teamMembers,
+  currentUserId,
 }: TaskEditDialogProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -48,13 +51,14 @@ export function TaskEditDialog({
 
     setLoading(true);
     try {
-      await createBoardTask(
+      const taskId = await createBoardTask(
         ideaId,
         columnId,
         title.trim(),
         description.trim() || undefined,
         assigneeId || undefined
       );
+      logTaskActivity(taskId, ideaId, currentUserId, "created");
       onOpenChange(false);
       setTitle("");
       setDescription("");

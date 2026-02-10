@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -49,11 +49,14 @@ export function KanbanBoard({
   currentUserId,
 }: KanbanBoardProps) {
   const [columns, setColumns] = useState(initialColumns);
+  const columnsRef = useRef(columns);
+  columnsRef.current = columns;
   const [activeTask, setActiveTask] = useState<BoardTaskWithAssignee | null>(
     null
   );
   const [activeColumn, setActiveColumn] =
     useState<BoardColumnWithTasks | null>(null);
+  const dragSourceColumnRef = useRef<string | null>(null);
 
   // Track in-flight move operations to prevent server data from reverting optimistic updates
   const [pendingMoves, setPendingMoves] = useState(0);
@@ -177,14 +180,15 @@ export function KanbanBoard({
       const data = active.data.current;
 
       if (data?.type === "column") {
-        const col = columns.find((c) => c.id === data.columnId);
+        const col = columnsRef.current.find((c) => c.id === data.columnId);
         if (col) setActiveColumn(col);
       } else {
         const task = data?.task as BoardTaskWithAssignee | undefined;
         if (task) setActiveTask(task);
+        dragSourceColumnRef.current = (data?.columnId as string) ?? null;
       }
     },
-    [columns]
+    []
   );
 
   const handleDragOver = useCallback(
@@ -228,7 +232,7 @@ export function KanbanBoard({
 
         const task = sourceCol.tasks[taskIndex];
 
-        return prev.map((col) => {
+        const next = prev.map((col) => {
           if (col.id === activeColumnId) {
             return {
               ...col,
@@ -252,6 +256,8 @@ export function KanbanBoard({
           }
           return col;
         });
+        columnsRef.current = next;
+        return next;
       });
 
       if (active.data.current) {
@@ -265,6 +271,7 @@ export function KanbanBoard({
     async (event: DragEndEvent) => {
       const { active, over } = event;
       const activeData = active.data.current;
+      const currentColumns = columnsRef.current;
 
       // Column drag end
       if (activeData?.type === "column") {
@@ -275,11 +282,12 @@ export function KanbanBoard({
         const overId = over.data.current?.columnId as string | undefined;
         if (!overId || activeId === overId) return;
 
-        const oldIndex = columns.findIndex((c) => c.id === activeId);
-        const newIndex = columns.findIndex((c) => c.id === overId);
+        const oldIndex = currentColumns.findIndex((c) => c.id === activeId);
+        const newIndex = currentColumns.findIndex((c) => c.id === overId);
         if (oldIndex === -1 || newIndex === -1) return;
 
-        const newColumns = arrayMove(columns, oldIndex, newIndex);
+        const newColumns = arrayMove(currentColumns, oldIndex, newIndex);
+        columnsRef.current = newColumns;
         setColumns(newColumns);
 
         setPendingMoves((n) => n + 1);
@@ -303,7 +311,7 @@ export function KanbanBoard({
       if (!activeData || activeData.type !== "task") return;
 
       const activeColumnId = activeData.columnId as string;
-      const col = columns.find((c) => c.id === activeColumnId);
+      const col = currentColumns.find((c) => c.id === activeColumnId);
       if (!col) return;
 
       const activeIndex = col.tasks.findIndex((t) => t.id === active.id);
@@ -320,18 +328,21 @@ export function KanbanBoard({
         overIndex = activeIndex;
       }
 
-      // If position unchanged, nothing to persist
-      if (activeIndex === overIndex && col.tasks[activeIndex].column_id === activeColumnId) {
+      // If same-column reorder with no position change, nothing to persist
+      const movedBetweenColumns = dragSourceColumnRef.current !== activeColumnId;
+      if (!movedBetweenColumns && activeIndex === overIndex) {
         return;
       }
 
       // Reorder the task list optimistically (handles same-column reorder)
       const reordered = arrayMove(col.tasks, activeIndex, overIndex);
-      setColumns((prev) =>
-        prev.map((c) =>
+      setColumns((prev) => {
+        const next = prev.map((c) =>
           c.id === activeColumnId ? { ...c, tasks: reordered } : c
-        )
-      );
+        );
+        columnsRef.current = next;
+        return next;
+      });
 
       // Calculate position based on the reordered array
       const taskIndex = overIndex;
@@ -364,7 +375,7 @@ export function KanbanBoard({
         setPendingMoves((n) => n - 1);
       }
     },
-    [columns, ideaId]
+    [ideaId]
   );
 
   const columnIds = columns.map((c) => c.id);

@@ -158,18 +158,24 @@ export async function createBoardTask(
 
   const maxPos = tasks && tasks.length > 0 ? tasks[0].position : -POSITION_GAP;
 
-  const { error } = await supabase.from("board_tasks").insert({
-    idea_id: ideaId,
-    column_id: columnId,
-    title,
-    description: description || null,
-    assignee_id: assigneeId || null,
-    position: maxPos + POSITION_GAP,
-  });
+  const { data, error } = await supabase
+    .from("board_tasks")
+    .insert({
+      idea_id: ideaId,
+      column_id: columnId,
+      title,
+      description: description || null,
+      assignee_id: assigneeId || null,
+      position: maxPos + POSITION_GAP,
+    })
+    .select("id")
+    .single();
 
   if (error) throw new Error(error.message);
 
   revalidatePath(`/ideas/${ideaId}/board`);
+
+  return data.id;
 }
 
 export async function updateBoardTask(

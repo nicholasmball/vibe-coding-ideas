@@ -182,6 +182,7 @@ export function BoardColumn({
         ideaId={ideaId}
         columnId={column.id}
         teamMembers={teamMembers}
+        currentUserId={currentUserId}
       />
       <ColumnEditDialog
         open={renameOpen}
