@@ -48,7 +48,7 @@ src/
 │   ├── comments.ts         # create, incorporate, delete
 │   ├── collaborators.ts    # toggleCollaborator, addCollaborator, removeCollaborator
 │   ├── notifications.ts    # markRead, markAllRead, updateNotificationPreferences
-│   ├── profile.ts          # updateProfile
+│   ├── profile.ts          # updateProfile (including avatar_url)
 │   └── users.ts            # deleteUser (admin only)
 ├── components/
 │   ├── ui/                 # shadcn/ui (don't edit manually, except markdown.tsx)
@@ -66,7 +66,7 @@ src/
 │   ├── activity.ts         # logTaskActivity() — client-side fire-and-forget activity logging
 │   ├── constants.ts        # Status/comment type configs, sort options, tags, board defaults, LABEL_COLORS, ACTIVITY_ACTIONS
 │   ├── import.ts           # CSV/JSON/bulk-text parsers, auto-mapping, executeBulkImport()
-│   ├── validation.ts       # Server-side input validation (title, description, comment, tags, GitHub URL, label name/color, bio)
+│   ├── validation.ts       # Server-side input validation (title, description, comment, tags, GitHub URL, label name/color, bio, avatar URL)
 │   ├── utils.ts            # cn(), formatRelativeTime(), getDueDateStatus(), formatDueDate(), getLabelColorConfig()
 │   └── supabase/
 │       ├── client.ts       # Browser client (createBrowserClient)
@@ -80,7 +80,7 @@ src/
 │   └── mocks.ts            # Shared mocks (Supabase client, Next.js navigation)
 middleware.ts               # Root middleware (calls updateSession)
 vitest.config.ts            # Vitest config (jsdom, @/ alias, react plugin)
-supabase/migrations/        # 28 SQL migration files (run in order)
+supabase/migrations/        # 29 SQL migration files (run in order)
 ```
 
 ## Key Patterns
@@ -107,6 +107,7 @@ supabase/migrations/        # 28 SQL migration files (run in order)
 - OAuth callback at `/callback` exchanges code for session
 - Email/password with forgot/reset password flow
 - `useUser()` hook for client-side auth state
+- Profile picture upload: edit-profile-dialog uploads to `avatars` bucket client-side, saves public URL (with cache-bust `?t=`) to `users.avatar_url` via `updateProfile` server action; supports upload, replace, and remove
 
 ### Database
 - 14 tables: users, ideas, comments, collaborators, votes, notifications, board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items, board_task_activity, board_task_comments, board_task_attachments
@@ -140,6 +141,7 @@ supabase/migrations/        # 28 SQL migration files (run in order)
 - `board_task_activity` tracks all task changes with actor, action, and details (JSONB)
 - Activity is logged client-side via `logTaskActivity()` fire-and-forget calls
 - `board_task_comments` stores markdown comments per task, with Realtime subscription
+- `avatars` storage bucket (public, 2MB limit) — profile picture uploads at `{userId}/avatar`, upsert on change
 - `board_task_attachments` + `task-attachments` storage bucket (private, 10MB limit)
 - `update_attachment_count()` trigger maintains `board_tasks.attachment_count`
 - Task comments support @mentions: typing `@` triggers autocomplete for team members, selecting inserts `@Full Name`, submitting creates `task_mention` notifications (fire-and-forget, respects `notification_preferences.task_mentions`)
@@ -154,15 +156,15 @@ supabase/migrations/        # 28 SQL migration files (run in order)
 - **Framework**: Vitest + jsdom + @testing-library/react
 - **Config**: `vitest.config.ts` (react plugin, `@/` alias, `src/test/setup.ts`)
 - **Test files**: Co-located as `*.test.ts` next to source (e.g., `utils.test.ts`, `import.test.ts`)
-- **Coverage**: 122 tests across 5 files — utils, validation, types, import parsers, constants integrity
+- **Coverage**: 126 tests across 5 files — utils, validation, types, import parsers, constants integrity
 - **Convention**: Write tests for all new pure logic, validators, parsers, and utility functions. Component/UI changes are verified via build + manual testing.
 - **Run**: `npm run test` (single run) or `npm run test:watch` (watch mode)
 
 ### Input Validation
 - `src/lib/validation.ts` provides server-side validators with `ValidationError` class
 - All server actions validate inputs before database operations
-- Validators: `validateTitle`, `validateDescription`, `validateOptionalDescription`, `validateComment`, `validateGithubUrl`, `validateTags`, `validateLabelColor`, `validateLabelName`, `validateBio`
-- Limits: title 200 chars, description 10K, comment 5K, bio 500, tag 50 chars / 10 max, label name 50
+- Validators: `validateTitle`, `validateDescription`, `validateOptionalDescription`, `validateComment`, `validateGithubUrl`, `validateTags`, `validateLabelColor`, `validateLabelName`, `validateBio`, `validateAvatarUrl`
+- Limits: title 200 chars, description 10K, comment 5K, bio 500, tag 50 chars / 10 max, label name 50, avatar URL 2000
 - Label colors validated against allowlist (red, orange, amber, yellow, lime, green, blue, cyan, violet, purple, pink, rose)
 
 ## Environment Variables
