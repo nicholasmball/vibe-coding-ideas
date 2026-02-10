@@ -7,7 +7,7 @@ import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { MoreHorizontal, Plus, Pencil, Trash2, GripVertical } from "lucide-react";
+import { MoreHorizontal, Plus, Pencil, Trash2, GripVertical, CircleCheckBig } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -104,8 +104,11 @@ export function BoardColumn({
             >
               <GripVertical className="h-4 w-4" />
             </button>
-            <h3 className="text-sm font-semibold">
-              {column.title}{" "}
+            <h3 className="flex items-center gap-1 text-sm font-semibold">
+              {column.title}
+              {column.is_done_column && (
+                <CircleCheckBig className="h-3.5 w-3.5 text-emerald-500" />
+              )}
               <span className="text-muted-foreground">({totalTaskCount})</span>
             </h3>
           </div>
@@ -123,7 +126,7 @@ export function BoardColumn({
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setRenameOpen(true)}>
                 <Pencil className="mr-2 h-4 w-4" />
-                Rename
+                Edit
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={handleDelete}
@@ -186,6 +189,7 @@ export function BoardColumn({
         columnId={column.id}
         ideaId={ideaId}
         currentTitle={column.title}
+        currentIsDoneColumn={column.is_done_column}
       />
     </>
   );

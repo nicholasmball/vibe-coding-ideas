@@ -67,6 +67,7 @@ export function KanbanBoard({
     initialColumns.map((c) => [
       c.id,
       c.position,
+      c.is_done_column,
       c.tasks.map((t) => [
         t.id,
         t.labels.map((l) => l.id).sort(),

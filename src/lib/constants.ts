@@ -54,9 +54,9 @@ export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
 ];
 
 export const DEFAULT_BOARD_COLUMNS = [
-  { title: "To Do", position: 0 },
-  { title: "In Progress", position: 1000 },
-  { title: "Done", position: 2000 },
+  { title: "To Do", position: 0, is_done_column: false },
+  { title: "In Progress", position: 1000, is_done_column: false },
+  { title: "Done", position: 2000, is_done_column: true },
 ];
 
 export const POSITION_GAP = 1000;

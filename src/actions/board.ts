@@ -26,6 +26,7 @@ export async function initializeBoardColumns(ideaId: string) {
     idea_id: ideaId,
     title: col.title,
     position: col.position,
+    is_done_column: col.is_done_column,
   }));
 
   await supabase.from("board_columns").insert(columns);
@@ -63,7 +64,8 @@ export async function createBoardColumn(ideaId: string, title: string) {
 export async function updateBoardColumn(
   columnId: string,
   ideaId: string,
-  title: string
+  title: string,
+  isDoneColumn?: boolean
 ) {
   const supabase = await createClient();
   const {
@@ -72,9 +74,14 @@ export async function updateBoardColumn(
 
   if (!user) throw new Error("Not authenticated");
 
+  const updates: { title: string; is_done_column?: boolean } = { title };
+  if (isDoneColumn !== undefined) {
+    updates.is_done_column = isDoneColumn;
+  }
+
   const { error } = await supabase
     .from("board_columns")
-    .update({ title })
+    .update(updates)
     .eq("id", columnId)
     .eq("idea_id", ideaId);
 

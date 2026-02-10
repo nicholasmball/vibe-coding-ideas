@@ -73,13 +73,14 @@ export default async function DashboardPage() {
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(15),
-    // Tasks assigned to user
+    // Tasks assigned to user (exclude archived and tasks in done columns)
     supabase
       .from("board_tasks")
       .select(
-        "*, column:board_columns!board_tasks_column_id_fkey(id, title), idea:ideas!board_tasks_idea_id_fkey(id, title), assignee:users!board_tasks_assignee_id_fkey(*)"
+        "*, column:board_columns!board_tasks_column_id_fkey(id, title, is_done_column), idea:ideas!board_tasks_idea_id_fkey(id, title), assignee:users!board_tasks_assignee_id_fkey(*)"
       )
-      .eq("assignee_id", user.id),
+      .eq("assignee_id", user.id)
+      .eq("archived", false),
   ]);
 
   const myIdeas = (myIdeasResult.data ?? []) as unknown as IdeaWithAuthor[];
@@ -93,8 +94,10 @@ export default async function DashboardPage() {
   const votedIdeaIds = new Set((votesResult.data ?? []).map((v) => v.idea_id));
   const notifications = (notificationsResult.data ?? []) as unknown as NotificationWithDetails[];
 
-  // Process tasks
-  const rawTasks = (tasksResult.data ?? []) as unknown as (DashboardTask)[];
+  // Process tasks — exclude tasks in done columns
+  const rawTasks = (
+    (tasksResult.data ?? []) as unknown as DashboardTask[]
+  ).filter((t) => !t.column.is_done_column);
 
   // Phase 2: Dependent queries
   const [collabIdeasResult, taskLabelsResult] = await Promise.all([

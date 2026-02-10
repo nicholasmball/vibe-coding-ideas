@@ -65,7 +65,7 @@ export type BoardTaskCommentWithAuthor = BoardTaskComment & { author: User };
 export type DashboardTask = BoardTask & {
   assignee: User | null;
   labels: BoardLabel[];
-  column: { id: string; title: string };
+  column: { id: string; title: string; is_done_column: boolean };
   idea: { id: string; title: string };
 };
 

@@ -258,6 +258,7 @@ export type Database = {
           idea_id: string;
           title: string;
           position: number;
+          is_done_column: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -266,6 +267,7 @@ export type Database = {
           idea_id: string;
           title: string;
           position?: number;
+          is_done_column?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -274,6 +276,7 @@ export type Database = {
           idea_id?: string;
           title?: string;
           position?: number;
+          is_done_column?: boolean;
           created_at?: string;
           updated_at?: string;
         };

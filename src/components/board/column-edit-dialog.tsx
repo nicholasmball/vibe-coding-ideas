@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { updateBoardColumn } from "@/actions/board";
 
 interface ColumnEditDialogProps {
@@ -19,6 +20,7 @@ interface ColumnEditDialogProps {
   columnId: string;
   ideaId: string;
   currentTitle: string;
+  currentIsDoneColumn: boolean;
 }
 
 export function ColumnEditDialog({
@@ -27,8 +29,10 @@ export function ColumnEditDialog({
   columnId,
   ideaId,
   currentTitle,
+  currentIsDoneColumn,
 }: ColumnEditDialogProps) {
   const [title, setTitle] = useState(currentTitle);
+  const [isDoneColumn, setIsDoneColumn] = useState(currentIsDoneColumn);
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -37,7 +41,7 @@ export function ColumnEditDialog({
 
     setLoading(true);
     try {
-      await updateBoardColumn(columnId, ideaId, title.trim());
+      await updateBoardColumn(columnId, ideaId, title.trim(), isDoneColumn);
       onOpenChange(false);
     } catch {
       // RLS will block unauthorized access
@@ -50,7 +54,7 @@ export function ColumnEditDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Rename Column</DialogTitle>
+          <DialogTitle>Edit Column</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -61,6 +65,19 @@ export function ColumnEditDialog({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Column name"
               required
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="done-column">Done column</Label>
+              <p className="text-xs text-muted-foreground">
+                Tasks here won&apos;t appear on dashboards
+              </p>
+            </div>
+            <Switch
+              id="done-column"
+              checked={isDoneColumn}
+              onCheckedChange={setIsDoneColumn}
             />
           </div>
           <DialogFooter>
