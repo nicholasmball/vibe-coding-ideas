@@ -55,6 +55,9 @@ export function KanbanBoard({
   const [activeColumn, setActiveColumn] =
     useState<BoardColumnWithTasks | null>(null);
 
+  // Track in-flight move operations to prevent server data from reverting optimistic updates
+  const [pendingMoves, setPendingMoves] = useState(0);
+
   // Filter state
   const [searchQuery, setSearchQuery] = useState("");
   const [assigneeFilter, setAssigneeFilter] = useState("all");
@@ -85,7 +88,7 @@ export function KanbanBoard({
     ])
   );
   const [lastServerKey, setLastServerKey] = useState(serverKey);
-  if (serverKey !== lastServerKey && !activeTask && !activeColumn) {
+  if (serverKey !== lastServerKey && !activeTask && !activeColumn && pendingMoves === 0) {
     setColumns(initialColumns);
     setLastServerKey(serverKey);
   }
@@ -279,13 +282,16 @@ export function KanbanBoard({
         const newColumns = arrayMove(columns, oldIndex, newIndex);
         setColumns(newColumns);
 
+        setPendingMoves((n) => n + 1);
         try {
           await reorderBoardColumns(
             ideaId,
             newColumns.map((c) => c.id)
           );
         } catch {
-          setColumns(initialColumns);
+          setLastServerKey(""); // force re-sync when pendingMoves reaches 0
+        } finally {
+          setPendingMoves((n) => n - 1);
         }
         return;
       }
@@ -344,6 +350,7 @@ export function KanbanBoard({
         );
       }
 
+      setPendingMoves((n) => n + 1);
       try {
         await moveBoardTask(
           String(active.id),
@@ -352,10 +359,12 @@ export function KanbanBoard({
           newPosition
         );
       } catch {
-        setColumns(initialColumns);
+        setLastServerKey(""); // force re-sync when pendingMoves reaches 0
+      } finally {
+        setPendingMoves((n) => n - 1);
       }
     },
-    [columns, ideaId, initialColumns]
+    [columns, ideaId]
   );
 
   const columnIds = columns.map((c) => c.id);

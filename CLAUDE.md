@@ -73,7 +73,7 @@ src/
 │   ├── database.ts         # Supabase Database type (manual, includes Relationships)
 │   └── index.ts            # Derived types (IdeaWithAuthor, CommentWithAuthor, DashboardTask, etc.)
 middleware.ts               # Root middleware (calls updateSession)
-supabase/migrations/        # 23 SQL migration files (run in order)
+supabase/migrations/        # 25 SQL migration files (run in order)
 ```
 
 ## Key Patterns
@@ -110,7 +110,9 @@ supabase/migrations/        # 23 SQL migration files (run in order)
 - `admin_delete_user` RPC (security definer) deletes from auth.users, cascading all data
 - `notifications.idea_id` is nullable (ON DELETE SET NULL) so notifications persist after user deletion
 - Board tables (board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items) use `is_idea_team_member()` RLS function for team-only access
-- Board columns lazy-initialized with "To Do", "In Progress", "Done" on first visit
+- Board columns lazy-initialized with "To Do", "In Progress", "Done" (done column) on first visit
+- `board_columns.is_done_column` (boolean) marks columns where tasks are considered complete
+- Dashboard excludes archived tasks and tasks in done columns
 - Board uses @dnd-kit for drag-and-drop with optimistic UI updates
 - Board tasks support labels (colored, per-idea), due dates, and checklists (subtasks)
 - `board_tasks.checklist_total` and `checklist_done` are denormalized counts maintained by `update_checklist_counts()` trigger
