@@ -12,8 +12,14 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { LABEL_COLORS } from "@/lib/constants";
 import { getLabelColorConfig } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/client";
 import { logTaskActivity } from "@/lib/activity";
+import {
+  addLabelToTask,
+  removeLabelFromTask,
+  createBoardLabel,
+  updateBoardLabel,
+  deleteBoardLabel,
+} from "@/actions/board";
 import type { BoardLabel } from "@/types";
 
 interface LabelPickerProps {
@@ -69,22 +75,23 @@ export function LabelPicker({
       return next;
     });
 
-    const supabase = createClient();
-    let error;
-
-    if (isCurrentlyAssigned) {
-      ({ error } = await supabase
-        .from("board_task_labels")
-        .delete()
-        .eq("task_id", taskId)
-        .eq("label_id", labelId));
-    } else {
-      ({ error } = await supabase
-        .from("board_task_labels")
-        .insert({ task_id: taskId, label_id: labelId }));
-    }
-
-    if (error) {
+    try {
+      if (isCurrentlyAssigned) {
+        await removeLabelFromTask(taskId, labelId, ideaId);
+      } else {
+        await addLabelToTask(taskId, labelId, ideaId);
+      }
+      if (currentUserId) {
+        const label = boardLabels.find((l) => l.id === labelId);
+        logTaskActivity(
+          taskId,
+          ideaId,
+          currentUserId,
+          isCurrentlyAssigned ? "label_removed" : "label_added",
+          { label_name: label?.name ?? "Unknown" }
+        );
+      }
+    } catch {
       // Revert on error
       setLocalLabelIds((prev) => {
         const next = new Set(prev);
@@ -95,15 +102,6 @@ export function LabelPicker({
         }
         return next;
       });
-    } else if (currentUserId) {
-      const label = boardLabels.find((l) => l.id === labelId);
-      logTaskActivity(
-        taskId,
-        ideaId,
-        currentUserId,
-        isCurrentlyAssigned ? "label_removed" : "label_added",
-        { label_name: label?.name ?? "Unknown" }
-      );
     }
   }
 
@@ -112,49 +110,44 @@ export function LabelPicker({
     if (!newName.trim()) return;
 
     setSaving(true);
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("board_labels")
-      .insert({ idea_id: ideaId, name: newName.trim(), color: newColor });
-
-    if (!error) {
+    try {
+      await createBoardLabel(ideaId, newName.trim(), newColor);
       setNewName("");
       setNewColor("blue");
       setCreating(false);
+    } catch {
+      // keep form open on error
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   async function handleUpdate(labelId: string) {
     if (!newName.trim()) return;
 
     setSaving(true);
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("board_labels")
-      .update({ name: newName.trim(), color: newColor })
-      .eq("id", labelId);
-
-    if (!error) {
+    try {
+      await updateBoardLabel(labelId, ideaId, { name: newName.trim(), color: newColor });
       setEditingId(null);
       setNewName("");
       setNewColor("blue");
+    } catch {
+      // keep form open on error
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   async function handleDelete(labelId: string) {
     setSaving(true);
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("board_labels")
-      .delete()
-      .eq("id", labelId);
-
-    if (!error) {
+    try {
+      await deleteBoardLabel(labelId, ideaId);
       setEditingId(null);
+    } catch {
+      // stay open on error
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   }
 
   function startEdit(label: BoardLabel) {

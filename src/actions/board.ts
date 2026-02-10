@@ -186,6 +186,7 @@ export async function updateBoardTask(
     description?: string | null;
     assignee_id?: string | null;
     due_date?: string | null;
+    archived?: boolean;
   }
 ) {
   const supabase = await createClient();

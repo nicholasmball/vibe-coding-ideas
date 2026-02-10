@@ -9,9 +9,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/client";
 import { formatDueDate, getDueDateStatus } from "@/lib/utils";
 import { logTaskActivity } from "@/lib/activity";
+import { updateBoardTask } from "@/actions/board";
 
 interface DueDatePickerProps {
   taskId: string;
@@ -39,22 +39,18 @@ export function DueDatePicker({ taskId, ideaId, dueDate, currentUserId }: DueDat
     setOptimisticDate(isoDate);
     setOpen(false);
 
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("board_tasks")
-      .update({ due_date: isoDate })
-      .eq("id", taskId);
-
-    if (error) {
-      // Revert on failure
+    try {
+      await updateBoardTask(taskId, ideaId, { due_date: isoDate });
+      if (currentUserId) {
+        logTaskActivity(
+          taskId,
+          ideaId,
+          currentUserId,
+          isoDate ? "due_date_set" : "due_date_removed"
+        );
+      }
+    } catch {
       setOptimisticDate(undefined);
-    } else if (currentUserId) {
-      logTaskActivity(
-        taskId,
-        ideaId,
-        currentUserId,
-        isoDate ? "due_date_set" : "due_date_removed"
-      );
     }
   }
 

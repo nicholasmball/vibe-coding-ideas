@@ -119,13 +119,8 @@ export function TaskDetailDialog({
     const assigneeId = value === "unassigned" ? null : value;
     setLocalAssigneeId(assigneeId);
 
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("board_tasks")
-      .update({ assignee_id: assigneeId })
-      .eq("id", task.id);
-
-    if (!error) {
+    try {
+      await updateBoardTask(task.id, ideaId, { assignee_id: assigneeId });
       if (assigneeId) {
         const member = teamMembers.find((m) => m.id === assigneeId);
         logTaskActivity(task.id, ideaId, currentUserId, "assigned", {
@@ -134,29 +129,27 @@ export function TaskDetailDialog({
       } else {
         logTaskActivity(task.id, ideaId, currentUserId, "unassigned");
       }
-    } else {
+    } catch {
       setLocalAssigneeId(task.assignee_id);
     }
   }
 
   async function handleArchiveToggle() {
     setArchiving(true);
-    const supabase = createClient();
     const newArchived = !isArchived;
-    const { error } = await supabase
-      .from("board_tasks")
-      .update({ archived: newArchived })
-      .eq("id", task.id);
-
-    if (!error) {
+    try {
+      await updateBoardTask(task.id, ideaId, { archived: newArchived });
       logTaskActivity(
         task.id,
         ideaId,
         currentUserId,
         newArchived ? "archived" : "unarchived"
       );
+    } catch {
+      // revert silently
+    } finally {
+      setArchiving(false);
     }
-    setArchiving(false);
   }
 
   const confirmTimer = useRef<ReturnType<typeof setTimeout>>(null);

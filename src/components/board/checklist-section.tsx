@@ -11,8 +11,12 @@ import {
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
-import { createClient } from "@/lib/supabase/client";
 import { logTaskActivity } from "@/lib/activity";
+import {
+  createChecklistItem,
+  toggleChecklistItem,
+  deleteChecklistItem,
+} from "@/actions/board";
 import type { BoardChecklistItem } from "@/types";
 
 interface ChecklistSectionProps {
@@ -40,52 +44,39 @@ export function ChecklistSection({
     if (!newTitle.trim()) return;
 
     setLoading(true);
-    const supabase = createClient();
-    const maxPos = items.length > 0
-      ? Math.max(...items.map((i) => i.position))
-      : -1;
-
-    const { error } = await supabase.from("board_checklist_items").insert({
-      task_id: taskId,
-      idea_id: ideaId,
-      title: newTitle.trim(),
-      position: maxPos + 1,
-    });
-
-    if (!error) {
+    try {
+      await createChecklistItem(taskId, ideaId, newTitle.trim());
       if (currentUserId) {
         logTaskActivity(taskId, ideaId, currentUserId, "checklist_item_added", {
           title: newTitle.trim(),
         });
       }
       setNewTitle("");
+    } catch {
+      // keep input on error
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   async function handleToggle(itemId: string) {
     const item = items.find((i) => i.id === itemId);
     if (!item) return;
 
-    const supabase = createClient();
-    const { error } = await supabase
-      .from("board_checklist_items")
-      .update({ completed: !item.completed })
-      .eq("id", itemId);
-
-    if (!error && currentUserId && !item.completed) {
-      logTaskActivity(taskId, ideaId, currentUserId, "checklist_item_completed", {
-        title: item.title,
-      });
+    try {
+      await toggleChecklistItem(itemId, ideaId);
+      if (currentUserId && !item.completed) {
+        logTaskActivity(taskId, ideaId, currentUserId, "checklist_item_completed", {
+          title: item.title,
+        });
+      }
+    } catch {
+      // silent revert via revalidation
     }
   }
 
   async function handleDelete(itemId: string) {
-    const supabase = createClient();
-    await supabase
-      .from("board_checklist_items")
-      .delete()
-      .eq("id", itemId);
+    await deleteChecklistItem(itemId, ideaId);
   }
 
   return (
