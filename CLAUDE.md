@@ -5,6 +5,7 @@
 - **Dev server**: `npm run dev` (http://localhost:3000)
 - **Build**: `npm run build` (uses Turbopack)
 - **Lint**: `npm run lint`
+- **Test**: `npm run test` (Vitest, single run) / `npm run test:watch` (watch mode)
 
 ## Tech Stack
 
@@ -16,6 +17,7 @@
 - **Markdown**: react-markdown + remark-gfm (idea descriptions, comments)
 - **Drag & Drop**: @dnd-kit/core, @dnd-kit/sortable (kanban board)
 - **Notifications**: sonner (toasts)
+- **Testing**: Vitest + @testing-library/react + jsdom
 
 ## Project Structure
 
@@ -39,9 +41,9 @@ src/
 │       ├── ideas/[id]/board # Kanban task board (author + collaborators only)
 │       ├── ideas/[id]/edit # Edit idea (author only)
 │       └── profile/[id]    # User profile with tabs
-├── actions/                # Server Actions
+├── actions/                # Server Actions (all use server-side validation)
 │   ├── ideas.ts            # create, update, updateStatus, delete
-│   ├── board.ts            # initializeColumns, create/update/delete columns & tasks, reorder, move, labels (CRUD + assign/remove), checklists (CRUD + toggle)
+│   ├── board.ts            # initializeColumns, create/update/delete columns & tasks, reorder, move, labels (CRUD + assign/remove), checklists (CRUD + toggle), task comments (create/delete)
 │   ├── votes.ts            # toggleVote
 │   ├── comments.ts         # create, incorporate, delete
 │   ├── collaborators.ts    # toggleCollaborator, addCollaborator, removeCollaborator
@@ -64,6 +66,7 @@ src/
 │   ├── activity.ts         # logTaskActivity() — client-side fire-and-forget activity logging
 │   ├── constants.ts        # Status/comment type configs, sort options, tags, board defaults, LABEL_COLORS, ACTIVITY_ACTIONS
 │   ├── import.ts           # CSV/JSON/bulk-text parsers, auto-mapping, executeBulkImport()
+│   ├── validation.ts       # Server-side input validation (title, description, comment, tags, GitHub URL, label name/color, bio)
 │   ├── utils.ts            # cn(), formatRelativeTime(), getDueDateStatus(), formatDueDate(), getLabelColorConfig()
 │   └── supabase/
 │       ├── client.ts       # Browser client (createBrowserClient)
@@ -72,7 +75,11 @@ src/
 ├── types/
 │   ├── database.ts         # Supabase Database type (manual, includes Relationships)
 │   └── index.ts            # Derived types (IdeaWithAuthor, CommentWithAuthor, DashboardTask, etc.)
+├── test/
+│   ├── setup.ts            # Vitest setup (@testing-library/jest-dom)
+│   └── mocks.ts            # Shared mocks (Supabase client, Next.js navigation)
 middleware.ts               # Root middleware (calls updateSession)
+vitest.config.ts            # Vitest config (jsdom, @/ alias, react plugin)
 supabase/migrations/        # 28 SQL migration files (run in order)
 ```
 
@@ -92,6 +99,7 @@ supabase/migrations/        # 28 SQL migration files (run in order)
 - Client components use `"use client"` directive
 - `redirect()` in server actions throws a special error — when calling server actions that redirect from client code wrapped in try/catch, re-throw errors with `digest` starting with `NEXT_REDIRECT`
 - Forms using server actions should use `useFormStatus` to disable submit buttons during pending state
+- All client-side catch blocks that call server actions should show `toast.error()` — never fail silently
 
 ### Auth Flow
 - Middleware protects `/dashboard`, `/feed`, `/ideas`, `/profile` routes (redirects to `/login`)
@@ -118,7 +126,10 @@ supabase/migrations/        # 28 SQL migration files (run in order)
 - Board columns lazy-initialized with "To Do", "In Progress", "Done" (done column) on first visit
 - `board_columns.is_done_column` (boolean) marks columns where tasks are considered complete
 - Dashboard excludes archived tasks and tasks in done columns
-- Board uses @dnd-kit for drag-and-drop with optimistic UI updates (MouseSensor + TouchSensor + KeyboardSensor for desktop/mobile/a11y)
+- Board uses @dnd-kit for drag-and-drop with optimistic UI updates
+  - `MouseSensor` (distance: 8) for desktop, `TouchSensor` (delay: 200ms) for mobile, `KeyboardSensor` for a11y
+  - Drag handles use `touch-none` CSS to prevent browser scroll interference
+  - Task drag handles: visible on mobile, hover-reveal on desktop (`opacity-100 sm:opacity-0 sm:group-hover:opacity-100`)
 - Board tasks support labels (colored, per-idea), due dates, and checklists (subtasks)
 - `board_tasks.checklist_total` and `checklist_done` are denormalized counts maintained by `update_checklist_counts()` trigger
 - Clicking a task card opens a rich detail dialog (task-detail-dialog) for editing all task properties; all mutations use server actions (not direct client calls) to ensure `revalidatePath` fires
@@ -138,6 +149,21 @@ supabase/migrations/        # 28 SQL migration files (run in order)
   - Auto-maps column names case-insensitively, supports "Create new column"
   - Max 500 tasks per import, inserted in batches of 50
   - Creates labels/columns on-the-fly, resolves assignees by name/email
+
+### Testing
+- **Framework**: Vitest + jsdom + @testing-library/react
+- **Config**: `vitest.config.ts` (react plugin, `@/` alias, `src/test/setup.ts`)
+- **Test files**: Co-located as `*.test.ts` next to source (e.g., `utils.test.ts`, `import.test.ts`)
+- **Coverage**: 122 tests across 5 files — utils, validation, types, import parsers, constants integrity
+- **Convention**: Write tests for all new pure logic, validators, parsers, and utility functions. Component/UI changes are verified via build + manual testing.
+- **Run**: `npm run test` (single run) or `npm run test:watch` (watch mode)
+
+### Input Validation
+- `src/lib/validation.ts` provides server-side validators with `ValidationError` class
+- All server actions validate inputs before database operations
+- Validators: `validateTitle`, `validateDescription`, `validateOptionalDescription`, `validateComment`, `validateGithubUrl`, `validateTags`, `validateLabelColor`, `validateLabelName`, `validateBio`
+- Limits: title 200 chars, description 10K, comment 5K, bio 500, tag 50 chars / 10 max, label name 50
+- Label colors validated against allowlist (red, orange, amber, yellow, lime, green, blue, cyan, violet, purple, pink, rose)
 
 ## Environment Variables
 
