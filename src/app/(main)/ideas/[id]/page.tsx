@@ -137,7 +137,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
       .toUpperCase() ?? "?";
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8">
+    <div className="mx-auto max-w-3xl px-4 py-10">
       <IdeaDetailRealtime ideaId={idea.id} />
       {/* Header */}
       <div className="flex items-start gap-4">
@@ -148,7 +148,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
         />
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold">{idea.title}</h1>
+            <h1 className="text-3xl font-bold tracking-tight">{idea.title}</h1>
             {idea.visibility === "private" && (
               <Badge variant="outline" className="gap-1">
                 <Lock className="h-3 w-3" />
@@ -156,7 +156,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
               </Badge>
             )}
           </div>
-          <div className="mt-2 flex items-center gap-3">
+          <div className="mt-3 flex items-center gap-3">
             <Link
               href={`/profile/${idea.author_id}`}
               className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
@@ -177,7 +177,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
       </div>
 
       {/* Status and Actions */}
-      <div className="mt-6 flex flex-wrap items-center gap-3">
+      <div className="mt-8 flex flex-wrap items-center gap-3">
         {isAuthor ? (
           <StatusSelect ideaId={idea.id} currentStatus={idea.status} />
         ) : (
@@ -213,7 +213,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
 
       {/* Tags */}
       {idea.tags.length > 0 && (
-        <div className="mt-4 flex flex-wrap gap-2">
+        <div className="mt-5 flex flex-wrap gap-2">
           {idea.tags.map((tag: string) => (
             <Badge key={tag} variant="secondary">
               {tag}
@@ -238,7 +238,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
 
       {/* Collaborators */}
       {(isAuthor || (collaborators as unknown as CollaboratorWithUser[])?.length > 0) && (
-        <div className="mt-4">
+        <div className="mt-6">
           <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
             <Users className="h-4 w-4" />
             Collaborators ({(collaborators as unknown as CollaboratorWithUser[])?.length ?? 0})
@@ -289,7 +289,8 @@ export default async function IdeaDetailPage({ params }: PageProps) {
       )}
 
       {/* Description */}
-      <div className="mt-6 text-foreground/90 leading-relaxed">
+      <Separator className="mt-8 mb-6" />
+      <div className="text-foreground/90 leading-relaxed">
         <Markdown>{idea.description}</Markdown>
       </div>
 
