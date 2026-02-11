@@ -328,11 +328,52 @@ describe("GET /api/oauth/authorize", () => {
 // ==================== /api/oauth/token (authorization_code) ====================
 
 describe("POST /api/oauth/token (authorization_code)", () => {
-  it("exchanges valid authorization code with PKCE", async () => {
+  it("exchanges valid authorization code with PKCE and returns fresh tokens", async () => {
     const authCode = makeAuthCode();
     const codeChain = makeChain({ data: authCode, error: null });
     const updateChain = makeChain({ data: null, error: null });
     mockFrom.mockReturnValueOnce(codeChain).mockReturnValueOnce(updateChain);
+
+    mockAuthRefreshSession.mockResolvedValue({
+      data: {
+        session: {
+          access_token: "fresh-access-token",
+          refresh_token: "fresh-refresh-token",
+          expires_in: 3600,
+        },
+      },
+      error: null,
+    });
+
+    const request = makeTokenRequest({
+      grant_type: "authorization_code",
+      code: "test-auth-code",
+      code_verifier: CODE_VERIFIER,
+      client_id: "test-client-id",
+      redirect_uri: "http://localhost:3000/callback",
+    });
+
+    const response = await tokenPOST(request);
+    expect(response.status).toBe(200);
+
+    const body = await response.json();
+    expect(body.access_token).toBe("fresh-access-token");
+    expect(body.token_type).toBe("bearer");
+    expect(body.refresh_token).toBe("fresh-refresh-token");
+    expect(body.expires_in).toBe(3600);
+    expect(body.scope).toBe("mcp:tools");
+  });
+
+  it("falls back to stored tokens if refresh fails", async () => {
+    const authCode = makeAuthCode();
+    const codeChain = makeChain({ data: authCode, error: null });
+    const updateChain = makeChain({ data: null, error: null });
+    mockFrom.mockReturnValueOnce(codeChain).mockReturnValueOnce(updateChain);
+
+    mockAuthRefreshSession.mockResolvedValue({
+      data: { session: null },
+      error: { message: "Refresh failed" },
+    });
 
     const request = makeTokenRequest({
       grant_type: "authorization_code",
@@ -347,9 +388,8 @@ describe("POST /api/oauth/token (authorization_code)", () => {
 
     const body = await response.json();
     expect(body.access_token).toBe("sb-access-token");
-    expect(body.token_type).toBe("bearer");
+    expect(body.expires_in).toBe(3600);
     expect(body.refresh_token).toBe("sb-refresh-token");
-    expect(body.scope).toBe("mcp:tools");
   });
 
   it("rejects missing required params", async () => {
@@ -484,6 +524,17 @@ describe("POST /api/oauth/token (authorization_code)", () => {
     const updateChain = makeChain({ data: null, error: null });
     mockFrom.mockReturnValueOnce(codeChain).mockReturnValueOnce(updateChain);
 
+    mockAuthRefreshSession.mockResolvedValue({
+      data: {
+        session: {
+          access_token: "fresh-token",
+          refresh_token: "fresh-refresh",
+          expires_in: 3600,
+        },
+      },
+      error: null,
+    });
+
     const request = makeTokenRequest({
       grant_type: "authorization_code",
       code: "test-auth-code",
@@ -502,7 +553,7 @@ describe("POST /api/oauth/token (authorization_code)", () => {
 // ==================== /api/oauth/token (refresh_token) ====================
 
 describe("POST /api/oauth/token (refresh_token)", () => {
-  it("refreshes token successfully", async () => {
+  it("refreshes token successfully with expires_in", async () => {
     const clientChain = makeChain({
       data: { client_id: "test-client-id" },
       error: null,
@@ -514,6 +565,7 @@ describe("POST /api/oauth/token (refresh_token)", () => {
         session: {
           access_token: "new-access-token",
           refresh_token: "new-refresh-token",
+          expires_in: 3600,
         },
       },
       error: null,
@@ -532,6 +584,7 @@ describe("POST /api/oauth/token (refresh_token)", () => {
     expect(body.access_token).toBe("new-access-token");
     expect(body.token_type).toBe("bearer");
     expect(body.refresh_token).toBe("new-refresh-token");
+    expect(body.expires_in).toBe(3600);
     expect(body.scope).toBe("mcp:tools");
   });
 

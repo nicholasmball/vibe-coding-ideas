@@ -112,9 +112,32 @@ async function handleAuthorizationCode(body: FormData) {
     .update({ used: true })
     .eq("code", code);
 
+  // Refresh the session to get fresh tokens with full TTL
+  // (the stored tokens may already be partially expired)
+  const anonClient = createClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+
+  const { data: refreshed, error: refreshError } = await anonClient.auth.refreshSession({
+    refresh_token: authCode.supabase_refresh_token,
+  });
+
+  if (!refreshError && refreshed.session) {
+    return NextResponse.json({
+      access_token: refreshed.session.access_token,
+      token_type: "bearer",
+      expires_in: refreshed.session.expires_in,
+      refresh_token: refreshed.session.refresh_token,
+      scope: authCode.scope || "mcp:tools",
+    });
+  }
+
+  // Fallback to stored tokens if refresh fails
   return NextResponse.json({
     access_token: authCode.supabase_access_token,
     token_type: "bearer",
+    expires_in: 3600,
     refresh_token: authCode.supabase_refresh_token,
     scope: authCode.scope || "mcp:tools",
   });
@@ -166,6 +189,7 @@ async function handleRefreshToken(body: FormData) {
   return NextResponse.json({
     access_token: session.session.access_token,
     token_type: "bearer",
+    expires_in: session.session.expires_in,
     refresh_token: session.session.refresh_token,
     scope: "mcp:tools",
   });
