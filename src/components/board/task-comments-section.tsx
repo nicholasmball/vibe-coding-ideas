@@ -10,7 +10,6 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Markdown } from "@/components/ui/markdown";
 import { MentionAutocomplete } from "./mention-autocomplete";
 import { toast } from "sonner";
@@ -243,7 +242,7 @@ export function TaskCommentsSection({
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-3 min-h-0">
+    <div className="flex h-full flex-col gap-3">
       <div className="flex shrink-0 items-center gap-2">
         <MessageSquare className="h-4 w-4" />
         <span className="text-sm font-medium">
@@ -254,8 +253,8 @@ export function TaskCommentsSection({
       {loading ? (
         <p className="text-xs text-muted-foreground">Loading...</p>
       ) : comments.length > 0 ? (
-        <ScrollArea className="flex-1 min-h-0">
-          <div className="space-y-3 pr-4">
+        <div className="h-0 flex-grow overflow-y-auto">
+          <div className="space-y-3 pr-1">
             {comments.map((comment) => {
               const initials =
                 comment.author?.full_name
@@ -304,9 +303,9 @@ export function TaskCommentsSection({
               );
             })}
           </div>
-        </ScrollArea>
+        </div>
       ) : (
-        <p className="text-xs text-muted-foreground">No comments yet</p>
+        <div className="flex-grow" />
       )}
 
       <form onSubmit={handleSubmit} className="relative flex shrink-0 gap-2">

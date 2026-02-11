@@ -363,7 +363,7 @@ export function TaskDetailDialog({
           </TabsContent>
 
           {/* Comments tab */}
-          <TabsContent value="comments" className="min-h-[400px] flex flex-1 flex-col overflow-hidden px-6 py-4">
+          <TabsContent value="comments" className="flex flex-1 flex-col overflow-hidden px-6 py-4">
             <TaskCommentsSection
               taskId={task.id}
               ideaId={ideaId}
