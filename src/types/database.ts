@@ -709,6 +709,83 @@ export type Database = {
           },
         ];
       };
+      mcp_oauth_clients: {
+        Row: {
+          client_id: string;
+          client_secret: string;
+          redirect_uris: string[];
+          client_name: string | null;
+          created_at: string;
+        };
+        Insert: {
+          client_id?: string;
+          client_secret: string;
+          redirect_uris: string[];
+          client_name?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          client_id?: string;
+          client_secret?: string;
+          redirect_uris?: string[];
+          client_name?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      mcp_oauth_codes: {
+        Row: {
+          code: string;
+          client_id: string;
+          user_id: string;
+          redirect_uri: string;
+          code_challenge: string;
+          code_challenge_method: string;
+          supabase_access_token: string;
+          supabase_refresh_token: string;
+          scope: string;
+          expires_at: string;
+          used: boolean;
+          created_at: string;
+        };
+        Insert: {
+          code: string;
+          client_id: string;
+          user_id: string;
+          redirect_uri: string;
+          code_challenge: string;
+          code_challenge_method?: string;
+          supabase_access_token: string;
+          supabase_refresh_token: string;
+          scope?: string;
+          expires_at?: string;
+          used?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          code?: string;
+          client_id?: string;
+          user_id?: string;
+          redirect_uri?: string;
+          code_challenge?: string;
+          code_challenge_method?: string;
+          supabase_access_token?: string;
+          supabase_refresh_token?: string;
+          scope?: string;
+          expires_at?: string;
+          used?: boolean;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "mcp_oauth_codes_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "mcp_oauth_clients";
+            referencedColumns: ["client_id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;

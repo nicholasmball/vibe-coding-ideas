@@ -42,3 +42,10 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+
+# MCP server config (contains service role key)
+.mcp.json
+
+# MCP server build output + deps
+mcp-server/dist
+mcp-server/node_modules

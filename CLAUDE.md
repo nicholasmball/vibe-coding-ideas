@@ -18,6 +18,7 @@
 - **Drag & Drop**: @dnd-kit/core, @dnd-kit/sortable (kanban board)
 - **Notifications**: sonner (toasts)
 - **Testing**: Vitest + @testing-library/react + jsdom
+- **Remote MCP**: mcp-handler (Vercel MCP adapter) + OAuth 2.1 + PKCE
 
 ## Project Structure
 
@@ -32,6 +33,19 @@ src/
 │   │   ├── forgot-password/ # Password reset request
 │   │   ├── reset-password/  # Password reset form
 │   │   └── callback/       # OAuth callback route handler
+│   ├── .well-known/        # OAuth discovery endpoints
+│   │   ├── oauth-authorization-server/  # RFC 8414 metadata
+│   │   └── oauth-protected-resource/    # RFC 9728 resource metadata
+│   ├── api/
+│   │   ├── mcp/[transport]/ # Remote MCP endpoint (mcp-handler)
+│   │   └── oauth/           # OAuth 2.1 endpoints
+│   │       ├── register/    # Dynamic Client Registration
+│   │       ├── authorize/   # Authorization redirect
+│   │       ├── token/       # Token exchange + refresh
+│   │       └── code/        # Auth code storage (internal)
+│   ├── oauth/               # OAuth consent UI
+│   │   ├── authorize/       # Login + consent page
+│   │   └── callback/        # OAuth provider callback
 │   └── (main)/             # Authenticated routes (with navbar)
 │       ├── layout.tsx      # Navbar wrapper
 │       ├── dashboard/      # Personal dashboard (stats, tasks, ideas, activity)
@@ -80,7 +94,21 @@ src/
 │   └── mocks.ts            # Shared mocks (Supabase client, Next.js navigation)
 middleware.ts               # Root middleware (calls updateSession)
 vitest.config.ts            # Vitest config (jsdom, @/ alias, react plugin)
-supabase/migrations/        # 29 SQL migration files (run in order)
+supabase/migrations/        # 30 SQL migration files (run in order)
+mcp-server/                 # MCP server for Claude Code integration
+├── package.json            # ESM, separate deps
+├── tsconfig.json           # noEmit, includes ../src/types
+├── .env.example
+└── src/
+    ├── index.ts            # McpServer entry point (stdio transport)
+    ├── supabase.ts         # Service-role client + BOT_USER_ID + constants
+    ├── activity.ts         # logActivity() helper
+    └── tools/
+        ├── ideas.ts        # list_ideas, get_idea, update_idea_description
+        ├── board-read.ts   # get_board, get_task, get_my_tasks
+        ├── board-write.ts  # create_task, update_task, move_task, delete_task
+        ├── comments.ts     # add_idea_comment, add_task_comment
+        └── labels.ts       # manage_labels, manage_checklist, report_bug
 ```
 
 ## Key Patterns
@@ -110,7 +138,7 @@ supabase/migrations/        # 29 SQL migration files (run in order)
 - Profile picture upload: edit-profile-dialog uploads to `avatars` bucket client-side, saves public URL (with cache-bust `?t=`) to `users.avatar_url` via `updateProfile` server action; supports upload, replace, and remove
 
 ### Database
-- 14 tables: users, ideas, comments, collaborators, votes, notifications, board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items, board_task_activity, board_task_comments, board_task_attachments
+- 16 tables: users, ideas, comments, collaborators, votes, notifications, board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items, board_task_activity, board_task_comments, board_task_attachments, mcp_oauth_clients, mcp_oauth_codes
 - Denormalized counts on ideas (upvotes, comment_count, collaborator_count) maintained by triggers
 - Users auto-created from auth.users via trigger
 - Notifications auto-created via triggers on comments/votes/collaborators (respect user preferences)
@@ -156,7 +184,7 @@ supabase/migrations/        # 29 SQL migration files (run in order)
 - **Framework**: Vitest + jsdom + @testing-library/react
 - **Config**: `vitest.config.ts` (react plugin, `@/` alias, `src/test/setup.ts`)
 - **Test files**: Co-located as `*.test.ts` next to source (e.g., `utils.test.ts`, `import.test.ts`)
-- **Coverage**: 126 tests across 5 files — utils, validation, types, import parsers, constants integrity
+- **Coverage**: 167 tests across 8 files — utils, validation, types, import parsers, constants integrity, OAuth endpoints (PKCE, registration, authorization, token exchange), well-known metadata, MCP register-tools
 - **Convention**: Write tests for all new pure logic, validators, parsers, and utility functions. Component/UI changes are verified via build + manual testing.
 - **Run**: `npm run test` (single run) or `npm run test:watch` (watch mode)
 
@@ -172,6 +200,8 @@ supabase/migrations/        # 29 SQL migration files (run in order)
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_xxx
+NEXT_PUBLIC_APP_URL=https://vibe-coding-ideas.vercel.app   # For OAuth discovery endpoints
+SUPABASE_SERVICE_ROLE_KEY=eyJ...                   # For OAuth admin operations (Vercel only)
 ```
 
 ## Adding New Database Tables
@@ -188,3 +218,70 @@ npx shadcn@latest add <component-name>
 ```
 
 Components go into `src/components/ui/` — don't edit these manually.
+
+## MCP Server (Claude Code Integration)
+
+### Overview
+The MCP server has two modes:
+1. **Local (stdio)**: `mcp-server/src/index.ts` — launched as subprocess, uses service-role client + bot user, bypasses RLS
+2. **Remote (HTTP)**: `src/app/api/mcp/[transport]/route.ts` — hosted on Vercel, uses OAuth 2.1 + PKCE, per-user Supabase client with RLS
+
+Both modes share the same 15 tools via `mcp-server/src/register-tools.ts` with dependency injection (`McpContext`).
+
+### Bot User
+- **ID**: `a0000000-0000-0000-0000-000000000001`
+- **Email**: `bot@vibecodes.local`
+- Cannot log in (empty password) — only used by MCP server
+- Appears in activity logs, comments, and task assignments
+
+### Running / Config
+- **Type check**: `cd mcp-server && npx tsc --noEmit`
+- **Config**: `.mcp.json` in project root (gitignored, contains service role key)
+- **Transport**: stdio (launched by Claude Code as subprocess via `npx tsx mcp-server/src/index.ts`)
+- **Env vars**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `VIBECODES_BOT_USER_ID`
+
+### 15 MCP Tools
+
+| Tool | Type | Description |
+|------|------|-------------|
+| `list_ideas` | Read | List ideas with optional status filter and search |
+| `get_idea` | Read | Full idea detail + comments + collaborators + board summary |
+| `get_board` | Read | Complete board: columns, tasks, labels (auto-initializes columns) |
+| `get_task` | Read | Single task + checklist + comments + activity |
+| `get_my_tasks` | Read | Tasks assigned to bot, grouped by idea |
+| `create_task` | Write | Create task on a board column |
+| `update_task` | Write | Update task fields (title, description, assignee, due date, archived) |
+| `move_task` | Write | Move task between columns |
+| `delete_task` | Write | Delete a task |
+| `update_idea_description` | Write | Rewrite an idea's description |
+| `manage_labels` | Write | Create labels, add/remove from tasks |
+| `manage_checklist` | Write | Add/toggle/delete checklist items |
+| `add_idea_comment` | Write | Comment on an idea (as bot) |
+| `add_task_comment` | Write | Comment on a board task (as bot) |
+| `report_bug` | Write | Create task with red "Bug" label, assigned to bot |
+
+### Architecture (Dependency Injection)
+- `mcp-server/src/context.ts` defines `McpContext` interface: `{ supabase, userId }`
+- All tool handler functions accept `ctx: McpContext` as first parameter
+- `mcp-server/src/register-tools.ts` wires tools to MCP server via `getContext(extra)` callback
+- Local mode: static context (service-role + bot user)
+- Remote mode: per-request context (user JWT + user ID from auth)
+
+### Key Details
+- All write tools log to `board_task_activity` with `actor_id` from context (bot or real user)
+- `get_board` auto-initializes default columns (To Do, In Progress, Done) if none exist
+- Position calculation: `MAX(position) + 1000` in target column
+- Board changes propagate to UI via Realtime (no revalidatePath needed)
+- Types imported from `../../src/types/database` (shared with main app)
+
+### Remote MCP Server
+- **Endpoint**: `https://vibe-coding-ideas.vercel.app/api/mcp`
+- **Connect**: `claude mcp add --transport http vibecodes https://vibe-coding-ideas.vercel.app/api/mcp`
+- **Auth flow**: OAuth 2.1 + PKCE — Claude Code opens browser, user logs in with VibeCodes credentials, tokens exchanged
+- **Transport**: `mcp-handler` (Vercel's MCP adapter) with Streamable HTTP
+- **Identity**: Supabase JWTs as OAuth access tokens — validated via `supabase.auth.getUser()`
+- **Authorization**: Per-request Supabase client with user's JWT → existing RLS policies enforced
+- **OAuth routes**: `/api/oauth/register` (DCR), `/api/oauth/authorize`, `/api/oauth/token`, `/api/oauth/code`
+- **Discovery**: `/.well-known/oauth-authorization-server` (RFC 8414), `/.well-known/oauth-protected-resource` (RFC 9728)
+- **DB tables**: `mcp_oauth_clients` (DCR), `mcp_oauth_codes` (auth codes, 10-min TTL)
+- **Env vars** (Vercel): `NEXT_PUBLIC_APP_URL`, `SUPABASE_SERVICE_ROLE_KEY`
