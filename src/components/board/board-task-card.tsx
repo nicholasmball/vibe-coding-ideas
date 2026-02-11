@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, CheckSquare, Paperclip, MessageSquare, Tag, Archive } from "lucide-react";
+import { GripVertical, CheckSquare, Paperclip, MessageSquare, Archive } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Tooltip,
@@ -240,22 +240,6 @@ export function BoardTaskCard({
                     </TooltipTrigger>
                     <TooltipContent>Comments</TooltipContent>
                   </Tooltip>
-                )}
-                {task.labels.length === 0 && (
-                  <LabelPicker
-                    boardLabels={boardLabels}
-                    taskLabels={task.labels}
-                    taskId={task.id}
-                    ideaId={ideaId}
-                    currentUserId={currentUserId}
-                  >
-                    <span
-                      className="inline-flex items-center text-[10px] text-muted-foreground hover:text-foreground"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <Tag className="h-3 w-3" />
-                    </span>
-                  </LabelPicker>
                 )}
               </div>
               {task.assignee && (
