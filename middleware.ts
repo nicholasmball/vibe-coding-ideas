@@ -13,7 +13,11 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - public folder
+     * - .well-known (OAuth discovery endpoints)
+     * - api/mcp (MCP endpoint - has its own auth via withMcpAuth)
+     * - api/oauth (OAuth endpoints - handle their own auth)
+     * - oauth (OAuth consent pages - handle their own auth)
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|\\.well-known|api/mcp|api/oauth|oauth).*)",
   ],
 };

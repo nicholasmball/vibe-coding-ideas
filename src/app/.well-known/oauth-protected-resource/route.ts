@@ -1,18 +1,14 @@
-import { NextResponse } from "next/server";
+import {
+  protectedResourceHandler,
+  metadataCorsOptionsRequestHandler,
+} from "mcp-handler";
 
-export async function GET() {
-  if (!process.env.NEXT_PUBLIC_APP_URL) {
-    return NextResponse.json(
-      { error: "server_error", error_description: "NEXT_PUBLIC_APP_URL is not configured" },
-      { status: 500 }
-    );
-  }
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+const handler = protectedResourceHandler({
+  authServerUrls: [
+    process.env.NEXT_PUBLIC_APP_URL || "https://vibe-coding-ideas.vercel.app",
+  ],
+});
 
-  return NextResponse.json({
-    resource: `${baseUrl}/api/mcp`,
-    authorization_servers: [baseUrl],
-    scopes_supported: ["mcp:tools"],
-    bearer_methods_supported: ["header"],
-  });
-}
+const corsHandler = metadataCorsOptionsRequestHandler();
+
+export { handler as GET, corsHandler as OPTIONS };
