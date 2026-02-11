@@ -55,7 +55,13 @@ export async function GET(request: Request) {
   }
 
   // Redirect to the consent/login page with all OAuth params
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://vibe-coding-ideas.vercel.app";
+  if (!process.env.NEXT_PUBLIC_APP_URL) {
+    return NextResponse.json(
+      { error: "server_error", error_description: "NEXT_PUBLIC_APP_URL is not configured" },
+      { status: 500 }
+    );
+  }
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
   const loginUrl = new URL(`${baseUrl}/oauth/authorize`);
   loginUrl.searchParams.set("client_id", clientId);
   loginUrl.searchParams.set("redirect_uri", redirectUri);

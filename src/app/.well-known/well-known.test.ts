@@ -29,11 +29,12 @@ describe("/.well-known/oauth-authorization-server", () => {
     });
   });
 
-  it("falls back to default URL when env is not set", async () => {
+  it("returns 500 when NEXT_PUBLIC_APP_URL is not set", async () => {
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "");
     const response = await getAuthServerMetadata();
+    expect(response.status).toBe(500);
     const body = await response.json();
-    expect(body.issuer).toBe("https://vibe-coding-ideas.vercel.app");
+    expect(body.error).toBe("server_error");
   });
 });
 
