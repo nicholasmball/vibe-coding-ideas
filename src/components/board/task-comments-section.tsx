@@ -242,8 +242,8 @@ export function TaskCommentsSection({
   }
 
   return (
-    <div className="flex h-full flex-col gap-3">
-      <div className="flex shrink-0 items-center gap-2">
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
         <MessageSquare className="h-4 w-4" />
         <span className="text-sm font-medium">
           Comments{comments.length > 0 ? ` (${comments.length})` : ""}
@@ -253,7 +253,7 @@ export function TaskCommentsSection({
       {loading ? (
         <p className="text-xs text-muted-foreground">Loading...</p>
       ) : comments.length > 0 ? (
-        <div className="h-0 flex-grow overflow-y-auto">
+        <div className="max-h-[45vh] overflow-y-auto rounded-md">
           <div className="space-y-3 pr-1">
             {comments.map((comment) => {
               const initials =
@@ -305,10 +305,10 @@ export function TaskCommentsSection({
           </div>
         </div>
       ) : (
-        <div className="flex-grow" />
+        <p className="text-xs text-muted-foreground">No comments yet</p>
       )}
 
-      <form onSubmit={handleSubmit} className="relative flex shrink-0 gap-2">
+      <form onSubmit={handleSubmit} className="relative flex gap-2">
         {mentionQuery !== null && (
           <MentionAutocomplete
             filteredMembers={filteredMembers}
