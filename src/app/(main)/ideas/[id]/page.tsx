@@ -236,65 +236,62 @@ export default async function IdeaDetailPage({ params }: PageProps) {
         </a>
       )}
 
+      {/* Collaborators */}
+      {(isAuthor || (collaborators as unknown as CollaboratorWithUser[])?.length > 0) && (
+        <div className="mt-4">
+          <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+            <Users className="h-4 w-4" />
+            Collaborators ({(collaborators as unknown as CollaboratorWithUser[])?.length ?? 0})
+            {isAuthor && (
+              <AddCollaboratorPopover
+                ideaId={idea.id}
+                authorId={idea.author_id}
+                existingCollaboratorIds={(collaborators as unknown as CollaboratorWithUser[])?.map((c) => c.user_id) ?? []}
+              />
+            )}
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {(collaborators as unknown as CollaboratorWithUser[])?.map((collab) => {
+              const collabInitials =
+                collab.user.full_name
+                  ?.split(" ")
+                  .map((n) => n[0])
+                  .join("")
+                  .toUpperCase() ?? "?";
+              return (
+                <div
+                  key={collab.id}
+                  className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-sm transition-colors hover:border-primary"
+                >
+                  <Link
+                    href={`/profile/${collab.user_id}`}
+                    className="flex items-center gap-1.5"
+                  >
+                    <Avatar className="h-5 w-5">
+                      <AvatarImage src={collab.user.avatar_url ?? undefined} />
+                      <AvatarFallback className="text-[10px]">
+                        {collabInitials}
+                      </AvatarFallback>
+                    </Avatar>
+                    {collab.user.full_name ?? "Anonymous"}
+                  </Link>
+                  {isAuthor && (
+                    <RemoveCollaboratorButton
+                      ideaId={idea.id}
+                      userId={collab.user_id}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Description */}
       <div className="mt-6 text-foreground/90 leading-relaxed">
         <Markdown>{idea.description}</Markdown>
       </div>
-
-      {/* Collaborators */}
-      {(isAuthor || (collaborators as unknown as CollaboratorWithUser[])?.length > 0) && (
-        <>
-          <Separator className="my-6" />
-          <div>
-            <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-              <Users className="h-4 w-4" />
-              Collaborators ({(collaborators as unknown as CollaboratorWithUser[])?.length ?? 0})
-              {isAuthor && (
-                <AddCollaboratorPopover
-                  ideaId={idea.id}
-                  authorId={idea.author_id}
-                  existingCollaboratorIds={(collaborators as unknown as CollaboratorWithUser[])?.map((c) => c.user_id) ?? []}
-                />
-              )}
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {(collaborators as unknown as CollaboratorWithUser[])?.map((collab) => {
-                const collabInitials =
-                  collab.user.full_name
-                    ?.split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .toUpperCase() ?? "?";
-                return (
-                  <div
-                    key={collab.id}
-                    className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-sm transition-colors hover:border-primary"
-                  >
-                    <Link
-                      href={`/profile/${collab.user_id}`}
-                      className="flex items-center gap-1.5"
-                    >
-                      <Avatar className="h-5 w-5">
-                        <AvatarImage src={collab.user.avatar_url ?? undefined} />
-                        <AvatarFallback className="text-[10px]">
-                          {collabInitials}
-                        </AvatarFallback>
-                      </Avatar>
-                      {collab.user.full_name ?? "Anonymous"}
-                    </Link>
-                    {isAuthor && (
-                      <RemoveCollaboratorButton
-                        ideaId={idea.id}
-                        userId={collab.user_id}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </>
-      )}
 
       {/* Comments */}
       <Separator className="my-6" />
