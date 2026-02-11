@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, CheckSquare, Paperclip, MessageSquare, Archive } from "lucide-react";
+import { GripVertical, CheckSquare, Paperclip, MessageSquare, Tag, Archive } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Tooltip,
@@ -11,6 +11,7 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { TaskLabelBadges } from "./task-label-badges";
+import { LabelPicker } from "./label-picker";
 import { DueDateBadge } from "./due-date-badge";
 import { TaskDetailDialog } from "./task-detail-dialog";
 import { createClient } from "@/lib/supabase/client";
@@ -156,7 +157,17 @@ export function BoardTaskCard({
             {/* Labels */}
             {task.labels.length > 0 && (
               <div className="mb-1.5">
-                <TaskLabelBadges labels={task.labels} />
+                <LabelPicker
+                  boardLabels={boardLabels}
+                  taskLabels={task.labels}
+                  taskId={task.id}
+                  ideaId={ideaId}
+                  currentUserId={currentUserId}
+                >
+                  <div onClick={(e) => e.stopPropagation()} className="cursor-pointer">
+                    <TaskLabelBadges labels={task.labels} />
+                  </div>
+                </LabelPicker>
               </div>
             )}
 
@@ -229,6 +240,22 @@ export function BoardTaskCard({
                     </TooltipTrigger>
                     <TooltipContent>Comments</TooltipContent>
                   </Tooltip>
+                )}
+                {task.labels.length === 0 && (
+                  <LabelPicker
+                    boardLabels={boardLabels}
+                    taskLabels={task.labels}
+                    taskId={task.id}
+                    ideaId={ideaId}
+                    currentUserId={currentUserId}
+                  >
+                    <span
+                      className="inline-flex items-center text-[10px] text-muted-foreground hover:text-foreground"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Tag className="h-3 w-3" />
+                    </span>
+                  </LabelPicker>
                 )}
               </div>
               {task.assignee && (
