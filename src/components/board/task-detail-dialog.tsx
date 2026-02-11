@@ -183,7 +183,7 @@ export function TaskDetailDialog({
       .join("")
       .toUpperCase() ?? null;
 
-  const commentCount = 0; // Will be populated by the component's own fetch
+  const commentCount = task.comment_count;
   const attachmentCount = task.attachment_count;
   const propCoverPath = task.cover_image_path ?? null;
 
@@ -250,6 +250,11 @@ export function TaskDetailDialog({
             </TabsTrigger>
             <TabsTrigger value="comments" className="text-xs">
               Comments
+              {!!commentCount && commentCount > 0 && (
+                <span className="ml-1 rounded-full bg-muted px-1.5 text-[10px]">
+                  {commentCount}
+                </span>
+              )}
             </TabsTrigger>
             <TabsTrigger value="files" className="text-xs">
               Files

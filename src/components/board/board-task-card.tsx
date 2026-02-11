@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, CheckSquare, Paperclip, Archive } from "lucide-react";
+import { GripVertical, CheckSquare, Paperclip, MessageSquare, Archive } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Tooltip,
@@ -74,6 +74,7 @@ export function BoardTaskCard({
 
   const isArchived = task.archived;
   const attachmentCount = task.attachment_count;
+  const commentCount = task.comment_count;
   const coverImagePath = task.cover_image_path;
 
   // Fetch signed URL for cover image
@@ -216,6 +217,17 @@ export function BoardTaskCard({
                       </span>
                     </TooltipTrigger>
                     <TooltipContent>Attachments</TooltipContent>
+                  </Tooltip>
+                )}
+                {!!commentCount && commentCount > 0 && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+                        <MessageSquare className="h-3 w-3" />
+                        {commentCount}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent>Comments</TooltipContent>
                   </Tooltip>
                 )}
               </div>
