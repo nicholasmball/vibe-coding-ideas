@@ -170,7 +170,7 @@ mcp-server/                 # MCP server for Claude Code integration
 - Activity is logged client-side via `logTaskActivity()` fire-and-forget calls
 - `board_task_comments` stores markdown comments per task, with Realtime subscription
 - `avatars` storage bucket (public, 2MB limit) — profile picture uploads at `{userId}/avatar`, upsert on change
-- `board_task_attachments` + `task-attachments` storage bucket (private, 10MB limit)
+- `board_task_attachments` + `task-attachments` storage bucket (private, 10MB limit, accepts images, videos, .pdf, .doc/.docx, .xls/.xlsx, .txt, .csv, .zip, .md)
 - `update_attachment_count()` trigger maintains `board_tasks.attachment_count`
 - Task comments support @mentions: typing `@` triggers autocomplete for team members, selecting inserts `@Full Name`, submitting creates `task_mention` notifications (fire-and-forget, respects `notification_preferences.task_mentions`)
 - @mentions render with primary color styling in markdown via `renderMentions()` in `markdown.tsx`
