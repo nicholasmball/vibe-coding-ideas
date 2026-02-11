@@ -37,7 +37,7 @@ src/
 │   │   ├── oauth-authorization-server/  # RFC 8414 metadata
 │   │   └── oauth-protected-resource/    # RFC 9728 resource metadata
 │   ├── api/
-│   │   ├── mcp/[transport]/ # Remote MCP endpoint (mcp-handler)
+│   │   ├── mcp/[[...transport]]/ # Remote MCP endpoint (mcp-handler)
 │   │   └── oauth/           # OAuth 2.1 endpoints
 │   │       ├── register/    # Dynamic Client Registration
 │   │       ├── authorize/   # Authorization redirect
@@ -224,7 +224,7 @@ Components go into `src/components/ui/` — don't edit these manually.
 ### Overview
 The MCP server has two modes:
 1. **Local (stdio)**: `mcp-server/src/index.ts` — launched as subprocess, uses service-role client + bot user, bypasses RLS
-2. **Remote (HTTP)**: `src/app/api/mcp/[transport]/route.ts` — hosted on Vercel, uses OAuth 2.1 + PKCE, per-user Supabase client with RLS
+2. **Remote (HTTP)**: `src/app/api/mcp/[[...transport]]/route.ts` — hosted on Vercel, uses OAuth 2.1 + PKCE, per-user Supabase client with RLS
 
 Both modes share the same 15 tools via `mcp-server/src/register-tools.ts` with dependency injection (`McpContext`).
 
