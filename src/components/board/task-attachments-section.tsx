@@ -12,6 +12,7 @@ import {
   ImagePlus,
   ImageOff,
   Camera,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -53,6 +54,7 @@ export function TaskAttachmentsSection({
   const [attachments, setAttachments] = useState<BoardTaskAttachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState<{ id: string; name: string; size: number }[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [localCoverPath, setLocalCoverPath] = useState<string | null>(initialCoverPath ?? null);
   const [isDragging, setIsDragging] = useState(false);
@@ -159,6 +161,8 @@ export function TaskAttachmentsSection({
       return;
     }
 
+    const placeholderId = crypto.randomUUID();
+    setUploadingFiles((prev) => [...prev, { id: placeholderId, name: file.name, size: file.size }]);
     setUploading(true);
     const supabase = createClient();
 
@@ -172,6 +176,7 @@ export function TaskAttachmentsSection({
 
     if (uploadError) {
       console.error("Upload failed:", uploadError.message);
+      setUploadingFiles((prev) => prev.filter((f) => f.id !== placeholderId));
       setUploading(false);
       return;
     }
@@ -202,12 +207,13 @@ export function TaskAttachmentsSection({
         updateCover(storagePath);
       }
     }
+    setUploadingFiles((prev) => prev.filter((f) => f.id !== placeholderId));
     setUploading(false);
   }
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
-    if (!files?.length) return;
+    if (!files?.length || uploading) return;
 
     for (const file of files) {
       await uploadFile(file);
@@ -276,7 +282,9 @@ export function TaskAttachmentsSection({
     const supabase = createClient();
     const { data } = await supabase.storage
       .from("task-attachments")
-      .createSignedUrl(attachment.storage_path, 60);
+      .createSignedUrl(attachment.storage_path, 60, {
+        download: attachment.file_name,
+      });
 
     if (data?.signedUrl) {
       window.open(data.signedUrl, "_blank");
@@ -324,7 +332,7 @@ export function TaskAttachmentsSection({
     dragCounterRef.current = 0;
 
     const files = e.dataTransfer.files;
-    if (!files?.length) return;
+    if (!files?.length || uploading) return;
 
     for (const file of files) {
       await uploadFile(file);
@@ -342,9 +350,25 @@ export function TaskAttachmentsSection({
 
       {loading ? (
         <p className="text-xs text-muted-foreground">Loading...</p>
-      ) : attachments.length > 0 ? (
+      ) : attachments.length > 0 || uploadingFiles.length > 0 ? (
         <ScrollArea className="max-h-48">
           <div className="grid grid-cols-1 gap-2 pr-4 sm:grid-cols-2">
+            {uploadingFiles.map((file) => (
+              <div
+                key={file.id}
+                className="flex items-center gap-2 rounded-md border border-dashed border-primary/40 bg-primary/5 p-2"
+              >
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[11px] font-medium">{file.name}</p>
+                  <p className="text-[10px] text-muted-foreground">
+                    {formatFileSize(file.size)} &middot; Uploading...
+                  </p>
+                </div>
+              </div>
+            ))}
             {attachments.map((attachment) => (
               <div
                 key={attachment.id}
@@ -470,7 +494,7 @@ export function TaskAttachmentsSection({
               onChange={handleFileSelect}
             />
             <div className="flex flex-wrap items-center justify-center gap-2">
-              <label htmlFor={`file-upload-${taskId}`}>
+              <label htmlFor={uploading ? undefined : `file-upload-${taskId}`} className={uploading ? "pointer-events-none" : undefined}>
                 <Button
                   variant="outline"
                   size="sm"
@@ -480,12 +504,12 @@ export function TaskAttachmentsSection({
                   asChild
                 >
                   <span>
-                    <Upload className="h-3.5 w-3.5" />
+                    {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
                     {uploading ? "Uploading..." : "Choose file"}
                   </span>
                 </Button>
               </label>
-              <label htmlFor={`camera-upload-${taskId}`}>
+              <label htmlFor={uploading ? undefined : `camera-upload-${taskId}`} className={uploading ? "pointer-events-none" : undefined}>
                 <Button
                   variant="outline"
                   size="sm"
