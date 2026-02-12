@@ -798,6 +798,10 @@ export type Database = {
         Args: { target_user_id: string };
         Returns: undefined;
       };
+      get_public_stats: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
     };
     Enums: {
       idea_status: "open" | "in_progress" | "completed" | "archived";

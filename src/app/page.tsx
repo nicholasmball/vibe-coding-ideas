@@ -38,12 +38,10 @@ export default async function LandingPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (user) redirect("/dashboard");
 
-  const [{ count: ideaCount }, { count: userCount }, { count: collabCount }] =
-    await Promise.all([
-      supabase.from("ideas").select("*", { count: "exact", head: true }),
-      supabase.from("users").select("*", { count: "exact", head: true }),
-      supabase.from("collaborators").select("*", { count: "exact", head: true }),
-    ]);
+  const { data: stats } = await supabase.rpc("get_public_stats");
+  const ideaCount = (stats as { idea_count?: number })?.idea_count ?? 0;
+  const userCount = (stats as { user_count?: number })?.user_count ?? 0;
+  const collabCount = (stats as { collab_count?: number })?.collab_count ?? 0;
 
   return (
     <div className="min-h-screen">
