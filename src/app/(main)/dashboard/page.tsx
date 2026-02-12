@@ -4,6 +4,8 @@ import { ArrowRight, Lightbulb, Plus, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getDueDateStatus } from "@/lib/utils";
 import { StatsCards } from "@/components/dashboard/stats-cards";
+import { ActiveBoards } from "@/components/dashboard/active-boards";
+import type { ActiveBoard } from "@/components/dashboard/active-boards";
 import { MyTasksList } from "@/components/dashboard/my-tasks-list";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { IdeaCard } from "@/components/ideas/idea-card";
@@ -31,6 +33,7 @@ export default async function DashboardPage() {
   const [
     myIdeasResult,
     ideasCountResult,
+    myIdeaIdsResult,
     collabResult,
     upvotesResult,
     votesResult,
@@ -48,6 +51,11 @@ export default async function DashboardPage() {
     supabase
       .from("ideas")
       .select("*", { head: true, count: "exact" })
+      .eq("author_id", user.id),
+    // All my idea IDs (for board queries)
+    supabase
+      .from("ideas")
+      .select("id")
       .eq("author_id", user.id),
     // Collaborations with count
     supabase
@@ -99,8 +107,12 @@ export default async function DashboardPage() {
     (tasksResult.data ?? []) as unknown as DashboardTask[]
   ).filter((t) => !t.column.is_done_column);
 
+  // All idea IDs the user owns or collaborates on (for board queries)
+  const myIdeaIds = (myIdeaIdsResult.data ?? []).map((i) => i.id);
+  const allUserIdeaIds = [...new Set([...myIdeaIds, ...collabIdeaIds])];
+
   // Phase 2: Dependent queries
-  const [collabIdeasResult, taskLabelsResult] = await Promise.all([
+  const [collabIdeasResult, taskLabelsResult, boardColumnsResult, boardTasksResult] = await Promise.all([
     // Collaboration idea details
     collabIdeaIds.length > 0
       ? supabase
@@ -120,9 +132,87 @@ export default async function DashboardPage() {
             rawTasks.map((t) => t.id)
           )
       : Promise.resolve({ data: [] }),
+    // Board columns for user's ideas (with idea title for active boards)
+    allUserIdeaIds.length > 0
+      ? supabase
+          .from("board_columns")
+          .select("id, idea_id, title, is_done_column, position, idea:ideas!board_columns_idea_id_fkey(id, title)")
+          .in("idea_id", allUserIdeaIds)
+          .order("position")
+      : Promise.resolve({ data: [] }),
+    // Board tasks for user's ideas (non-archived only)
+    allUserIdeaIds.length > 0
+      ? supabase
+          .from("board_tasks")
+          .select("idea_id, column_id, updated_at")
+          .in("idea_id", allUserIdeaIds)
+          .eq("archived", false)
+      : Promise.resolve({ data: [] }),
   ]);
 
   const collabIdeas = (collabIdeasResult.data ?? []) as unknown as IdeaWithAuthor[];
+
+  // Process active boards data
+  type BoardColumnRow = { id: string; idea_id: string; title: string; is_done_column: boolean; position: number; idea: { id: string; title: string } };
+  const boardColumns = (boardColumnsResult.data ?? []) as unknown as BoardColumnRow[];
+  const boardTasks = (boardTasksResult.data ?? []) as { idea_id: string; column_id: string; updated_at: string }[];
+
+  // Build idea title map from column joins (covers all ideas with boards)
+  const ideaTitleMap = new Map<string, string>();
+  for (const col of boardColumns) {
+    if (col.idea && !ideaTitleMap.has(col.idea_id)) {
+      ideaTitleMap.set(col.idea_id, col.idea.title);
+    }
+  }
+
+  // Group columns by idea
+  const columnsByIdea = new Map<string, BoardColumnRow[]>();
+  for (const col of boardColumns) {
+    const arr = columnsByIdea.get(col.idea_id) ?? [];
+    arr.push(col);
+    columnsByIdea.set(col.idea_id, arr);
+  }
+
+  // Count tasks per column and track most recent activity per idea
+  const taskCountByColumn = new Map<string, number>();
+  const lastActivityByIdea = new Map<string, string>();
+  for (const task of boardTasks) {
+    taskCountByColumn.set(task.column_id, (taskCountByColumn.get(task.column_id) ?? 0) + 1);
+    const existing = lastActivityByIdea.get(task.idea_id);
+    if (!existing || task.updated_at > existing) {
+      lastActivityByIdea.set(task.idea_id, task.updated_at);
+    }
+  }
+
+  // Build active boards — only ideas with at least one task
+  const activeBoards: ActiveBoard[] = [];
+  for (const [ideaId, columns] of columnsByIdea) {
+    const totalTasks = columns.reduce((sum, col) => sum + (taskCountByColumn.get(col.id) ?? 0), 0);
+    if (totalTasks === 0) continue;
+
+    const title = ideaTitleMap.get(ideaId);
+    if (!title) continue;
+
+    const columnSummary = columns
+      .map((col) => ({
+        title: col.title,
+        count: taskCountByColumn.get(col.id) ?? 0,
+        isDone: col.is_done_column,
+      }))
+      .filter((c) => c.count > 0);
+
+    activeBoards.push({
+      ideaId,
+      ideaTitle: title,
+      totalTasks,
+      columnSummary,
+      lastActivity: lastActivityByIdea.get(ideaId) ?? new Date().toISOString(),
+    });
+  }
+
+  // Sort by most recent activity and limit to 5
+  activeBoards.sort((a, b) => b.lastActivity.localeCompare(a.lastActivity));
+  const topActiveBoards = activeBoards.slice(0, 5);
 
   // Fetch task counts for all displayed ideas
   const allDisplayedIdeaIds = [
@@ -174,6 +264,11 @@ export default async function DashboardPage() {
         upvotesReceived={totalUpvotes}
         tasksAssigned={tasks.length}
       />
+
+      {/* Active Boards */}
+      <div className="mt-8">
+        <ActiveBoards boards={topActiveBoards} />
+      </div>
 
       {/* My Tasks */}
       <div className="mt-8">

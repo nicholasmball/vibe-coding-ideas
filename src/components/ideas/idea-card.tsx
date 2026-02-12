@@ -106,12 +106,15 @@ export function IdeaCard({ idea, hasVoted, taskCount }: IdeaCardProps) {
             {taskCount != null && taskCount > 0 && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="flex items-center gap-1">
+                  <Link
+                    href={`/ideas/${idea.id}/board`}
+                    className="flex items-center gap-1 hover:text-primary transition-colors"
+                  >
                     <LayoutDashboard className="h-3.5 w-3.5" />
                     {taskCount}
-                  </span>
+                  </Link>
                 </TooltipTrigger>
-                <TooltipContent>Board tasks</TooltipContent>
+                <TooltipContent>View board</TooltipContent>
               </Tooltip>
             )}
             {idea.github_url && (
