@@ -87,6 +87,7 @@ export function KanbanBoard({
         t.description,
         t.archived,
         t.attachment_count,
+        t.comment_count,
         t.cover_image_path,
       ]),
     ])
