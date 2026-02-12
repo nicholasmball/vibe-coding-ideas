@@ -245,7 +245,7 @@ export function LabelPicker({
                   {label.name}
                 </span>
                 <button
-                  className="text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100"
+                  className="cursor-pointer text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100"
                   onClick={() => startEdit(label)}
                 >
                   <Pencil className="h-3 w-3" />

@@ -378,7 +378,7 @@ export function TaskAttachmentsSection({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded bg-muted"
+                        className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded bg-muted"
                         onClick={() => handlePreview(attachment)}
                       >
                         <ImageIcon className="h-4 w-4 text-muted-foreground" />
@@ -406,7 +406,7 @@ export function TaskAttachmentsSection({
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button
-                            className="rounded p-1 text-primary hover:text-primary/80"
+                            className="cursor-pointer rounded p-1 text-primary hover:text-primary/80"
                             onClick={() => handleRemoveCover()}
                           >
                             <ImageOff className="h-3 w-3" />
@@ -418,7 +418,7 @@ export function TaskAttachmentsSection({
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <button
-                            className="rounded p-1 text-muted-foreground hover:text-foreground"
+                            className="cursor-pointer rounded p-1 text-muted-foreground hover:text-foreground"
                             onClick={() => handleSetCover(attachment.storage_path)}
                           >
                             <ImagePlus className="h-3 w-3" />
@@ -431,7 +431,7 @@ export function TaskAttachmentsSection({
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <button
-                        className="rounded p-1 text-muted-foreground hover:text-foreground"
+                        className="cursor-pointer rounded p-1 text-muted-foreground hover:text-foreground"
                         onClick={() => handleDownload(attachment)}
                       >
                         <Download className="h-3 w-3" />
@@ -443,7 +443,7 @@ export function TaskAttachmentsSection({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <button
-                          className="rounded p-1 text-muted-foreground hover:text-destructive"
+                          className="cursor-pointer rounded p-1 text-muted-foreground hover:text-destructive"
                           onClick={() => handleDelete(attachment)}
                         >
                           <Trash2 className="h-3 w-3" />

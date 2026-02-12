@@ -222,6 +222,39 @@ export async function updateBoardTask(
   revalidatePath(`/ideas/${ideaId}/board`);
 }
 
+export async function archiveColumnTasks(columnId: string, ideaId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+
+  // Get all non-archived tasks in this column
+  const { data: tasks } = await supabase
+    .from("board_tasks")
+    .select("id")
+    .eq("column_id", columnId)
+    .eq("idea_id", ideaId)
+    .eq("archived", false);
+
+  if (!tasks || tasks.length === 0) return 0;
+
+  const updates = tasks.map((t) =>
+    supabase
+      .from("board_tasks")
+      .update({ archived: true })
+      .eq("id", t.id)
+      .eq("idea_id", ideaId)
+  );
+
+  await Promise.all(updates);
+
+  revalidatePath(`/ideas/${ideaId}/board`);
+
+  return tasks.length;
+}
+
 export async function deleteBoardTask(taskId: string, ideaId: string) {
   const supabase = await createClient();
   const {

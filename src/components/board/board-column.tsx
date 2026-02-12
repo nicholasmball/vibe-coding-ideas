@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
   SortableContext,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { MoreHorizontal, Plus, Pencil, Trash2, GripVertical, CircleCheckBig } from "lucide-react";
+import { MoreHorizontal, Plus, Pencil, Trash2, GripVertical, CircleCheckBig, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -23,7 +24,7 @@ import {
 import { BoardTaskCard } from "./board-task-card";
 import { TaskEditDialog } from "./task-edit-dialog";
 import { ColumnEditDialog } from "./column-edit-dialog";
-import { deleteBoardColumn } from "@/actions/board";
+import { deleteBoardColumn, archiveColumnTasks } from "@/actions/board";
 import type {
   BoardColumnWithTasks,
   BoardLabel,
@@ -55,6 +56,7 @@ export function BoardColumn({
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [archiving, setArchiving] = useState(false);
 
   const {
     attributes,
@@ -82,6 +84,20 @@ export function BoardColumn({
       await deleteBoardColumn(column.id, ideaId);
     } catch {
       setDeleting(false);
+    }
+  }
+
+  async function handleArchiveAll() {
+    setArchiving(true);
+    try {
+      const count = await archiveColumnTasks(column.id, ideaId);
+      if (count > 0) {
+        toast.success(`Archived ${count} task${count !== 1 ? "s" : ""}`);
+      }
+    } catch {
+      toast.error("Failed to archive tasks");
+    } finally {
+      setArchiving(false);
     }
   }
 
@@ -128,6 +144,15 @@ export function BoardColumn({
                 <Pencil className="mr-2 h-4 w-4" />
                 Edit
               </DropdownMenuItem>
+              {column.is_done_column && column.tasks.length > 0 && (
+                <DropdownMenuItem
+                  onClick={handleArchiveAll}
+                  disabled={archiving}
+                >
+                  <Archive className="mr-2 h-4 w-4" />
+                  Archive all
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem
                 onClick={handleDelete}
                 disabled={deleting}

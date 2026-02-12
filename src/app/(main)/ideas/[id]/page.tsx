@@ -137,7 +137,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
       .toUpperCase() ?? "?";
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10">
+    <div className="mx-auto max-w-3xl px-4 pt-10 pb-4">
       <IdeaDetailRealtime ideaId={idea.id} />
       {/* Header */}
       <div className="flex items-start gap-4">

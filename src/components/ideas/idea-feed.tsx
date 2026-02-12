@@ -127,7 +127,7 @@ export function IdeaFeed({
             <button
               type="button"
               onClick={clearSearch}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer text-muted-foreground hover:text-foreground"
             >
               <X className="h-4 w-4" />
             </button>
@@ -168,7 +168,7 @@ export function IdeaFeed({
           {currentSearch && (
             <Badge variant="secondary" className="gap-1">
               &quot;{currentSearch}&quot;
-              <button onClick={clearSearch}>
+              <button className="cursor-pointer" onClick={clearSearch}>
                 <X className="h-3 w-3" />
               </button>
             </Badge>
@@ -176,7 +176,7 @@ export function IdeaFeed({
           {currentTag && (
             <Badge variant="secondary" className="gap-1">
               #{currentTag}
-              <button onClick={() => updateParams({ tag: "" })}>
+              <button className="cursor-pointer" onClick={() => updateParams({ tag: "" })}>
                 <X className="h-3 w-3" />
               </button>
             </Badge>
@@ -184,7 +184,7 @@ export function IdeaFeed({
           {currentStatus && (
             <Badge variant="secondary" className="gap-1">
               {STATUS_CONFIG[currentStatus as IdeaStatus]?.label ?? currentStatus}
-              <button onClick={() => updateParams({ status: "" })}>
+              <button className="cursor-pointer" onClick={() => updateParams({ status: "" })}>
                 <X className="h-3 w-3" />
               </button>
             </Badge>
