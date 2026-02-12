@@ -48,7 +48,7 @@ src/
 │   │   └── callback/        # OAuth provider callback
 │   └── (main)/             # Authenticated routes (with navbar)
 │       ├── layout.tsx      # Navbar wrapper
-│       ├── dashboard/      # Personal dashboard (stats, tasks, ideas, activity)
+│       ├── dashboard/      # Personal dashboard (stats, active boards, tasks, ideas, activity)
 │       ├── feed/           # Idea feed with search/filter/pagination
 │       ├── ideas/new       # Submit idea form
 │       ├── ideas/[id]      # Idea detail (votes, comments, collaborators)
@@ -70,7 +70,7 @@ src/
 │   ├── auth/               # oauth-buttons
 │   ├── ideas/              # card, feed, form, edit-form, vote-button, collaborator-button, add-collaborator-popover, remove-collaborator-button, etc.
 │   ├── board/              # kanban-board, board-column, board-task-card, board-toolbar, task-edit-dialog, task-detail-dialog, column-edit-dialog, add-column-button, board-realtime, label-picker, due-date-picker, due-date-badge, task-label-badges, checklist-section, activity-timeline, task-comments-section, task-attachments-section, mention-autocomplete, import-dialog, import-csv-tab, import-json-tab, import-bulk-text-tab, import-column-mapper, import-preview-table
-│   ├── dashboard/          # stats-cards, my-tasks-list, activity-feed
+│   ├── dashboard/          # stats-cards, active-boards, my-tasks-list, activity-feed
 │   ├── comments/           # thread, item, form, type-badge
 │   └── profile/            # header, tabs, delete-user-button, edit-profile-dialog, notification-settings, complete-profile-banner
 ├── hooks/
@@ -155,6 +155,8 @@ mcp-server/                 # MCP server for Claude Code integration
 - Board columns lazy-initialized with "To Do", "In Progress", "Done" (done column) on first visit
 - `board_columns.is_done_column` (boolean) marks columns where tasks are considered complete
 - Dashboard excludes archived tasks and tasks in done columns
+- Dashboard "Active Boards" section shows up to 5 most recently active boards (by task `updated_at`) for ideas the user owns or collaborates on, with per-column task counts
+- Idea card board icon (`LayoutDashboard`) is a `<Link>` to `/ideas/[id]/board` (shown when `taskCount > 0`)
 - Board uses @dnd-kit for drag-and-drop with optimistic UI updates
   - `MouseSensor` (distance: 8) for desktop, `TouchSensor` (delay: 200ms) for mobile, `KeyboardSensor` for a11y
   - Drag handles use `touch-none` CSS to prevent browser scroll interference
