@@ -55,7 +55,7 @@ export default async function LandingPage() {
           <div className="absolute bottom-1/4 right-1/4 h-96 w-96 rounded-full bg-purple-500/5 blur-3xl" />
         </div>
 
-        <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-32 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 pt-24 pb-16 sm:px-6 sm:pt-32 sm:pb-20 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <div className="mb-8 flex items-center justify-center gap-2">
               <Sparkles className="h-10 w-10 text-primary" />
@@ -89,7 +89,7 @@ export default async function LandingPage() {
       </section>
 
       {/* AI Spotlight Section */}
-      <section className="relative overflow-hidden border-t border-border py-24">
+      <section className="relative overflow-hidden border-t border-border pt-14 pb-24">
         <div className="absolute inset-0 -z-10">
           <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-transparent to-primary/10" />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] rounded-full bg-purple-500/5 blur-3xl" />
