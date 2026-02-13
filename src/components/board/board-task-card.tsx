@@ -71,6 +71,7 @@ export function BoardTaskCard({
   currentUserId,
 }: BoardTaskCardProps) {
   const [detailOpen, setDetailOpen] = useState(false);
+  const [initialTab, setInitialTab] = useState<string | undefined>(undefined);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
 
   const isArchived = task.archived;
@@ -131,7 +132,7 @@ export function BoardTaskCard({
         className={`group cursor-pointer overflow-hidden rounded-md border border-border bg-background shadow-sm ${
           isDragging ? "opacity-50" : ""
         } ${isArchived ? "opacity-50" : ""}`}
-        onClick={() => setDetailOpen(true)}
+        onClick={() => { setInitialTab(undefined); setDetailOpen(true); }}
       >
         {coverUrl && (
           <div className="h-32 w-full">
@@ -222,7 +223,10 @@ export function BoardTaskCard({
                 {!!attachmentCount && attachmentCount > 0 && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+                      <span
+                        className="inline-flex cursor-pointer items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-foreground"
+                        onClick={(e) => { e.stopPropagation(); setInitialTab("files"); setDetailOpen(true); }}
+                      >
                         <Paperclip className="h-3 w-3" />
                         {attachmentCount}
                       </span>
@@ -233,7 +237,10 @@ export function BoardTaskCard({
                 {!!commentCount && commentCount > 0 && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
+                      <span
+                        className="inline-flex cursor-pointer items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-foreground"
+                        onClick={(e) => { e.stopPropagation(); setInitialTab("comments"); setDetailOpen(true); }}
+                      >
                         <MessageSquare className="h-3 w-3" />
                         {commentCount}
                       </span>
@@ -272,6 +279,7 @@ export function BoardTaskCard({
         checklistItems={checklistItems}
         teamMembers={teamMembers}
         currentUserId={currentUserId}
+        initialTab={initialTab}
       />
     </>
   );

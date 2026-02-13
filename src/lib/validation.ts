@@ -10,7 +10,8 @@ export const MAX_LABEL_NAME_LENGTH = 50;
 
 const VALID_LABEL_COLORS = [
   "red", "orange", "amber", "yellow", "lime", "green",
-  "blue", "cyan", "violet", "purple", "pink", "rose",
+  "emerald", "blue", "cyan", "violet", "purple", "pink",
+  "rose", "zinc",
 ];
 
 const GITHUB_URL_PATTERN = /^https:\/\/github\.com\/.+/;

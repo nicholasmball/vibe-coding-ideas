@@ -48,6 +48,7 @@ interface TaskDetailDialogProps {
   checklistItems: BoardChecklistItem[];
   teamMembers: User[];
   currentUserId: string;
+  initialTab?: string;
 }
 
 export function TaskDetailDialog({
@@ -59,7 +60,9 @@ export function TaskDetailDialog({
   checklistItems,
   teamMembers,
   currentUserId,
+  initialTab,
 }: TaskDetailDialogProps) {
+  const [activeTab, setActiveTab] = useState("details");
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
   const [savingTitle, setSavingTitle] = useState(false);
@@ -79,6 +82,15 @@ export function TaskDetailDialog({
     setDescription(task.description ?? "");
     setLocalAssigneeId(task.assignee_id);
     setLastTaskId(task.id);
+  }
+
+  // Switch to initialTab when dialog opens
+  const [lastOpen, setLastOpen] = useState(false);
+  if (open && !lastOpen) {
+    setActiveTab(initialTab ?? "details");
+  }
+  if (open !== lastOpen) {
+    setLastOpen(open);
   }
 
   async function handleTitleBlur() {
@@ -243,7 +255,7 @@ export function TaskDetailDialog({
         </DialogHeader>
 
         {/* Tabs */}
-        <Tabs defaultValue="details" className="flex flex-1 flex-col overflow-hidden">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-1 flex-col overflow-hidden">
           <TabsList variant="line" className="w-full justify-start gap-0 px-6 pt-2">
             <TabsTrigger value="details" className="text-xs">
               Details
@@ -282,6 +294,7 @@ export function TaskDetailDialog({
                     taskId={task.id}
                     ideaId={ideaId}
                     currentUserId={currentUserId}
+                    inDialog
                   >
                     <Button variant="outline" size="sm" className="h-6 gap-1 text-xs">
                       <Tag className="h-3 w-3" />

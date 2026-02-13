@@ -6,7 +6,7 @@ export default function MainLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-dvh flex-col overflow-hidden">
+    <div className="fixed inset-0 flex flex-col overflow-hidden">
       <Navbar />
       <main className="flex-1 overflow-auto">{children}</main>
     </div>

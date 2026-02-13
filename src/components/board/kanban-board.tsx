@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -62,6 +62,9 @@ export function KanbanBoard({
 
   // Track in-flight move operations to prevent server data from reverting optimistic updates
   const [pendingMoves, setPendingMoves] = useState(0);
+  // Cooldown after last move to let Realtime catch up before syncing
+  const lastMoveTimeRef = useRef(0);
+  const MOVE_COOLDOWN_MS = 1500;
 
   // Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -93,10 +96,35 @@ export function KanbanBoard({
     ])
   );
   const [lastServerKey, setLastServerKey] = useState(serverKey);
-  if (serverKey !== lastServerKey && !activeTask && !activeColumn && pendingMoves === 0) {
+  // Keep refs for deferred sync callback
+  const initialColumnsRef = useRef(initialColumns);
+  initialColumnsRef.current = initialColumns;
+  const serverKeyRef = useRef(serverKey);
+  serverKeyRef.current = serverKey;
+
+  // Fast-path sync when no recent moves
+  const withinCooldown = Date.now() - lastMoveTimeRef.current < MOVE_COOLDOWN_MS;
+  if (serverKey !== lastServerKey && !activeTask && !activeColumn && pendingMoves === 0 && !withinCooldown) {
     setColumns(initialColumns);
     setLastServerKey(serverKey);
   }
+
+  // Deferred sync: wait for cooldown to expire after rapid moves
+  const needsDeferredSync = serverKey !== lastServerKey && !activeTask && !activeColumn && pendingMoves === 0 && withinCooldown;
+  useEffect(() => {
+    if (!needsDeferredSync) return;
+    const remaining = MOVE_COOLDOWN_MS - (Date.now() - lastMoveTimeRef.current);
+    if (remaining <= 0) {
+      setColumns(initialColumnsRef.current);
+      setLastServerKey(serverKeyRef.current);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setColumns(initialColumnsRef.current);
+      setLastServerKey(serverKeyRef.current);
+    }, remaining + 100);
+    return () => clearTimeout(timer);
+  }, [needsDeferredSync]);
 
   // Count archived tasks across all columns
   const archivedCount = useMemo(
@@ -300,6 +328,7 @@ export function KanbanBoard({
           setLastServerKey(""); // force re-sync when pendingMoves reaches 0
         } finally {
           setPendingMoves((n) => n - 1);
+          lastMoveTimeRef.current = Date.now();
         }
         return;
       }
@@ -373,6 +402,7 @@ export function KanbanBoard({
         setLastServerKey(""); // force re-sync when pendingMoves reaches 0
       } finally {
         setPendingMoves((n) => n - 1);
+        lastMoveTimeRef.current = Date.now();
       }
     },
     [ideaId]
