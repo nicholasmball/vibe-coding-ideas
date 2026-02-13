@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Sparkles, Users, MessageSquare, Lightbulb, ArrowRight, Zap, ChevronUp, Bot, LayoutDashboard, Bug, Code } from "lucide-react";
+import { Sparkles, Users, MessageSquare, Lightbulb, ArrowRight, Zap, Handshake, Bot, LayoutDashboard, Bug, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/layout/navbar";
 import { createClient } from "@/lib/supabase/server";
@@ -67,20 +67,14 @@ export default async function LandingPage() {
               </span>
             </h1>
             <p className="mt-6 text-lg leading-8 text-muted-foreground">
-              Share your project ideas, find collaborators, and build something
-              amazing together. VibeCodes is the collaborative idea board for
-              developers who love to create.
+              The AI-powered idea board where you go from concept to shipped
+              code. Share ideas, build your team, and let AI handle the rest.
             </p>
-            <div className="mt-10 flex items-center justify-center gap-4">
+            <div className="mt-10">
               <Link href="/signup">
                 <Button size="lg" className="gap-2">
                   Get Started
                   <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-              <Link href="/login">
-                <Button size="lg" variant="outline">
-                  Log In
                 </Button>
               </Link>
             </div>
@@ -140,8 +134,8 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Stats Section */}
-      {(ideaCount ?? 0) > 0 && (
+      {/* Stats Section — hidden until numbers are meaningful */}
+      {(ideaCount ?? 0) >= 50 && (
         <section className="border-t border-border py-12">
           <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-3 gap-8 text-center">
@@ -161,7 +155,7 @@ export default async function LandingPage() {
               </div>
               <div>
                 <div className="flex items-center justify-center gap-1.5 text-primary">
-                  <ChevronUp className="h-5 w-5" />
+                  <Handshake className="h-5 w-5" />
                   <span className="text-3xl font-bold">{collabCount ?? 0}</span>
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">Collaborations</p>
@@ -176,11 +170,11 @@ export default async function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Everything you need to vibe
+              From spark to shipped
             </h2>
             <p className="mt-4 text-muted-foreground">
-              From idea to implementation, VibeCodes helps you every step of the
-              way.
+              Idea, feedback, team, board, code, ship &mdash; VibeCodes covers
+              the full journey.
             </p>
           </div>
           <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
@@ -204,16 +198,16 @@ export default async function LandingPage() {
       <section className="border-t border-border py-24">
         <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
           <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Ready to start vibing?
+            Start with an idea. Ship with AI.
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            Join the community and share your next great idea. Whether you are
-            looking for feedback or collaborators, VibeCodes has you covered.
+            Turn your next idea into working software. VibeCodes gives you
+            the board, the team, and the AI to make it happen.
           </p>
           <div className="mt-8">
             <Link href="/signup">
               <Button size="lg" className="gap-2">
-                Create Your Account
+                Get Started Free
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
