@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, CheckSquare, Paperclip, MessageSquare, Archive } from "lucide-react";
+import { GripVertical, CheckSquare, Paperclip, MessageSquare, Archive, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
 } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import { TaskLabelBadges } from "./task-label-badges";
 import { LabelPicker } from "./label-picker";
 import { DueDateBadge } from "./due-date-badge";
@@ -31,6 +32,7 @@ interface BoardTaskCardProps {
   checklistItems: BoardChecklistItem[];
   highlightQuery?: string;
   currentUserId: string;
+  autoOpen?: boolean;
 }
 
 function HighlightedText({
@@ -69,15 +71,28 @@ export function BoardTaskCard({
   checklistItems,
   highlightQuery,
   currentUserId,
+  autoOpen = false,
 }: BoardTaskCardProps) {
-  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(autoOpen);
   const [initialTab, setInitialTab] = useState<string | undefined>(undefined);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [coverPreviewOpen, setCoverPreviewOpen] = useState(false);
 
   const isArchived = task.archived;
   const attachmentCount = task.attachment_count;
   const commentCount = task.comment_count;
   const coverImagePath = task.cover_image_path;
+
+  // Close lightbox on Escape
+  const closeLightbox = useCallback(() => setCoverPreviewOpen(false), []);
+  useEffect(() => {
+    if (!coverPreviewOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeLightbox();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [coverPreviewOpen, closeLightbox]);
 
   // Fetch signed URL for cover image
   useEffect(() => {
@@ -135,7 +150,10 @@ export function BoardTaskCard({
         onClick={() => { setInitialTab(undefined); setDetailOpen(true); }}
       >
         {coverUrl && (
-          <div className="h-32 w-full">
+          <div
+            className="h-32 w-full cursor-zoom-in"
+            onClick={(e) => { e.stopPropagation(); setCoverPreviewOpen(true); }}
+          >
             <img
               src={coverUrl}
               alt=""
@@ -281,6 +299,28 @@ export function BoardTaskCard({
         currentUserId={currentUserId}
         initialTab={initialTab}
       />
+      {/* Cover image lightbox */}
+      {coverPreviewOpen && coverUrl && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
+          onClick={() => setCoverPreviewOpen(false)}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-4 top-4 text-white hover:bg-white/20"
+            onClick={() => setCoverPreviewOpen(false)}
+          >
+            <X className="h-5 w-5" />
+          </Button>
+          <img
+            src={coverUrl}
+            alt=""
+            className="max-h-[80vh] max-w-[90vw] rounded-lg object-contain"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </>
   );
 }

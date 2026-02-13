@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
-import { Tag, Trash2, Archive, ArchiveRestore, Pencil } from "lucide-react";
+import { Tag, Trash2, Archive, ArchiveRestore, Pencil, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -206,6 +206,7 @@ export function TaskDetailDialog({
 
   const [localCoverPath, setLocalCoverPath] = useState<string | null>(propCoverPath);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [coverPreviewOpen, setCoverPreviewOpen] = useState(false);
 
   // Sync from prop when task changes (e.g. via Realtime refresh)
   const [lastCoverProp, setLastCoverProp] = useState(propCoverPath);
@@ -231,14 +232,17 @@ export function TaskDetailDialog({
   }, [localCoverPath]);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v && coverPreviewOpen) { setCoverPreviewOpen(false); return; } onOpenChange(v); }}>
       <DialogContent
         className="flex max-h-[85vh] flex-col gap-0 p-0 sm:max-w-lg"
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         {/* Cover image */}
         {coverUrl && (
-          <div className="h-40 w-full shrink-0 overflow-hidden">
+          <div
+            className="h-40 w-full shrink-0 cursor-zoom-in overflow-hidden"
+            onClick={() => setCoverPreviewOpen(true)}
+          >
             <img
               src={coverUrl}
               alt=""
@@ -490,6 +494,28 @@ export function TaskDetailDialog({
             {deleting ? "Deleting..." : confirmDelete ? "Are you sure?" : "Delete task"}
           </Button>
         </div>
+        {/* Cover image lightbox — inside DialogContent so Radix focus trap allows clicks */}
+        {coverPreviewOpen && coverUrl && (
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80"
+            onClick={() => setCoverPreviewOpen(false)}
+          >
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-4 top-4 text-white hover:bg-white/20"
+              onClick={(e) => { e.stopPropagation(); setCoverPreviewOpen(false); }}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+            <img
+              src={coverUrl}
+              alt=""
+              className="max-h-[80vh] max-w-[90vw] rounded-lg object-contain"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

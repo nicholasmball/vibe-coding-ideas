@@ -439,19 +439,17 @@ export function TaskAttachmentsSection({
                     </TooltipTrigger>
                     <TooltipContent>Download</TooltipContent>
                   </Tooltip>
-                  {attachment.uploaded_by === currentUserId && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button
-                          className="cursor-pointer rounded p-1 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDelete(attachment)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent>Delete</TooltipContent>
-                    </Tooltip>
-                  )}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        className="cursor-pointer rounded p-1 text-muted-foreground hover:text-destructive"
+                        onClick={() => handleDelete(attachment)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Delete</TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
             ))}

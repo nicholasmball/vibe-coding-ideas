@@ -17,6 +17,7 @@ import type { Metadata } from "next";
 
 interface PageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ taskId?: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -35,8 +36,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
-export default async function BoardPage({ params }: PageProps) {
+export default async function BoardPage({ params, searchParams }: PageProps) {
   const { id } = await params;
+  const { taskId: initialTaskId } = await searchParams;
   const supabase = await createClient();
 
   const {
@@ -193,6 +195,7 @@ export default async function BoardPage({ params }: PageProps) {
         boardLabels={(boardLabels ?? []) as BoardLabel[]}
         checklistItemsByTaskId={checklistItemsByTaskId}
         currentUserId={user.id}
+        initialTaskId={initialTaskId}
       />
     </div>
   );

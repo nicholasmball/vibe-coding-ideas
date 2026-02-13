@@ -41,6 +41,7 @@ interface BoardColumnProps {
   checklistItemsByTaskId: Record<string, BoardChecklistItem[]>;
   highlightQuery?: string;
   currentUserId: string;
+  initialTaskId?: string;
 }
 
 export function BoardColumn({
@@ -52,6 +53,7 @@ export function BoardColumn({
   checklistItemsByTaskId,
   highlightQuery,
   currentUserId,
+  initialTaskId,
 }: BoardColumnProps) {
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -182,6 +184,7 @@ export function BoardColumn({
                 checklistItems={checklistItemsByTaskId[task.id] ?? []}
                 highlightQuery={highlightQuery}
                 currentUserId={currentUserId}
+                autoOpen={task.id === initialTaskId}
               />
             ))}
           </SortableContext>
@@ -207,6 +210,7 @@ export function BoardColumn({
         ideaId={ideaId}
         columnId={column.id}
         teamMembers={teamMembers}
+        boardLabels={boardLabels}
         currentUserId={currentUserId}
       />
       <ColumnEditDialog

@@ -31,7 +31,7 @@ export function MyTasksList({ tasks }: MyTasksListProps) {
             {tasks.map((task) => (
               <Link
                 key={task.id}
-                href={`/ideas/${task.idea.id}/board`}
+                href={`/ideas/${task.idea.id}/board?taskId=${task.id}`}
                 className="flex items-center gap-3 rounded-md border border-border p-3 transition-colors hover:bg-muted"
               >
                 <div className="flex-1 min-w-0">
