@@ -81,20 +81,31 @@ export default function GettingStartedPage() {
           </p>
           <ul className="list-inside list-disc space-y-2 text-muted-foreground">
             <li>
-              <strong className="text-foreground">Stats</strong> — your idea
-              count, total upvotes, and collaborations
+              <strong className="text-foreground">Stats</strong> — four cards
+              showing ideas created, collaborations, upvotes received, and tasks
+              assigned to you
             </li>
             <li>
-              <strong className="text-foreground">Active Boards</strong> — quick
-              access to kanban boards you own or collaborate on
+              <strong className="text-foreground">Active Boards</strong> — your
+              5 most recently active kanban boards with per-column task counts
             </li>
             <li>
               <strong className="text-foreground">My Tasks</strong> — tasks
-              assigned to you across all boards
+              assigned to you across all boards, sorted by due date urgency,
+              with labels, checklist progress, and due date badges
+            </li>
+            <li>
+              <strong className="text-foreground">My Ideas</strong> — your 5
+              most recent ideas with vote/comment/collaborator counts
+            </li>
+            <li>
+              <strong className="text-foreground">Collaborations</strong> — up
+              to 5 ideas you&apos;ve joined as a collaborator
             </li>
             <li>
               <strong className="text-foreground">Recent Activity</strong> —
-              latest votes, comments, and collaborator updates
+              latest votes, comments, collaborator joins, status changes, and
+              @mentions
             </li>
           </ul>
         </section>
