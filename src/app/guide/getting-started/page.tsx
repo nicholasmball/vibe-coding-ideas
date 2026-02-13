@@ -48,7 +48,8 @@ export default function GettingStartedPage() {
           </ul>
           <p className="text-muted-foreground">
             After signing up, you can edit your profile to add a bio, change
-            your display name, or upload a custom avatar.
+            your display name, upload a custom avatar, and optionally add your
+            GitHub username and contact info.
           </p>
         </section>
 
@@ -67,7 +68,7 @@ export default function GettingStartedPage() {
               (comments)
             </li>
             <li>
-              Browse with pagination — 12 ideas per page
+              Browse with pagination — 10 ideas per page
             </li>
           </ul>
         </section>

@@ -31,8 +31,8 @@ export default function CollaborationPage() {
           <h2 className="mb-4 text-2xl font-semibold">Joining a Project</h2>
           <p className="mb-4 text-muted-foreground">
             On any public idea, click the{" "}
-            <strong className="text-foreground">Collaborate</strong> button to
-            join the project. This gives you:
+            <strong className="text-foreground">I want to build this</strong>{" "}
+            button to join the project. This gives you:
           </p>
           <ul className="list-inside list-disc space-y-2 text-muted-foreground">
             <li>Access to the idea&apos;s kanban board</li>
@@ -60,7 +60,7 @@ export default function CollaborationPage() {
               button on your idea&apos;s detail page
             </li>
             <li>Search for users by name or email</li>
-            <li>Added collaborators receive a notification</li>
+            <li>The idea author is notified when a collaborator is added</li>
             <li>
               You can remove collaborators from the collaborator list at any time
             </li>
@@ -76,7 +76,7 @@ export default function CollaborationPage() {
           <ul className="mb-4 list-inside list-disc space-y-2 text-muted-foreground">
             <li>Someone votes on your idea</li>
             <li>Someone comments on your idea</li>
-            <li>A collaborator joins or is added to your idea</li>
+            <li>A new collaborator joins your idea</li>
             <li>An idea you collaborate on changes status</li>
             <li>You&apos;re @mentioned in a task comment</li>
           </ul>

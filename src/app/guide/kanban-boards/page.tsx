@@ -55,7 +55,7 @@ export default function KanbanBoardsPage() {
             </li>
             <li>
               <strong className="text-foreground">Labels</strong> — colored
-              labels for categorization (per-idea, 12 colors)
+              labels for categorization (per-idea, 10 colors)
             </li>
             <li>
               <strong className="text-foreground">Due Date</strong> — track
@@ -114,7 +114,7 @@ export default function KanbanBoardsPage() {
               <strong className="text-foreground">Done column</strong> — tasks
               in done columns are excluded from dashboard task counts
             </li>
-            <li>Delete columns (moves tasks to the first column)</li>
+            <li>Delete columns (tasks in the column are also deleted)</li>
           </ul>
         </section>
 
@@ -127,7 +127,7 @@ export default function KanbanBoardsPage() {
             <li>Search by task title</li>
             <li>Filter by assignee</li>
             <li>Filter by label</li>
-            <li>Filter by due date (overdue, due today, due this week)</li>
+            <li>Filter by due date (overdue, due soon)</li>
             <li>Toggle visibility of archived tasks</li>
           </ul>
         </section>
