@@ -45,15 +45,22 @@ export default function McpIntegrationPage() {
         <section>
           <h2 className="mb-4 text-2xl font-semibold">Connect Claude Code</h2>
           <p className="mb-4 text-muted-foreground">
-            Add VibeCodes as an MCP server in Claude Code with a single command:
+            Add the VibeCodes remote MCP server to Claude Code with this
+            command:
           </p>
-          <div className="rounded-lg bg-muted p-4">
+          <div className="rounded-lg border-2 border-primary/30 bg-muted p-4">
             <code className="text-sm">
-              claude mcp add --transport http vibecodes
+              claude mcp add --transport http vibecodes-remote
               https://vibe-coding-ideas.vercel.app/api/mcp
             </code>
           </div>
           <p className="mt-4 text-muted-foreground">
+            This connects to the <strong className="text-foreground">hosted
+            VibeCodes server</strong> over HTTP. You don&apos;t need to clone
+            the repo or run anything locally — it works from any project
+            directory.
+          </p>
+          <p className="mt-3 text-muted-foreground">
             The first time you use it, Claude Code will open your browser for
             OAuth authentication. Log in with your VibeCodes account and
             authorize the connection. After that, Claude Code can use all 18
@@ -65,6 +72,20 @@ export default function McpIntegrationPage() {
               VibeCodes uses OAuth 2.1 with PKCE. Your Supabase session token
               is used as the OAuth access token, so all actions respect the same
               permissions (RLS) as the web app. No API keys to manage.
+            </p>
+          </div>
+          <div className="mt-4 rounded-xl border border-border bg-muted/30 p-6">
+            <p className="text-sm text-muted-foreground">
+              <strong className="text-foreground">Tip:</strong> The{" "}
+              <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                -s user
+              </code>{" "}
+              flag saves the server to your user-level config so it&apos;s
+              available across all your projects:{" "}
+              <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                claude mcp add -s user --transport http vibecodes-remote
+                https://vibe-coding-ideas.vercel.app/api/mcp
+              </code>
             </p>
           </div>
         </section>
@@ -219,21 +240,35 @@ export default function McpIntegrationPage() {
         </section>
 
         <section>
-          <h2 className="mb-4 text-2xl font-semibold">Local Development</h2>
+          <h2 className="mb-4 text-2xl font-semibold">
+            Local Server (Contributors Only)
+          </h2>
           <p className="mb-4 text-muted-foreground">
-            If you&apos;re running VibeCodes locally, you can also use the
-            local MCP server over stdio for development:
+            This section is only for developers who have cloned the VibeCodes
+            repo and are contributing to the codebase. Most users should use
+            the <strong className="text-foreground">remote server</strong>{" "}
+            above.
           </p>
-          <div className="rounded-lg bg-muted p-4">
-            <code className="text-sm">npx tsx mcp-server/src/index.ts</code>
-          </div>
-          <p className="mt-4 text-muted-foreground">
-            The local server uses a service-role Supabase client and a dedicated
-            bot user, bypassing RLS for full access. See the{" "}
+          <p className="mb-4 text-muted-foreground">
+            The local MCP server runs over stdio and is already configured in
+            the project&apos;s{" "}
             <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
-              mcp-server/
+              .mcp.json
+            </code>
+            . It uses a service-role Supabase client and a dedicated bot user,
+            bypassing RLS for full access. It requires{" "}
+            <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+              SUPABASE_URL
             </code>{" "}
-            directory for configuration details.
+            and{" "}
+            <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+              SUPABASE_SERVICE_ROLE_KEY
+            </code>{" "}
+            environment variables in{" "}
+            <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+              mcp-server/.env
+            </code>
+            .
           </p>
         </section>
       </div>
