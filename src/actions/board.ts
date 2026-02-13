@@ -22,11 +22,19 @@ export async function initializeBoardColumns(ideaId: string) {
 
   if (existing && existing.length > 0) return;
 
-  // Create default columns
-  const columns = DEFAULT_BOARD_COLUMNS.map((col) => ({
+  // Check for user's custom default columns
+  const { data: userProfile } = await supabase
+    .from("users")
+    .select("default_board_columns")
+    .eq("id", user.id)
+    .single();
+
+  const columnDefs = userProfile?.default_board_columns ?? DEFAULT_BOARD_COLUMNS;
+
+  const columns = columnDefs.map((col, i) => ({
     idea_id: ideaId,
     title: col.title,
-    position: col.position,
+    position: i * POSITION_GAP,
     is_done_column: col.is_done_column,
   }));
 

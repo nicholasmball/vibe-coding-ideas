@@ -5,6 +5,7 @@ import { ProfileTabs } from "@/components/profile/profile-tabs";
 import { DeleteUserButton } from "@/components/profile/delete-user-button";
 import { EditProfileDialog } from "@/components/profile/edit-profile-dialog";
 import { NotificationSettings } from "@/components/profile/notification-settings";
+import { BoardColumnSettings } from "@/components/profile/board-column-settings";
 import type { IdeaWithAuthor } from "@/types";
 import type { Metadata } from "next";
 
@@ -146,6 +147,7 @@ export default async function ProfilePage({ params }: PageProps) {
         <div className="mt-4 flex justify-end gap-2">
           {currentUser?.id === id && (
             <>
+              <BoardColumnSettings columns={profileUser.default_board_columns} />
               <NotificationSettings preferences={profileUser.notification_preferences} />
               <EditProfileDialog user={profileUser} />
             </>

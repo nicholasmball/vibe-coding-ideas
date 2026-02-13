@@ -25,6 +25,7 @@ export type Database = {
             status_changes: boolean;
             task_mentions: boolean;
           };
+          default_board_columns: { title: string; is_done_column: boolean }[] | null;
           is_admin: boolean;
           created_at: string;
           updated_at: string;
@@ -44,6 +45,7 @@ export type Database = {
             status_changes: boolean;
             task_mentions: boolean;
           };
+          default_board_columns?: { title: string; is_done_column: boolean }[] | null;
           is_admin?: boolean;
           created_at?: string;
           updated_at?: string;
@@ -63,6 +65,7 @@ export type Database = {
             status_changes: boolean;
             task_mentions: boolean;
           };
+          default_board_columns?: { title: string; is_done_column: boolean }[] | null;
           is_admin?: boolean;
           created_at?: string;
           updated_at?: string;

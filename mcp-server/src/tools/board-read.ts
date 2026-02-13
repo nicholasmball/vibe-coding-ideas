@@ -21,13 +21,23 @@ export async function getBoard(ctx: McpContext, params: z.infer<typeof getBoardS
   if (colError) throw new Error(`Failed to get board: ${colError.message}`);
 
   if (!columns || columns.length === 0) {
-    // Initialize default columns
+    // Check user's custom default columns
+    const { data: userProfile } = await ctx.supabase
+      .from("users")
+      .select("default_board_columns")
+      .eq("id", ctx.userId)
+      .single();
+
+    const columnDefs = userProfile?.default_board_columns ?? DEFAULT_BOARD_COLUMNS;
+
     const { data: newCols, error: initError } = await ctx.supabase
       .from("board_columns")
       .insert(
-        DEFAULT_BOARD_COLUMNS.map((col) => ({
+        columnDefs.map((col: { title: string; is_done_column: boolean }, i: number) => ({
           idea_id: params.idea_id,
-          ...col,
+          title: col.title,
+          position: i * 1000,
+          is_done_column: col.is_done_column,
         }))
       )
       .select();

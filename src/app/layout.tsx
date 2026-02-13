@@ -16,9 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "VibeCodes - Collaborative Idea Board for Vibe Coding",
+  title: "VibeCodes - AI-Powered Idea Board for Vibe Coding",
   description:
-    "Share, discuss, and collaborate on vibe coding project ideas with the community.",
+    "The AI-powered idea board where you go from concept to shipped code. Share ideas, build your team, and let AI handle the rest via MCP.",
 };
 
 export default function RootLayout({

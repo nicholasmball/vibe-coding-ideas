@@ -14,13 +14,14 @@ const PAGE_SIZE = 10;
 export default async function FeedPage({
   searchParams,
 }: {
-  searchParams: Promise<{ sort?: string; q?: string; tag?: string; status?: string; page?: string }>;
+  searchParams: Promise<{ sort?: string; q?: string; tag?: string; status?: string; page?: string; view?: string }>;
 }) {
   const params = await searchParams;
   const sort = (params.sort as SortOption) || "newest";
   const search = params.q || "";
   const tag = params.tag || "";
   const status = (params.status as IdeaStatus) || "";
+  const view = (params.view as "all" | "mine" | "collaborating") || "all";
   const page = Math.max(1, parseInt(params.page || "1", 10));
   const supabase = await createClient();
 
@@ -28,9 +29,31 @@ export default async function FeedPage({
     data: { user },
   } = await supabase.auth.getUser();
 
+  // For "collaborating" view, fetch idea IDs where user is a collaborator
+  let collaboratingIdeaIds: string[] = [];
+  if (view === "collaborating" && user) {
+    const { data: collabs } = await supabase
+      .from("collaborators")
+      .select("idea_id")
+      .eq("user_id", user.id);
+    collaboratingIdeaIds = collabs?.map((c) => c.idea_id) ?? [];
+  }
+
   let query = supabase
     .from("ideas")
     .select("*, author:users!ideas_author_id_fkey(*)", { count: "exact" });
+
+  // View filter
+  if (view === "mine" && user) {
+    query = query.eq("author_id", user.id);
+  } else if (view === "collaborating" && user) {
+    if (collaboratingIdeaIds.length === 0) {
+      // No collaborations — short-circuit to empty result
+      query = query.in("id", ["00000000-0000-0000-0000-000000000000"]);
+    } else {
+      query = query.in("id", collaboratingIdeaIds);
+    }
+  }
 
   // Search filter
   if (search) {
@@ -117,6 +140,7 @@ export default async function FeedPage({
         currentSearch={search}
         currentTag={tag}
         currentStatus={status}
+        currentView={view}
         currentPage={page}
         totalPages={totalPages}
         allTags={allTags}

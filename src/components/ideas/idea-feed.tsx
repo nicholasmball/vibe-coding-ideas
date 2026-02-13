@@ -17,6 +17,8 @@ import {
 import { SORT_OPTIONS, STATUS_CONFIG } from "@/lib/constants";
 import type { IdeaWithAuthor, IdeaStatus, SortOption } from "@/types";
 
+type FeedView = "all" | "mine" | "collaborating";
+
 interface IdeaFeedProps {
   ideas: IdeaWithAuthor[];
   userVotes: string[];
@@ -25,10 +27,17 @@ interface IdeaFeedProps {
   currentSearch: string;
   currentTag: string;
   currentStatus: string;
+  currentView: FeedView;
   currentPage: number;
   totalPages: number;
   allTags: string[];
 }
+
+const VIEW_OPTIONS: { value: FeedView; label: string }[] = [
+  { value: "all", label: "All Ideas" },
+  { value: "mine", label: "My Ideas" },
+  { value: "collaborating", label: "Collaborating" },
+];
 
 export function IdeaFeed({
   ideas,
@@ -38,6 +47,7 @@ export function IdeaFeed({
   currentSearch,
   currentTag,
   currentStatus,
+  currentView,
   currentPage,
   totalPages,
   allTags,
@@ -111,6 +121,23 @@ export function IdeaFeed({
             </SelectContent>
           </Select>
         </div>
+      </div>
+
+      {/* View filter tabs */}
+      <div className="mb-4 flex gap-1 rounded-lg border border-border bg-muted/30 p-1">
+        {VIEW_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              currentView === option.value
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+            onClick={() => updateParams({ view: option.value === "all" ? "" : option.value })}
+          >
+            {option.label}
+          </button>
+        ))}
       </div>
 
       {/* Search bar */}
@@ -196,8 +223,12 @@ export function IdeaFeed({
       {ideas.length === 0 ? (
         <div className="py-16 text-center">
           <p className="text-lg text-muted-foreground">
-            {currentSearch || currentTag || currentStatus
-              ? "No ideas match your filters."
+            {currentSearch || currentTag || currentStatus || currentView !== "all"
+              ? currentView === "mine"
+                ? "You haven't shared any ideas yet."
+                : currentView === "collaborating"
+                  ? "You're not collaborating on any ideas yet."
+                  : "No ideas match your filters."
               : "No ideas yet. Be the first to share one!"}
           </p>
         </div>

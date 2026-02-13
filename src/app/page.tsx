@@ -10,25 +10,25 @@ const features = [
     icon: Lightbulb,
     title: "Share Ideas",
     description:
-      "Post your vibe coding project ideas and get feedback from the community.",
+      "Drop a rough concept and watch it evolve through community feedback and AI refinement.",
   },
   {
     icon: Users,
     title: "Find Collaborators",
     description:
-      "Connect with developers who share your vision and want to build together.",
+      "Attract developers who share your vision — or let AI be your first team member.",
   },
   {
     icon: MessageSquare,
     title: "Discuss & Refine",
     description:
-      "Get suggestions, answer questions, and incorporate community feedback.",
+      "Threaded comments, suggestions, and questions keep every decision traceable.",
   },
   {
     icon: Zap,
     title: "Real-time Updates",
     description:
-      "See votes, comments, and collaborator updates as they happen.",
+      "Board changes, votes, and comments stream live — no refresh needed.",
   },
 ];
 
@@ -57,8 +57,11 @@ export default async function LandingPage() {
 
         <div className="mx-auto max-w-7xl px-4 pt-24 pb-16 sm:px-6 sm:pt-32 sm:pb-20 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <div className="mb-8 flex items-center justify-center gap-2">
-              <Sparkles className="h-10 w-10 text-primary" />
+            <div className="mb-8 flex justify-center">
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
+                <Sparkles className="h-4 w-4" />
+                Idea to shipped code, powered by AI
+              </div>
             </div>
             <h1 className="text-4xl font-bold tracking-tight sm:text-6xl">
               Where Vibe Coding Ideas{" "}
@@ -110,21 +113,21 @@ export default async function LandingPage() {
 
           <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-8 sm:grid-cols-3">
             <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-sm">
-              <LayoutDashboard className="mb-4 h-8 w-8 text-purple-400" />
+              <LayoutDashboard className="mb-4 h-8 w-8 text-blue-400" />
               <h3 className="mb-2 text-lg font-semibold">AI Manages Your Board</h3>
               <p className="text-sm text-muted-foreground">
                 Create tasks, move cards between columns, add labels, set due dates, and manage checklists &mdash; all through natural conversation.
               </p>
             </div>
             <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-sm">
-              <Bug className="mb-4 h-8 w-8 text-purple-400" />
+              <Bug className="mb-4 h-8 w-8 text-red-400" />
               <h3 className="mb-2 text-lg font-semibold">File Bugs, Get Fixes</h3>
               <p className="text-sm text-muted-foreground">
                 Describe an issue and watch your AI file it as a bug, pick it up, and deliver a fix &mdash; with full activity tracking on the board.
               </p>
             </div>
             <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-sm">
-              <Code className="mb-4 h-8 w-8 text-purple-400" />
+              <Code className="mb-4 h-8 w-8 text-emerald-400" />
               <h3 className="mb-2 text-lg font-semibold">From Idea to Software</h3>
               <p className="text-sm text-muted-foreground">
                 Go from a rough idea to a shipped product. AI refines your concept, creates tasks, writes code, and updates progress in real time.
@@ -217,15 +220,28 @@ export default async function LandingPage() {
 
       {/* Footer */}
       <footer className="border-t border-border py-8">
-        <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <Sparkles className="h-4 w-4" />
-            <span>
-              VibeCodes &mdash; Built with vibes &mdash;{" "}
-              <Link href="/guide" className="underline hover:text-foreground">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4" />
+              <span>VibeCodes</span>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              <Link href="/guide" className="hover:text-foreground">
                 Guide
               </Link>
-            </span>
+              <span className="text-border">&middot;</span>
+              <a
+                href="https://github.com/NickBall/vibe-coding-ideas"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-foreground"
+              >
+                GitHub
+              </a>
+              <span className="text-border">&middot;</span>
+              <span>&copy; {new Date().getFullYear()} VibeCodes</span>
+            </div>
           </div>
         </div>
       </footer>
