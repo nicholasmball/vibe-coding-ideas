@@ -6,7 +6,8 @@ import { DeleteUserButton } from "@/components/profile/delete-user-button";
 import { EditProfileDialog } from "@/components/profile/edit-profile-dialog";
 import { NotificationSettings } from "@/components/profile/notification-settings";
 import { BoardColumnSettings } from "@/components/profile/board-column-settings";
-import type { IdeaWithAuthor } from "@/types";
+import { BotManagement } from "@/components/profile/bot-management";
+import type { IdeaWithAuthor, BotProfile } from "@/types";
 import type { Metadata } from "next";
 
 interface PageProps {
@@ -114,6 +115,17 @@ export default async function ProfilePage({ params }: PageProps) {
     isCurrentUserAdmin = adminCheck?.is_admin ?? false;
   }
 
+  // Fetch user's bots (only on own profile)
+  let userBots: BotProfile[] = [];
+  if (currentUser?.id === id) {
+    const { data: bots } = await supabase
+      .from("bot_profiles")
+      .select("*")
+      .eq("owner_id", id)
+      .order("created_at", { ascending: true });
+    userBots = (bots ?? []) as BotProfile[];
+  }
+
   // Fetch task counts for displayed ideas
   const allProfileIdeaIds = [
     ...(ideas ?? []).map((i) => i.id),
@@ -155,6 +167,11 @@ export default async function ProfilePage({ params }: PageProps) {
           {showDeleteButton && (
             <DeleteUserButton userId={id} userName={profileUser.full_name} />
           )}
+        </div>
+      )}
+      {currentUser?.id === id && userBots.length >= 0 && (
+        <div className="mt-6">
+          <BotManagement bots={userBots} />
         </div>
       )}
       <ProfileTabs

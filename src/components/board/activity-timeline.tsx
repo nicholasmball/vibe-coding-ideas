@@ -19,6 +19,7 @@ import {
   Paperclip,
   Trash2,
   Activity,
+  Bot,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -167,7 +168,10 @@ export function ActivityTimeline({ taskId, ideaId }: ActivityTimelineProps) {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs">
-                    <span className="font-medium">
+                    <span className="font-medium inline-flex items-center gap-1">
+                      {activity.actor?.is_bot && (
+                        <Bot className="h-3 w-3 text-primary" />
+                      )}
                       {activity.actor?.full_name ?? "Someone"}
                     </span>{" "}
                     {label}

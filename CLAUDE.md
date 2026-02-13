@@ -66,6 +66,7 @@ src/
 ├── actions/                # Server Actions (all use server-side validation)
 │   ├── ideas.ts            # create, update, updateStatus, delete
 │   ├── board.ts            # initializeColumns, create/update/delete columns & tasks, reorder, move, labels (CRUD + assign/remove), checklists (CRUD + toggle), task comments (create/delete)
+│   ├── bots.ts             # createBot, updateBot, deleteBot, listMyBots
 │   ├── votes.ts            # toggleVote
 │   ├── comments.ts         # create, incorporate, delete
 │   ├── collaborators.ts    # toggleCollaborator, addCollaborator, removeCollaborator
@@ -80,13 +81,13 @@ src/
 │   ├── board/              # kanban-board, board-column, board-task-card, board-toolbar, task-edit-dialog, task-detail-dialog, column-edit-dialog, add-column-button, board-realtime, label-picker, due-date-picker, due-date-badge, task-label-badges, checklist-section, activity-timeline, task-comments-section, task-attachments-section, mention-autocomplete, import-dialog, import-csv-tab, import-json-tab, import-bulk-text-tab, import-column-mapper, import-preview-table
 │   ├── dashboard/          # stats-cards, active-boards, my-tasks-list, activity-feed
 │   ├── comments/           # thread, item, form, type-badge
-│   └── profile/            # header, tabs, delete-user-button, edit-profile-dialog, notification-settings, complete-profile-banner
+│   └── profile/            # header, tabs, delete-user-button, edit-profile-dialog, notification-settings, complete-profile-banner, bot-management, create-bot-dialog, edit-bot-dialog
 ├── hooks/
 │   ├── use-user.ts         # Client-side auth state
 │   └── use-realtime.ts     # Supabase realtime subscription
 ├── lib/
 │   ├── activity.ts         # logTaskActivity() — client-side fire-and-forget activity logging
-│   ├── constants.ts        # Status/comment type configs, sort options, tags, board defaults, LABEL_COLORS, ACTIVITY_ACTIONS
+│   ├── constants.ts        # Status/comment type configs, sort options, tags, board defaults, LABEL_COLORS, ACTIVITY_ACTIONS, BOT_ROLE_TEMPLATES
 │   ├── import.ts           # CSV/JSON/bulk-text parsers, auto-mapping, executeBulkImport()
 │   ├── validation.ts       # Server-side input validation (title, description, comment, tags, GitHub URL, label name/color, bio, avatar URL)
 │   ├── utils.ts            # cn(), formatRelativeTime(), getDueDateStatus(), formatDueDate(), getLabelColorConfig()
@@ -102,7 +103,7 @@ src/
 │   └── mocks.ts            # Shared mocks (Supabase client, Next.js navigation)
 middleware.ts               # Root middleware (calls updateSession)
 vitest.config.ts            # Vitest config (jsdom, @/ alias, react plugin)
-supabase/migrations/        # 33 SQL migration files (run in order)
+supabase/migrations/        # 34 SQL migration files (run in order)
 mcp-server/                 # MCP server for Claude Code integration
 ├── package.json            # ESM, separate deps
 ├── tsconfig.json           # noEmit, includes ../src/types
@@ -122,7 +123,8 @@ mcp-server/                 # MCP server for Claude Code integration
         ├── collaborators.ts # add_collaborator, remove_collaborator, list_collaborators
         ├── columns.ts      # create_column, update_column, delete_column, reorder_columns
         ├── notifications.ts # list_notifications, mark_notification_read, mark_all_notifications_read
-        └── profile.ts      # update_profile
+        ├── profile.ts      # update_profile
+        └── bots.ts         # list_bots, get_bot_prompt, set_bot_identity, create_bot
 ```
 
 ## Key Patterns
@@ -152,7 +154,7 @@ mcp-server/                 # MCP server for Claude Code integration
 - Profile picture upload: edit-profile-dialog uploads to `avatars` bucket client-side, saves public URL (with cache-bust `?t=`) to `users.avatar_url` via `updateProfile` server action; supports upload, replace, and remove
 
 ### Database
-- 16 tables: users, ideas, comments, collaborators, votes, notifications, board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items, board_task_activity, board_task_comments, board_task_attachments, mcp_oauth_clients, mcp_oauth_codes
+- 17 tables: users, ideas, comments, collaborators, votes, notifications, board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items, board_task_activity, board_task_comments, board_task_attachments, mcp_oauth_clients, mcp_oauth_codes, bot_profiles
 - Denormalized counts on ideas (upvotes, comment_count, collaborator_count) maintained by triggers
 - Users auto-created from auth.users via trigger
 - Notifications auto-created via triggers on comments/votes/collaborators (respect user preferences)
@@ -196,11 +198,24 @@ mcp-server/                 # MCP server for Claude Code integration
   - Max 500 tasks per import, inserted in batches of 50
   - Creates labels/columns on-the-fly, resolves assignees by name/email
 
+### Multi-Bot Support
+- `users.is_bot` (boolean) distinguishes bot users from human users
+- `bot_profiles` table stores bot metadata: name, role, system_prompt, avatar_url, is_active, owner_id
+- `create_bot_user` and `delete_bot_user` SECURITY DEFINER RPCs handle atomic bot creation/deletion
+- Bots get their own `users` row for FK compatibility (assignee_id, actor_id, author_id)
+- Bot management UI on profile page: create, edit, toggle active/inactive, delete
+- `BOT_ROLE_TEMPLATES` in constants provide starter templates (Developer, UX Designer, BA, QA Tester)
+- Assignee picker in task detail dialog includes "My Bots" section below team members
+- Bot indicators (Bot icon) shown in activity timeline, task comments, task cards, and assignee avatars
+- Auto-collaborator: assigning a bot to a task automatically adds it as collaborator on the idea
+- MCP `set_bot_identity` tool allows session-level identity switching; `VIBECODES_BOT_ID` env var for startup
+- `McpContext.ownerUserId` distinguishes the real human from the active bot identity (for ownership validation)
+
 ### Testing
 - **Framework**: Vitest + jsdom + @testing-library/react
 - **Config**: `vitest.config.ts` (react plugin, `@/` alias, `src/test/setup.ts`)
 - **Test files**: Co-located as `*.test.ts` next to source (e.g., `utils.test.ts`, `import.test.ts`)
-- **Coverage**: 168 tests across 8 files — utils, validation, types, import parsers, constants integrity, OAuth endpoints (PKCE, registration, authorization, token exchange), well-known metadata, MCP register-tools
+- **Coverage**: 173 tests across 8 files — utils, validation, types, import parsers, constants integrity, OAuth endpoints (PKCE, registration, authorization, token exchange), well-known metadata, MCP register-tools (incl. bot tools)
 - **Convention**: Write tests for all new pure logic, validators, parsers, and utility functions. Component/UI changes are verified via build + manual testing.
 - **Run**: `npm run test` (single run) or `npm run test:watch` (watch mode)
 
@@ -242,7 +257,7 @@ The MCP server has two modes:
 1. **Local (stdio)**: `mcp-server/src/index.ts` — launched as subprocess, uses service-role client + bot user, bypasses RLS
 2. **Remote (HTTP)**: `src/app/api/mcp/[[...transport]]/route.ts` — hosted on Vercel, uses OAuth 2.1 + PKCE, per-user Supabase client with RLS
 
-Both modes share the same 34 tools via `mcp-server/src/register-tools.ts` with dependency injection (`McpContext`).
+Both modes share the same 38 tools via `mcp-server/src/register-tools.ts` with dependency injection (`McpContext`).
 
 ### Bot User
 - **ID**: `a0000000-0000-0000-0000-000000000001`
@@ -254,9 +269,9 @@ Both modes share the same 34 tools via `mcp-server/src/register-tools.ts` with d
 - **Type check**: `cd mcp-server && npx tsc --noEmit`
 - **Config**: `.mcp.json` in project root (gitignored, contains service role key)
 - **Transport**: stdio (launched by Claude Code as subprocess via `npx tsx mcp-server/src/index.ts`)
-- **Env vars**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `VIBECODES_BOT_USER_ID`
+- **Env vars**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `VIBECODES_BOT_USER_ID`, `VIBECODES_BOT_ID` (optional, override active bot identity on startup)
 
-### 34 MCP Tools
+### 38 MCP Tools
 
 | Tool | Type | Description |
 |------|------|-------------|
@@ -294,13 +309,17 @@ Both modes share the same 34 tools via `mcp-server/src/register-tools.ts` with d
 | `mark_notification_read` | Write | Mark a single notification as read |
 | `mark_all_notifications_read` | Write | Mark all unread notifications as read |
 | `update_profile` | Write | Update user profile (name, bio, github, avatar, contact) |
+| `list_bots` | Read | List bots owned by the current user |
+| `get_bot_prompt` | Read | Get system prompt for a bot or active identity |
+| `set_bot_identity` | Write | Switch session to a bot persona (or reset to default) |
+| `create_bot` | Write | Create a new bot profile with name, role, prompt |
 
 ### Architecture (Dependency Injection)
-- `mcp-server/src/context.ts` defines `McpContext` interface: `{ supabase, userId }`
+- `mcp-server/src/context.ts` defines `McpContext` interface: `{ supabase, userId, ownerUserId? }`
 - All tool handler functions accept `ctx: McpContext` as first parameter
 - `mcp-server/src/register-tools.ts` wires tools to MCP server via `getContext(extra)` callback
-- Local mode: static context (service-role + bot user)
-- Remote mode: per-request context (user JWT + user ID from auth)
+- Local mode: mutable context (service-role + bot user, identity switchable via `set_bot_identity`)
+- Remote mode: per-request context (user JWT + user ID from auth, `ownerUserId` tracks real human)
 
 ### Key Details
 - All write tools log to `board_task_activity` with `actor_id` from context (bot or real user)
@@ -318,5 +337,5 @@ Both modes share the same 34 tools via `mcp-server/src/register-tools.ts` with d
 - **Authorization**: Per-request Supabase client with user's JWT → existing RLS policies enforced
 - **OAuth routes**: `/api/oauth/register` (DCR), `/api/oauth/authorize`, `/api/oauth/token`, `/api/oauth/code`
 - **Discovery**: `/.well-known/oauth-authorization-server` (RFC 8414), `/.well-known/oauth-protected-resource` (RFC 9728)
-- **DB tables**: `mcp_oauth_clients` (DCR), `mcp_oauth_codes` (auth codes, 10-min TTL)
+- **DB tables**: `mcp_oauth_clients` (DCR), `mcp_oauth_codes` (auth codes, 10-min TTL), `bot_profiles` (multi-bot support)
 - **Env vars** (Vercel): `NEXT_PUBLIC_APP_URL`, `SUPABASE_SERVICE_ROLE_KEY`

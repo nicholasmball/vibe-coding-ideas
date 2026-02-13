@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, CheckSquare, Paperclip, MessageSquare, Archive, X } from "lucide-react";
+import { GripVertical, CheckSquare, Paperclip, MessageSquare, Archive, X, Bot } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Tooltip,
@@ -33,6 +33,7 @@ interface BoardTaskCardProps {
   highlightQuery?: string;
   currentUserId: string;
   autoOpen?: boolean;
+  userBots?: User[];
 }
 
 function HighlightedText({
@@ -72,6 +73,7 @@ export function BoardTaskCard({
   highlightQuery,
   currentUserId,
   autoOpen = false,
+  userBots = [],
 }: BoardTaskCardProps) {
   const [detailOpen, setDetailOpen] = useState(autoOpen);
   const [initialTab, setInitialTab] = useState<string | undefined>(undefined);
@@ -270,17 +272,23 @@ export function BoardTaskCard({
               {task.assignee && (
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Avatar className="h-5 w-5">
-                      <AvatarImage
-                        src={task.assignee.avatar_url ?? undefined}
-                      />
-                      <AvatarFallback className="text-[10px]">
-                        {assigneeInitials}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar className="h-5 w-5">
+                        <AvatarImage
+                          src={task.assignee.avatar_url ?? undefined}
+                        />
+                        <AvatarFallback className="text-[10px]">
+                          {assigneeInitials}
+                        </AvatarFallback>
+                      </Avatar>
+                      {task.assignee.is_bot && (
+                        <Bot className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 text-primary" />
+                      )}
+                    </div>
                   </TooltipTrigger>
                   <TooltipContent>
                     {task.assignee.full_name ?? "Assigned"}
+                    {task.assignee.is_bot ? " (bot)" : ""}
                   </TooltipContent>
                 </Tooltip>
               )}
@@ -298,6 +306,7 @@ export function BoardTaskCard({
         teamMembers={teamMembers}
         currentUserId={currentUserId}
         initialTab={initialTab}
+        userBots={userBots}
       />
       {/* Cover image lightbox */}
       {coverPreviewOpen && coverUrl && (

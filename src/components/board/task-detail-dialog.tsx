@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
-import { Tag, Trash2, Archive, ArchiveRestore, Pencil, X } from "lucide-react";
+import { Tag, Trash2, Archive, ArchiveRestore, Pencil, X, Bot } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -50,6 +50,7 @@ interface TaskDetailDialogProps {
   teamMembers: User[];
   currentUserId: string;
   initialTab?: string;
+  userBots?: User[];
 }
 
 export function TaskDetailDialog({
@@ -62,6 +63,7 @@ export function TaskDetailDialog({
   teamMembers,
   currentUserId,
   initialTab,
+  userBots = [],
 }: TaskDetailDialogProps) {
   const [activeTab, setActiveTab] = useState("details");
   const [title, setTitle] = useState(task.title);
@@ -141,7 +143,8 @@ export function TaskDetailDialog({
     try {
       await updateBoardTask(task.id, ideaId, { assignee_id: assigneeId });
       if (assigneeId) {
-        const member = teamMembers.find((m) => m.id === assigneeId);
+        const member = teamMembers.find((m) => m.id === assigneeId)
+          ?? userBots.find((b) => b.id === assigneeId);
         logTaskActivity(task.id, ideaId, currentUserId, "assigned", {
           assignee_name: member?.full_name ?? "Unknown",
         });
@@ -191,7 +194,9 @@ export function TaskDetailDialog({
   }
 
   const localAssignee = localAssigneeId
-    ? teamMembers.find((m) => m.id === localAssigneeId) ?? task.assignee
+    ? teamMembers.find((m) => m.id === localAssigneeId)
+      ?? userBots.find((b) => b.id === localAssigneeId)
+      ?? task.assignee
     : null;
   const assigneeInitials =
     localAssignee?.full_name
@@ -322,12 +327,17 @@ export function TaskDetailDialog({
                   <span className="text-sm font-medium">Assignee</span>
                   <div className="flex items-center gap-2">
                     {localAssignee && (
-                      <Avatar className="h-6 w-6">
-                        <AvatarImage src={localAssignee.avatar_url ?? undefined} />
-                        <AvatarFallback className="text-[10px]">
-                          {assigneeInitials}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="relative">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={localAssignee.avatar_url ?? undefined} />
+                          <AvatarFallback className="text-[10px]">
+                            {assigneeInitials}
+                          </AvatarFallback>
+                        </Avatar>
+                        {localAssignee.is_bot && (
+                          <Bot className="absolute -bottom-0.5 -right-0.5 h-3 w-3 text-primary" />
+                        )}
+                      </div>
                     )}
                     <Select
                       value={localAssigneeId ?? "unassigned"}
@@ -343,6 +353,23 @@ export function TaskDetailDialog({
                             {member.full_name ?? member.email}
                           </SelectItem>
                         ))}
+                        {userBots.length > 0 && (
+                          <>
+                            <div className="px-2 py-1.5 text-[10px] font-medium text-muted-foreground">
+                              My Bots
+                            </div>
+                            {userBots
+                              .filter((b) => !teamMembers.some((m) => m.id === b.id))
+                              .map((bot) => (
+                                <SelectItem key={bot.id} value={bot.id}>
+                                  <span className="inline-flex items-center gap-1">
+                                    <Bot className="h-3 w-3" />
+                                    {bot.full_name ?? bot.email}
+                                  </span>
+                                </SelectItem>
+                              ))}
+                          </>
+                        )}
                       </SelectContent>
                     </Select>
                   </div>

@@ -42,6 +42,7 @@ interface BoardColumnProps {
   highlightQuery?: string;
   currentUserId: string;
   initialTaskId?: string;
+  userBots?: User[];
 }
 
 export function BoardColumn({
@@ -54,6 +55,7 @@ export function BoardColumn({
   highlightQuery,
   currentUserId,
   initialTaskId,
+  userBots = [],
 }: BoardColumnProps) {
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -185,6 +187,7 @@ export function BoardColumn({
                 highlightQuery={highlightQuery}
                 currentUserId={currentUserId}
                 autoOpen={task.id === initialTaskId}
+                userBots={userBots}
               />
             ))}
           </SortableContext>

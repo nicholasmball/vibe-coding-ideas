@@ -10,9 +10,24 @@ const server = new McpServer(
   { capabilities: { tools: {} } }
 );
 
-// Local stdio mode: static context with service-role client + bot user
-const localContext: McpContext = { supabase, userId: BOT_USER_ID };
-registerTools(server, () => localContext);
+// Session-level mutable identity
+// Can be overridden via VIBECODES_BOT_ID env var or set_bot_identity tool
+let activeBotId: string | null = process.env.VIBECODES_BOT_ID || null;
+
+export function setActiveBotId(botId: string | null) {
+  activeBotId = botId;
+}
+
+export function getActiveBotId(): string | null {
+  return activeBotId;
+}
+
+const getContext = (): McpContext => ({
+  supabase,
+  userId: activeBotId || BOT_USER_ID,
+});
+
+registerTools(server, getContext, setActiveBotId);
 
 // --- Start server ---
 

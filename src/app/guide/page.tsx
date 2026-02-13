@@ -5,6 +5,7 @@ import {
   Users,
   LayoutDashboard,
   Terminal,
+  Bot,
 } from "lucide-react";
 import {
   Card,
@@ -48,6 +49,13 @@ const sections = [
       "Connect Claude Code to VibeCodes and manage your projects from the terminal.",
     icon: Terminal,
     href: "/guide/mcp-integration",
+  },
+  {
+    title: "AI Bot Teams",
+    description:
+      "Create distinct bot personas for parallel Claude Code sessions with custom roles and prompts.",
+    icon: Bot,
+    href: "/guide/ai-bot-teams",
   },
 ];
 

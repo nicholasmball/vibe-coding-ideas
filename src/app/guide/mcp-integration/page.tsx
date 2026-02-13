@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Terminal, ArrowLeft } from "lucide-react";
+import { Terminal, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
@@ -63,7 +63,7 @@ export default function McpIntegrationPage() {
           <p className="mt-3 text-muted-foreground">
             The first time you use it, Claude Code will open your browser for
             OAuth authentication. Log in with your VibeCodes account and
-            authorize the connection. After that, Claude Code can use all 34
+            authorize the connection. After that, Claude Code can use all 38
             VibeCodes tools on your behalf.
           </p>
           <div className="mt-4 rounded-xl border border-border bg-muted/30 p-6">
@@ -93,7 +93,11 @@ export default function McpIntegrationPage() {
         <section>
           <h2 className="mb-4 text-2xl font-semibold">Available Tools</h2>
           <p className="mb-4 text-muted-foreground">
-            Once connected, Claude Code has access to 34 tools:
+            Once connected, Claude Code has access to 38 tools (including{" "}
+            <Link href="/guide/ai-bot-teams" className="text-primary hover:underline">
+              4 bot team tools
+            </Link>
+            ):
           </p>
 
           <h3 className="mb-3 mt-6 text-lg font-medium">Read Tools</h3>
@@ -134,9 +138,17 @@ export default function McpIntegrationPage() {
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">list_collaborators</td>
                   <td className="py-2">List all collaborators on an idea</td>
                 </tr>
-                <tr>
+                <tr className="border-b border-border/50">
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">list_notifications</td>
                   <td className="py-2">List notifications with optional unread-only filter</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">list_bots</td>
+                  <td className="py-2">List your bot personas with name, role, and active status</td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">get_bot_prompt</td>
+                  <td className="py-2">Get the system prompt for a specific bot or active identity</td>
                 </tr>
               </tbody>
             </table>
@@ -252,9 +264,17 @@ export default function McpIntegrationPage() {
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">mark_all_notifications_read</td>
                   <td className="py-2">Mark all unread notifications as read</td>
                 </tr>
-                <tr>
+                <tr className="border-b border-border/50">
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">update_profile</td>
                   <td className="py-2">Update your profile (name, bio, GitHub, avatar, contact)</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">set_bot_identity</td>
+                  <td className="py-2">Switch session to act as a specific bot persona</td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">create_bot</td>
+                  <td className="py-2">Create a new bot with name, role, and system prompt</td>
                 </tr>
               </tbody>
             </table>
@@ -361,11 +381,17 @@ export default function McpIntegrationPage() {
         </section>
       </div>
 
-      <div className="mt-12 flex justify-start border-t border-border pt-6">
+      <div className="mt-12 flex justify-between border-t border-border pt-6">
         <Link href="/guide/kanban-boards">
           <Button variant="outline" className="gap-2">
             <ArrowLeft className="h-4 w-4" />
             Kanban Boards
+          </Button>
+        </Link>
+        <Link href="/guide/ai-bot-teams">
+          <Button variant="outline" className="gap-2">
+            AI Bot Teams
+            <ArrowRight className="h-4 w-4" />
           </Button>
         </Link>
       </div>

@@ -37,6 +37,10 @@ const EXPECTED_TOOL_NAMES = [
   "mark_notification_read",
   "mark_all_notifications_read",
   "update_profile",
+  "list_bots",
+  "get_bot_prompt",
+  "set_bot_identity",
+  "create_bot",
 ];
 
 function createMockServer() {
@@ -44,13 +48,13 @@ function createMockServer() {
 }
 
 describe("registerTools", () => {
-  it("registers exactly 30 tools", () => {
+  it("registers exactly 38 tools", () => {
     const server = createMockServer();
     const getContext = vi.fn();
 
     registerTools(server, getContext);
 
-    expect(server.tool).toHaveBeenCalledTimes(34);
+    expect(server.tool).toHaveBeenCalledTimes(38);
   });
 
   it("registers all expected tool names", () => {
@@ -156,5 +160,107 @@ describe("registerTools", () => {
     await callback({}, extra);
 
     expect(getContext).toHaveBeenCalledWith(extra);
+  });
+
+  it("includes bot tools in the registered set", () => {
+    const server = createMockServer();
+    const getContext = vi.fn();
+
+    registerTools(server, getContext);
+
+    const registeredNames = server.tool.mock.calls.map(
+      (call: unknown[]) => call[0]
+    );
+    expect(registeredNames).toContain("list_bots");
+    expect(registeredNames).toContain("get_bot_prompt");
+    expect(registeredNames).toContain("set_bot_identity");
+    expect(registeredNames).toContain("create_bot");
+  });
+
+  it("set_bot_identity calls onIdentityChange when provided", async () => {
+    const server = createMockServer();
+    const mockContext: McpContext = {
+      supabase: {} as McpContext["supabase"],
+      userId: "test-user",
+    };
+    const getContext = vi.fn(() => mockContext);
+    const onIdentityChange = vi.fn();
+
+    registerTools(server, getContext, onIdentityChange);
+
+    // Find set_bot_identity tool
+    const setIdentityCall = server.tool.mock.calls.find(
+      (call: unknown[]) => call[0] === "set_bot_identity"
+    );
+    expect(setIdentityCall).toBeDefined();
+
+    const callback = setIdentityCall![3];
+    // Call with no args to reset identity
+    const result = await callback({}, {});
+
+    expect(result.isError).toBeUndefined();
+    expect(onIdentityChange).toHaveBeenCalledWith(null);
+  });
+
+  it("set_bot_identity uses noop when onIdentityChange not provided", async () => {
+    const server = createMockServer();
+    const mockContext: McpContext = {
+      supabase: {} as McpContext["supabase"],
+      userId: "test-user",
+    };
+    const getContext = vi.fn(() => mockContext);
+
+    // Don't pass onIdentityChange
+    registerTools(server, getContext);
+
+    const setIdentityCall = server.tool.mock.calls.find(
+      (call: unknown[]) => call[0] === "set_bot_identity"
+    );
+    const callback = setIdentityCall![3];
+
+    // Should not throw when onIdentityChange is undefined
+    const result = await callback({}, {});
+    expect(result.isError).toBeUndefined();
+  });
+
+  it("list_bots returns error with non-functional supabase", async () => {
+    const server = createMockServer();
+    const mockContext: McpContext = {
+      supabase: {} as McpContext["supabase"],
+      userId: "test-user",
+    };
+    const getContext = vi.fn(() => mockContext);
+
+    registerTools(server, getContext);
+
+    const listBotsCall = server.tool.mock.calls.find(
+      (call: unknown[]) => call[0] === "list_bots"
+    );
+    const callback = listBotsCall![3];
+    const result = await callback({}, {});
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toMatch(/^Error: /);
+  });
+
+  it("create_bot validates required name field", async () => {
+    const server = createMockServer();
+    const mockContext: McpContext = {
+      supabase: {} as McpContext["supabase"],
+      userId: "test-user",
+    };
+    const getContext = vi.fn(() => mockContext);
+
+    registerTools(server, getContext);
+
+    const createBotCall = server.tool.mock.calls.find(
+      (call: unknown[]) => call[0] === "create_bot"
+    );
+    const callback = createBotCall![3];
+
+    // Missing required name
+    const result = await callback({}, {});
+    expect(result.isError).toBe(true);
+    expect(result.content[0].text).toContain("Error:");
   });
 });

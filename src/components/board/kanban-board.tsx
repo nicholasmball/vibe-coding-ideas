@@ -41,6 +41,7 @@ interface KanbanBoardProps {
   checklistItemsByTaskId: Record<string, BoardChecklistItem[]>;
   currentUserId: string;
   initialTaskId?: string;
+  userBots?: User[];
 }
 
 export function KanbanBoard({
@@ -51,6 +52,7 @@ export function KanbanBoard({
   checklistItemsByTaskId,
   currentUserId,
   initialTaskId,
+  userBots = [],
 }: KanbanBoardProps) {
   const [columns, setColumns] = useState(initialColumns);
   const columnsRef = useRef(columns);
@@ -458,6 +460,7 @@ export function KanbanBoard({
                   highlightQuery={searchQuery}
                   currentUserId={currentUserId}
                   initialTaskId={initialTaskId}
+                  userBots={userBots}
                 />
               );
             })}

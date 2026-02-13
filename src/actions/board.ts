@@ -227,6 +227,30 @@ export async function updateBoardTask(
 
   if (error) throw new Error(error.message);
 
+  // Auto-add bot as collaborator when assigned to a task
+  if (updates.assignee_id) {
+    const { data: assignee } = await supabase
+      .from("users")
+      .select("id, is_bot")
+      .eq("id", updates.assignee_id)
+      .maybeSingle();
+
+    if (assignee?.is_bot) {
+      const { data: existingCollab } = await supabase
+        .from("collaborators")
+        .select("id")
+        .eq("idea_id", ideaId)
+        .eq("user_id", updates.assignee_id)
+        .maybeSingle();
+
+      if (!existingCollab) {
+        await supabase
+          .from("collaborators")
+          .insert({ idea_id: ideaId, user_id: updates.assignee_id });
+      }
+    }
+  }
+
   revalidatePath(`/ideas/${ideaId}/board`);
 }
 

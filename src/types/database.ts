@@ -27,6 +27,7 @@ export type Database = {
           };
           default_board_columns: { title: string; is_done_column: boolean }[] | null;
           is_admin: boolean;
+          is_bot: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -47,6 +48,7 @@ export type Database = {
           };
           default_board_columns?: { title: string; is_done_column: boolean }[] | null;
           is_admin?: boolean;
+          is_bot?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -67,6 +69,7 @@ export type Database = {
           };
           default_board_columns?: { title: string; is_done_column: boolean }[] | null;
           is_admin?: boolean;
+          is_bot?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -792,6 +795,57 @@ export type Database = {
           },
         ];
       };
+      bot_profiles: {
+        Row: {
+          id: string;
+          owner_id: string;
+          name: string;
+          role: string | null;
+          system_prompt: string | null;
+          avatar_url: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id: string;
+          owner_id: string;
+          name: string;
+          role?: string | null;
+          system_prompt?: string | null;
+          avatar_url?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          owner_id?: string;
+          name?: string;
+          role?: string | null;
+          system_prompt?: string | null;
+          avatar_url?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "bot_profiles_id_fkey";
+            columns: ["id"];
+            isOneToOne: true;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "bot_profiles_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -804,6 +858,32 @@ export type Database = {
       get_public_stats: {
         Args: Record<string, never>;
         Returns: Json;
+      };
+      create_bot_user: {
+        Args: {
+          p_name: string;
+          p_owner_id: string;
+          p_role?: string | null;
+          p_system_prompt?: string | null;
+          p_avatar_url?: string | null;
+        };
+        Returns: string;
+      };
+      delete_bot_user: {
+        Args: {
+          p_bot_id: string;
+          p_owner_id: string;
+        };
+        Returns: undefined;
+      };
+      update_bot_user: {
+        Args: {
+          p_bot_id: string;
+          p_owner_id: string;
+          p_name?: string | null;
+          p_avatar_url?: string | null;
+        };
+        Returns: undefined;
       };
     };
     Enums: {

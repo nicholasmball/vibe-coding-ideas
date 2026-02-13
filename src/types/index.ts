@@ -54,6 +54,7 @@ export type BoardChecklistItem = Database["public"]["Tables"]["board_checklist_i
 export type BoardTaskActivity = Database["public"]["Tables"]["board_task_activity"]["Row"];
 export type BoardTaskComment = Database["public"]["Tables"]["board_task_comments"]["Row"];
 export type BoardTaskAttachment = Database["public"]["Tables"]["board_task_attachments"]["Row"];
+export type BotProfile = Database["public"]["Tables"]["bot_profiles"]["Row"];
 export type BoardTaskWithAssignee = BoardTask & {
   assignee: User | null;
   labels: BoardLabel[];

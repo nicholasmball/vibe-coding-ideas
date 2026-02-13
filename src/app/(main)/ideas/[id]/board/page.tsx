@@ -160,6 +160,23 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
     });
   }
 
+  // Fetch user's active bots for the assignee picker
+  const { data: rawUserBots } = await supabase
+    .from("bot_profiles")
+    .select("id")
+    .eq("owner_id", user.id)
+    .eq("is_active", true);
+
+  const userBotIds = (rawUserBots ?? []).map((b) => b.id);
+  let userBots: User[] = [];
+  if (userBotIds.length > 0) {
+    const { data: botUsers } = await supabase
+      .from("users")
+      .select("*")
+      .in("id", userBotIds);
+    userBots = (botUsers ?? []) as User[];
+  }
+
   // Assemble columns with tasks (including labels)
   const columns: BoardColumnWithTasks[] = (rawColumns ?? []).map((col) => ({
     ...col,
@@ -196,6 +213,7 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
         checklistItemsByTaskId={checklistItemsByTaskId}
         currentUserId={user.id}
         initialTaskId={initialTaskId}
+        userBots={userBots}
       />
     </div>
   );

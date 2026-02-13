@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
-import { MessageSquare, Trash2, Send } from "lucide-react";
+import { MessageSquare, Trash2, Send, Bot } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -275,7 +275,10 @@ export function TaskCommentsSection({
                   </Avatar>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium">
+                      <span className="text-xs font-medium inline-flex items-center gap-1">
+                        {comment.author?.is_bot && (
+                          <Bot className="h-3 w-3 text-primary" />
+                        )}
                         {comment.author?.full_name ?? "Unknown"}
                       </span>
                       <span className="text-[10px] text-muted-foreground">

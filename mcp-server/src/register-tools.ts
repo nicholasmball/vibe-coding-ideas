@@ -97,6 +97,16 @@ import {
   updateProfile,
   updateProfileSchema,
 } from "./tools/profile";
+import {
+  listBots,
+  listBotsSchema,
+  getBotPrompt,
+  getBotPromptSchema,
+  setBotIdentity,
+  setBotIdentitySchema,
+  createBot,
+  createBotSchema,
+} from "./tools/bots";
 
 function jsonResult(data: unknown) {
   return {
@@ -114,7 +124,8 @@ function errorResult(error: unknown) {
 
 export function registerTools(
   server: AnyMcpServer,
-  getContext: (extra: ServerExtra) => McpContext
+  getContext: (extra: ServerExtra) => McpContext,
+  onIdentityChange?: (botId: string | null) => void
 ): void {
   // --- Read Tools ---
 
@@ -610,6 +621,67 @@ export function registerTools(
       try {
         const ctx = getContext(extra);
         return jsonResult(await updateProfile(ctx, updateProfileSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  // --- Bot Tools ---
+
+  server.tool(
+    "list_bots",
+    "List bots owned by the current user (or a specific owner). Returns bot profiles with name, role, system prompt, and active status.",
+    listBotsSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await listBots(ctx, listBotsSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "get_bot_prompt",
+    "Get the system prompt for a specific bot or the current active bot identity.",
+    getBotPromptSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await getBotPrompt(ctx, getBotPromptSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "set_bot_identity",
+    "Switch session identity to a bot persona. Provide bot_id or bot_name. Omit both to reset to default identity. Returns the bot's system prompt.",
+    setBotIdentitySchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        const changeHandler = onIdentityChange ?? (() => {});
+        return jsonResult(
+          await setBotIdentity(ctx, setBotIdentitySchema.parse(args), changeHandler)
+        );
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "create_bot",
+    "Create a new bot profile with a name, role, and system prompt. The bot gets its own user identity for assignments and activity logs.",
+    createBotSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await createBot(ctx, createBotSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
       }
