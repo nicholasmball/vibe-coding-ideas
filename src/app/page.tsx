@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Sparkles, Users, MessageSquare, Lightbulb, ArrowRight, Zap, ChevronUp } from "lucide-react";
+import { Sparkles, Users, MessageSquare, Lightbulb, ArrowRight, Zap, ChevronUp, Bot, LayoutDashboard, Bug, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/layout/navbar";
 import { createClient } from "@/lib/supabase/server";
@@ -83,6 +83,58 @@ export default async function LandingPage() {
                   Log In
                 </Button>
               </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* AI Spotlight Section */}
+      <section className="relative overflow-hidden border-t border-border py-24">
+        <div className="absolute inset-0 -z-10">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-transparent to-primary/10" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[500px] w-[500px] rounded-full bg-purple-500/5 blur-3xl" />
+        </div>
+
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
+              <Bot className="h-4 w-4" />
+              AI-Powered
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Your AI assistant,{" "}
+              <span className="bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">
+                built right in
+              </span>
+            </h2>
+            <p className="mt-6 text-lg text-muted-foreground">
+              VibeCodes connects directly to AI coding assistants like Claude Code via the{" "}
+              <span className="font-medium text-foreground">Model Context Protocol (MCP)</span>.
+              Your AI can read your ideas, manage your task board, file bugs, and write code &mdash; all while keeping everything updated in real time.
+            </p>
+          </div>
+
+          <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-8 sm:grid-cols-3">
+            <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-sm">
+              <LayoutDashboard className="mb-4 h-8 w-8 text-purple-400" />
+              <h3 className="mb-2 text-lg font-semibold">AI Manages Your Board</h3>
+              <p className="text-sm text-muted-foreground">
+                Create tasks, move cards between columns, add labels, set due dates, and manage checklists &mdash; all through natural conversation.
+              </p>
+            </div>
+            <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-sm">
+              <Bug className="mb-4 h-8 w-8 text-purple-400" />
+              <h3 className="mb-2 text-lg font-semibold">File Bugs, Get Fixes</h3>
+              <p className="text-sm text-muted-foreground">
+                Describe an issue and watch your AI file it as a bug, pick it up, and deliver a fix &mdash; with full activity tracking on the board.
+              </p>
+            </div>
+            <div className="rounded-xl border border-border bg-card/50 p-6 backdrop-blur-sm">
+              <Code className="mb-4 h-8 w-8 text-purple-400" />
+              <h3 className="mb-2 text-lg font-semibold">From Idea to Software</h3>
+              <p className="text-sm text-muted-foreground">
+                Go from a rough idea to a shipped product. AI refines your concept, creates tasks, writes code, and updates progress in real time.
+              </p>
             </div>
           </div>
         </div>
