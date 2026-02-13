@@ -63,7 +63,7 @@ export default function McpIntegrationPage() {
           <p className="mt-3 text-muted-foreground">
             The first time you use it, Claude Code will open your browser for
             OAuth authentication. Log in with your VibeCodes account and
-            authorize the connection. After that, Claude Code can use all 18
+            authorize the connection. After that, Claude Code can use all 34
             VibeCodes tools on your behalf.
           </p>
           <div className="mt-4 rounded-xl border border-border bg-muted/30 p-6">
@@ -93,7 +93,7 @@ export default function McpIntegrationPage() {
         <section>
           <h2 className="mb-4 text-2xl font-semibold">Available Tools</h2>
           <p className="mb-4 text-muted-foreground">
-            Once connected, Claude Code has access to 18 tools:
+            Once connected, Claude Code has access to 34 tools:
           </p>
 
           <h3 className="mb-3 mt-6 text-lg font-medium">Read Tools</h3>
@@ -126,9 +126,17 @@ export default function McpIntegrationPage() {
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">get_my_tasks</td>
                   <td className="py-2">Tasks assigned to you, grouped by idea</td>
                 </tr>
-                <tr>
+                <tr className="border-b border-border/50">
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">list_attachments</td>
                   <td className="py-2">List task attachments with signed download URLs</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">list_collaborators</td>
+                  <td className="py-2">List all collaborators on an idea</td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">list_notifications</td>
+                  <td className="py-2">List notifications with optional unread-only filter</td>
                 </tr>
               </tbody>
             </table>
@@ -188,9 +196,65 @@ export default function McpIntegrationPage() {
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">add_task_comment</td>
                   <td className="py-2">Comment on a board task</td>
                 </tr>
-                <tr>
+                <tr className="border-b border-border/50">
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">report_bug</td>
                   <td className="py-2">Create a task with a &quot;Bug&quot; label</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">create_idea</td>
+                  <td className="py-2">Create a new idea with title, description, tags, visibility</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">delete_idea</td>
+                  <td className="py-2">Delete an idea (author or admin only)</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">update_idea_status</td>
+                  <td className="py-2">Update idea status (open, in_progress, completed, archived)</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">update_idea_tags</td>
+                  <td className="py-2">Set or replace tags on an idea</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">toggle_vote</td>
+                  <td className="py-2">Toggle your upvote on an idea</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">add_collaborator</td>
+                  <td className="py-2">Add a user as collaborator on an idea</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">remove_collaborator</td>
+                  <td className="py-2">Remove a collaborator from an idea</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">create_column</td>
+                  <td className="py-2">Create a new board column</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">update_column</td>
+                  <td className="py-2">Update a column&apos;s title or done status</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">delete_column</td>
+                  <td className="py-2">Delete an empty board column</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">reorder_columns</td>
+                  <td className="py-2">Reorder columns by providing IDs in desired order</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">mark_notification_read</td>
+                  <td className="py-2">Mark a single notification as read</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">mark_all_notifications_read</td>
+                  <td className="py-2">Mark all unread notifications as read</td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">update_profile</td>
+                  <td className="py-2">Update your profile (name, bio, GitHub, avatar, contact)</td>
                 </tr>
               </tbody>
             </table>
@@ -234,6 +298,30 @@ export default function McpIntegrationPage() {
             <div className="rounded-lg bg-muted p-4">
               <code className="text-sm">
                 &quot;What tasks are assigned to me across all my projects?&quot;
+              </code>
+            </div>
+            <div className="rounded-lg bg-muted p-4">
+              <code className="text-sm">
+                &quot;Create a new idea called &apos;Mobile App&apos; with tags
+                mobile and react-native&quot;
+              </code>
+            </div>
+            <div className="rounded-lg bg-muted p-4">
+              <code className="text-sm">
+                &quot;Add a &apos;Review&apos; column to the board and reorder
+                columns so it comes before Done&quot;
+              </code>
+            </div>
+            <div className="rounded-lg bg-muted p-4">
+              <code className="text-sm">
+                &quot;Show me my unread notifications and mark them all as
+                read&quot;
+              </code>
+            </div>
+            <div className="rounded-lg bg-muted p-4">
+              <code className="text-sm">
+                &quot;Upvote the &apos;Dark mode&apos; idea and add me as a
+                collaborator&quot;
               </code>
             </div>
           </div>

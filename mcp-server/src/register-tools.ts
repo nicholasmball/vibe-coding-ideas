@@ -14,6 +14,14 @@ import {
   getIdeaSchema,
   updateIdeaDescription,
   updateIdeaDescriptionSchema,
+  createIdea,
+  createIdeaSchema,
+  deleteIdea,
+  deleteIdeaSchema,
+  updateIdeaStatus,
+  updateIdeaStatusSchema,
+  updateIdeaTags,
+  updateIdeaTagsSchema,
 } from "./tools/ideas";
 import {
   getBoard,
@@ -40,6 +48,28 @@ import {
   addTaskCommentSchema,
 } from "./tools/comments";
 import {
+  toggleVote,
+  toggleVoteSchema,
+} from "./tools/votes";
+import {
+  addCollaborator,
+  addCollaboratorSchema,
+  removeCollaborator,
+  removeCollaboratorSchema,
+  listCollaborators,
+  listCollaboratorsSchema,
+} from "./tools/collaborators";
+import {
+  createColumn,
+  createColumnSchema,
+  updateColumn,
+  updateColumnSchema,
+  deleteColumn,
+  deleteColumnSchema,
+  reorderColumns,
+  reorderColumnsSchema,
+} from "./tools/columns";
+import {
   manageLabels,
   manageLabelsSchema,
   manageChecklist,
@@ -55,6 +85,18 @@ import {
   deleteAttachment,
   deleteAttachmentSchema,
 } from "./tools/attachments";
+import {
+  listNotifications,
+  listNotificationsSchema,
+  markNotificationRead,
+  markNotificationReadSchema,
+  markAllNotificationsRead,
+  markAllNotificationsReadSchema,
+} from "./tools/notifications";
+import {
+  updateProfile,
+  updateProfileSchema,
+} from "./tools/profile";
 
 function jsonResult(data: unknown) {
   return {
@@ -220,6 +262,178 @@ export function registerTools(
     }
   );
 
+  server.tool(
+    "create_idea",
+    "Create a new idea with title, description, tags, and visibility.",
+    createIdeaSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await createIdea(ctx, createIdeaSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "delete_idea",
+    "Delete an idea. Only the author or an admin can delete.",
+    deleteIdeaSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await deleteIdea(ctx, deleteIdeaSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "update_idea_status",
+    "Update an idea's status: open, in_progress, completed, or archived.",
+    updateIdeaStatusSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await updateIdeaStatus(ctx, updateIdeaStatusSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "update_idea_tags",
+    "Set/replace the tags on an idea.",
+    updateIdeaTagsSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await updateIdeaTags(ctx, updateIdeaTagsSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "toggle_vote",
+    "Toggle the current user's upvote on an idea. Adds vote if not voted, removes if already voted.",
+    toggleVoteSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await toggleVote(ctx, toggleVoteSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  // --- Collaborator Tools ---
+
+  server.tool(
+    "add_collaborator",
+    "Add a user as collaborator on an idea.",
+    addCollaboratorSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await addCollaborator(ctx, addCollaboratorSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "remove_collaborator",
+    "Remove a collaborator from an idea.",
+    removeCollaboratorSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await removeCollaborator(ctx, removeCollaboratorSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "list_collaborators",
+    "List all collaborators on an idea with their names and emails.",
+    listCollaboratorsSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await listCollaborators(ctx, listCollaboratorsSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  // --- Column Tools ---
+
+  server.tool(
+    "create_column",
+    "Create a new board column. Position auto-calculated at the end.",
+    createColumnSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await createColumn(ctx, createColumnSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "update_column",
+    "Update a board column's title or done status.",
+    updateColumnSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await updateColumn(ctx, updateColumnSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "delete_column",
+    "Delete an empty board column. Fails if column has tasks.",
+    deleteColumnSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await deleteColumn(ctx, deleteColumnSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "reorder_columns",
+    "Reorder board columns by providing column IDs in desired order.",
+    reorderColumnsSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await reorderColumns(ctx, reorderColumnsSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
   // --- Supporting Tools ---
 
   server.tool(
@@ -336,6 +550,66 @@ export function registerTools(
       try {
         const ctx = getContext(extra);
         return jsonResult(await deleteAttachment(ctx, deleteAttachmentSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  // --- Notification Tools ---
+
+  server.tool(
+    "list_notifications",
+    "List notifications for the current user. Supports unread-only filter and limit.",
+    listNotificationsSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await listNotifications(ctx, listNotificationsSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "mark_notification_read",
+    "Mark a single notification as read.",
+    markNotificationReadSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await markNotificationRead(ctx, markNotificationReadSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "mark_all_notifications_read",
+    "Mark all unread notifications as read for the current user.",
+    markAllNotificationsReadSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await markAllNotificationsRead(ctx));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  // --- Profile Tools ---
+
+  server.tool(
+    "update_profile",
+    "Update the current user's profile: full_name, bio, github_username, avatar_url, contact_info. Only changed fields need to be provided.",
+    updateProfileSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await updateProfile(ctx, updateProfileSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
       }

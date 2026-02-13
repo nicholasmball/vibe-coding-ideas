@@ -102,7 +102,7 @@ src/
 │   └── mocks.ts            # Shared mocks (Supabase client, Next.js navigation)
 middleware.ts               # Root middleware (calls updateSession)
 vitest.config.ts            # Vitest config (jsdom, @/ alias, react plugin)
-supabase/migrations/        # 30 SQL migration files (run in order)
+supabase/migrations/        # 33 SQL migration files (run in order)
 mcp-server/                 # MCP server for Claude Code integration
 ├── package.json            # ESM, separate deps
 ├── tsconfig.json           # noEmit, includes ../src/types
@@ -112,12 +112,17 @@ mcp-server/                 # MCP server for Claude Code integration
     ├── supabase.ts         # Service-role client + BOT_USER_ID + constants
     ├── activity.ts         # logActivity() helper
     └── tools/
-        ├── ideas.ts        # list_ideas, get_idea, update_idea_description
+        ├── ideas.ts        # list_ideas, get_idea, update_idea_description, create_idea, delete_idea, update_idea_status, update_idea_tags
         ├── board-read.ts   # get_board, get_task, get_my_tasks
         ├── board-write.ts  # create_task, update_task, move_task, delete_task
         ├── comments.ts     # add_idea_comment, add_task_comment
         ├── labels.ts       # manage_labels, manage_checklist, report_bug
-        └── attachments.ts  # list_attachments, upload_attachment, delete_attachment
+        ├── attachments.ts  # list_attachments, upload_attachment, delete_attachment
+        ├── votes.ts        # toggle_vote
+        ├── collaborators.ts # add_collaborator, remove_collaborator, list_collaborators
+        ├── columns.ts      # create_column, update_column, delete_column, reorder_columns
+        ├── notifications.ts # list_notifications, mark_notification_read, mark_all_notifications_read
+        └── profile.ts      # update_profile
 ```
 
 ## Key Patterns
@@ -237,7 +242,7 @@ The MCP server has two modes:
 1. **Local (stdio)**: `mcp-server/src/index.ts` — launched as subprocess, uses service-role client + bot user, bypasses RLS
 2. **Remote (HTTP)**: `src/app/api/mcp/[[...transport]]/route.ts` — hosted on Vercel, uses OAuth 2.1 + PKCE, per-user Supabase client with RLS
 
-Both modes share the same 18 tools via `mcp-server/src/register-tools.ts` with dependency injection (`McpContext`).
+Both modes share the same 34 tools via `mcp-server/src/register-tools.ts` with dependency injection (`McpContext`).
 
 ### Bot User
 - **ID**: `a0000000-0000-0000-0000-000000000001`
@@ -251,7 +256,7 @@ Both modes share the same 18 tools via `mcp-server/src/register-tools.ts` with d
 - **Transport**: stdio (launched by Claude Code as subprocess via `npx tsx mcp-server/src/index.ts`)
 - **Env vars**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `VIBECODES_BOT_USER_ID`
 
-### 18 MCP Tools
+### 34 MCP Tools
 
 | Tool | Type | Description |
 |------|------|-------------|
@@ -268,11 +273,27 @@ Both modes share the same 18 tools via `mcp-server/src/register-tools.ts` with d
 | `upload_attachment` | Write | Upload base64-encoded file to task (max 10MB, auto-sets cover) |
 | `delete_attachment` | Write | Delete attachment from task (clears cover if applicable) |
 | `update_idea_description` | Write | Rewrite an idea's description |
+| `create_idea` | Write | Create a new idea with title, description, tags, visibility |
+| `delete_idea` | Write | Delete an idea (author or admin only) |
+| `update_idea_status` | Write | Update idea status (open, in_progress, completed, archived) |
+| `update_idea_tags` | Write | Set/replace tags on an idea |
+| `toggle_vote` | Write | Toggle the current user's upvote on an idea |
+| `add_collaborator` | Write | Add a user as collaborator on an idea |
+| `remove_collaborator` | Write | Remove a collaborator from an idea |
+| `list_collaborators` | Read | List all collaborators on an idea |
+| `create_column` | Write | Create a new board column |
+| `update_column` | Write | Update a column's title or done status |
+| `delete_column` | Write | Delete an empty board column |
+| `reorder_columns` | Write | Reorder columns by providing IDs in desired order |
 | `manage_labels` | Write | Create labels, add/remove from tasks |
 | `manage_checklist` | Write | Add/toggle/delete checklist items |
 | `add_idea_comment` | Write | Comment on an idea (as bot) |
 | `add_task_comment` | Write | Comment on a board task (as bot) |
 | `report_bug` | Write | Create task with red "Bug" label, assigned to bot |
+| `list_notifications` | Read | List notifications with optional unread-only filter |
+| `mark_notification_read` | Write | Mark a single notification as read |
+| `mark_all_notifications_read` | Write | Mark all unread notifications as read |
+| `update_profile` | Write | Update user profile (name, bio, github, avatar, contact) |
 
 ### Architecture (Dependency Injection)
 - `mcp-server/src/context.ts` defines `McpContext` interface: `{ supabase, userId }`

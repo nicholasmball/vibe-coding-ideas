@@ -126,3 +126,131 @@ export async function updateIdeaDescription(
   if (error) throw new Error(`Failed to update idea: ${error.message}`);
   return { success: true, idea: data };
 }
+
+// --- Create Idea ---
+
+export const createIdeaSchema = z.object({
+  title: z.string().min(1).max(200).describe("Idea title"),
+  description: z.string().min(1).max(10000).describe("Idea description (markdown supported)"),
+  tags: z
+    .array(z.string().max(50))
+    .max(10)
+    .default([])
+    .describe("Tags for the idea (max 10)"),
+  visibility: z
+    .enum(["public", "private"])
+    .default("public")
+    .describe("Idea visibility (default public)"),
+});
+
+export async function createIdea(
+  ctx: McpContext,
+  params: z.infer<typeof createIdeaSchema>
+) {
+  const { data, error } = await ctx.supabase
+    .from("ideas")
+    .insert({
+      title: params.title,
+      description: params.description,
+      author_id: ctx.userId,
+      tags: params.tags,
+      visibility: params.visibility,
+    })
+    .select("id, title, status")
+    .single();
+
+  if (error) throw new Error(`Failed to create idea: ${error.message}`);
+  return { success: true, idea: data };
+}
+
+// --- Delete Idea ---
+
+export const deleteIdeaSchema = z.object({
+  idea_id: z.string().uuid().describe("The idea ID"),
+});
+
+export async function deleteIdea(
+  ctx: McpContext,
+  params: z.infer<typeof deleteIdeaSchema>
+) {
+  // Check if user is author or admin
+  const { data: idea } = await ctx.supabase
+    .from("ideas")
+    .select("id, title, author_id")
+    .eq("id", params.idea_id)
+    .maybeSingle();
+
+  if (!idea) throw new Error(`Idea not found: ${params.idea_id}`);
+
+  const isAuthor = idea.author_id === ctx.userId;
+
+  if (!isAuthor) {
+    // Check if admin
+    const { data: profile } = await ctx.supabase
+      .from("users")
+      .select("is_admin")
+      .eq("id", ctx.userId)
+      .single();
+
+    if (!profile?.is_admin) {
+      throw new Error("Only the idea author or an admin can delete an idea");
+    }
+  }
+
+  const { error } = await ctx.supabase
+    .from("ideas")
+    .delete()
+    .eq("id", params.idea_id);
+
+  if (error) throw new Error(`Failed to delete idea: ${error.message}`);
+  return { success: true, deleted_idea: { id: idea.id, title: idea.title } };
+}
+
+// --- Update Idea Status ---
+
+export const updateIdeaStatusSchema = z.object({
+  idea_id: z.string().uuid().describe("The idea ID"),
+  status: z
+    .enum(["open", "in_progress", "completed", "archived"])
+    .describe("New status"),
+});
+
+export async function updateIdeaStatus(
+  ctx: McpContext,
+  params: z.infer<typeof updateIdeaStatusSchema>
+) {
+  const { data, error } = await ctx.supabase
+    .from("ideas")
+    .update({ status: params.status })
+    .eq("id", params.idea_id)
+    .select("id, title, status")
+    .single();
+
+  if (error) throw new Error(`Failed to update idea status: ${error.message}`);
+  return { success: true, idea: data };
+}
+
+// --- Update Idea Tags ---
+
+export const updateIdeaTagsSchema = z.object({
+  idea_id: z.string().uuid().describe("The idea ID"),
+  tags: z
+    .array(z.string().max(50))
+    .max(10)
+    .describe("New tags array (replaces existing tags)"),
+});
+
+export async function updateIdeaTags(
+  ctx: McpContext,
+  params: z.infer<typeof updateIdeaTagsSchema>
+) {
+  const { data, error } = await ctx.supabase
+    .from("ideas")
+    .update({ tags: params.tags })
+    .eq("id", params.idea_id)
+    .select("id, title, tags")
+    .single();
+
+  if (error) throw new Error(`Failed to update idea tags: ${error.message}`);
+  return { success: true, idea: data };
+}

@@ -12,7 +12,7 @@ Connect Claude Code to VibeCodes and manage your ideas, boards, and tasks from t
 claude mcp add --transport http vibecodes-remote https://vibe-coding-ideas.vercel.app/api/mcp
 ```
 
-OAuth 2.1 + PKCE — log in with your VibeCodes account when prompted. 18 tools available (list ideas, manage boards, create/move tasks, comment, report bugs, and more). See the [MCP Integration guide](https://vibe-coding-ideas.vercel.app/guide/mcp-integration) for details.
+OAuth 2.1 + PKCE — log in with your VibeCodes account when prompted. 34 tools available (list ideas, manage boards, create/move tasks, comment, report bugs, and more). See the [MCP Integration guide](https://vibe-coding-ideas.vercel.app/guide/mcp-integration) for details.
 
 ## Features
 
@@ -33,7 +33,7 @@ OAuth 2.1 + PKCE — log in with your VibeCodes account when prompted. 18 tools 
 - **Visibility** — public or private ideas (private = author + collaborators + admins only)
 - **Authentication** — GitHub OAuth, Google OAuth, email/password with reset flow
 - **Dark/Light Theme** — system-aware with manual toggle
-- **Remote MCP Server** — OAuth 2.1 + PKCE, 18 tools, per-user RLS enforcement
+- **Remote MCP Server** — OAuth 2.1 + PKCE, 34 tools, per-user RLS enforcement
 - **Public Guide** — in-app documentation at `/guide`
 
 ## Tech Stack
