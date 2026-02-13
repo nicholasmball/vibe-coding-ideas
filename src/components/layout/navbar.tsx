@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Sparkles, Plus, LogOut, User as UserIcon, Menu, LayoutDashboard } from "lucide-react";
+import { Sparkles, Plus, LogOut, User as UserIcon, Menu, LayoutDashboard, BookOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -72,6 +72,12 @@ export function Navbar() {
                 </Link>
               </>
             )}
+            <Link href="/guide">
+              <Button variant="ghost" className="gap-2">
+                <BookOpen className="h-4 w-4" />
+                Guide
+              </Button>
+            </Link>
             <ThemeToggle />
             {user && <NotificationBell />}
             {loading ? (
@@ -204,6 +210,15 @@ export function Navbar() {
                       Profile
                     </Button>
                   </Link>
+                  <Link
+                    href="/guide"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Button variant="ghost" className="w-full justify-start gap-2">
+                      <BookOpen className="h-4 w-4" />
+                      Guide
+                    </Button>
+                  </Link>
                   <Button
                     variant="ghost"
                     onClick={handleSignOut}
@@ -215,6 +230,12 @@ export function Navbar() {
                 </>
               ) : (
                 <>
+                  <Link href="/guide" onClick={() => setMobileMenuOpen(false)}>
+                    <Button variant="ghost" className="w-full justify-start gap-2">
+                      <BookOpen className="h-4 w-4" />
+                      Guide
+                    </Button>
+                  </Link>
                   <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full">
                       Log In

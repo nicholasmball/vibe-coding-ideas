@@ -46,6 +46,14 @@ src/
 │   ├── oauth/               # OAuth consent UI
 │   │   ├── authorize/       # Login + consent page
 │   │   └── callback/        # OAuth provider callback
+│   ├── guide/              # Public guide pages (no auth required)
+│   │   ├── layout.tsx      # Navbar + scrollable content + footer
+│   │   ├── page.tsx        # Hub with 5 section cards
+│   │   ├── getting-started/
+│   │   ├── ideas-and-voting/
+│   │   ├── collaboration/
+│   │   ├── kanban-boards/
+│   │   └── mcp-integration/
 │   └── (main)/             # Authenticated routes (with navbar)
 │       ├── layout.tsx      # Navbar wrapper
 │       ├── dashboard/      # Personal dashboard (stats, active boards, tasks, ideas, activity)
@@ -108,7 +116,8 @@ mcp-server/                 # MCP server for Claude Code integration
         ├── board-read.ts   # get_board, get_task, get_my_tasks
         ├── board-write.ts  # create_task, update_task, move_task, delete_task
         ├── comments.ts     # add_idea_comment, add_task_comment
-        └── labels.ts       # manage_labels, manage_checklist, report_bug
+        ├── labels.ts       # manage_labels, manage_checklist, report_bug
+        └── attachments.ts  # list_attachments, upload_attachment, delete_attachment
 ```
 
 ## Key Patterns
@@ -186,7 +195,7 @@ mcp-server/                 # MCP server for Claude Code integration
 - **Framework**: Vitest + jsdom + @testing-library/react
 - **Config**: `vitest.config.ts` (react plugin, `@/` alias, `src/test/setup.ts`)
 - **Test files**: Co-located as `*.test.ts` next to source (e.g., `utils.test.ts`, `import.test.ts`)
-- **Coverage**: 167 tests across 8 files — utils, validation, types, import parsers, constants integrity, OAuth endpoints (PKCE, registration, authorization, token exchange), well-known metadata, MCP register-tools
+- **Coverage**: 168 tests across 8 files — utils, validation, types, import parsers, constants integrity, OAuth endpoints (PKCE, registration, authorization, token exchange), well-known metadata, MCP register-tools
 - **Convention**: Write tests for all new pure logic, validators, parsers, and utility functions. Component/UI changes are verified via build + manual testing.
 - **Run**: `npm run test` (single run) or `npm run test:watch` (watch mode)
 
@@ -228,7 +237,7 @@ The MCP server has two modes:
 1. **Local (stdio)**: `mcp-server/src/index.ts` — launched as subprocess, uses service-role client + bot user, bypasses RLS
 2. **Remote (HTTP)**: `src/app/api/mcp/[[...transport]]/route.ts` — hosted on Vercel, uses OAuth 2.1 + PKCE, per-user Supabase client with RLS
 
-Both modes share the same 15 tools via `mcp-server/src/register-tools.ts` with dependency injection (`McpContext`).
+Both modes share the same 18 tools via `mcp-server/src/register-tools.ts` with dependency injection (`McpContext`).
 
 ### Bot User
 - **ID**: `a0000000-0000-0000-0000-000000000001`
@@ -242,19 +251,22 @@ Both modes share the same 15 tools via `mcp-server/src/register-tools.ts` with d
 - **Transport**: stdio (launched by Claude Code as subprocess via `npx tsx mcp-server/src/index.ts`)
 - **Env vars**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `VIBECODES_BOT_USER_ID`
 
-### 15 MCP Tools
+### 18 MCP Tools
 
 | Tool | Type | Description |
 |------|------|-------------|
 | `list_ideas` | Read | List ideas with optional status filter and search |
 | `get_idea` | Read | Full idea detail + comments + collaborators + board summary |
 | `get_board` | Read | Complete board: columns, tasks, labels (auto-initializes columns) |
-| `get_task` | Read | Single task + checklist + comments + activity |
+| `get_task` | Read | Single task + checklist + comments + activity + attachments |
 | `get_my_tasks` | Read | Tasks assigned to bot, grouped by idea |
+| `list_attachments` | Read | List task attachments with 1-hour signed download URLs |
 | `create_task` | Write | Create task on a board column |
 | `update_task` | Write | Update task fields (title, description, assignee, due date, archived) |
 | `move_task` | Write | Move task between columns |
 | `delete_task` | Write | Delete a task |
+| `upload_attachment` | Write | Upload base64-encoded file to task (max 10MB, auto-sets cover) |
+| `delete_attachment` | Write | Delete attachment from task (clears cover if applicable) |
 | `update_idea_description` | Write | Rewrite an idea's description |
 | `manage_labels` | Write | Create labels, add/remove from tasks |
 | `manage_checklist` | Write | Add/toggle/delete checklist items |

@@ -174,7 +174,12 @@ export default async function LandingPage() {
         <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <Sparkles className="h-4 w-4" />
-            <span>VibeCodes &mdash; Built with vibes</span>
+            <span>
+              VibeCodes &mdash; Built with vibes &mdash;{" "}
+              <Link href="/guide" className="underline hover:text-foreground">
+                Guide
+              </Link>
+            </span>
           </div>
         </div>
       </footer>

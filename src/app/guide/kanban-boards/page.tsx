@@ -1,0 +1,191 @@
+import Link from "next/link";
+import { LayoutDashboard, ArrowLeft, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+export const metadata = {
+  title: "Kanban Boards - VibeCodes Guide",
+  description:
+    "Manage tasks with drag-and-drop boards, labels, due dates, checklists, file attachments, and bulk import on VibeCodes.",
+};
+
+export default function KanbanBoardsPage() {
+  return (
+    <div>
+      <Link
+        href="/guide"
+        className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Guide
+      </Link>
+
+      <div className="mb-10 flex items-center gap-3">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+          <LayoutDashboard className="h-6 w-6 text-primary" />
+        </div>
+        <h1 className="text-3xl font-bold tracking-tight">Kanban Boards</h1>
+      </div>
+
+      <div className="space-y-10">
+        <section>
+          <h2 className="mb-4 text-2xl font-semibold">Overview</h2>
+          <p className="text-muted-foreground">
+            Every idea gets its own kanban board for project management. Boards
+            are accessible to the idea author and all collaborators. The first
+            time you visit a board, it&apos;s initialized with three default
+            columns: <strong className="text-foreground">To Do</strong>,{" "}
+            <strong className="text-foreground">In Progress</strong>, and{" "}
+            <strong className="text-foreground">Done</strong>.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-2xl font-semibold">Tasks</h2>
+          <p className="mb-4 text-muted-foreground">
+            Tasks are the building blocks of your board. Each task supports:
+          </p>
+          <ul className="list-inside list-disc space-y-2 text-muted-foreground">
+            <li>
+              <strong className="text-foreground">Title & Description</strong>{" "}
+              — markdown-supported description for detailed specs
+            </li>
+            <li>
+              <strong className="text-foreground">Assignee</strong> — assign to
+              any team member (author + collaborators)
+            </li>
+            <li>
+              <strong className="text-foreground">Labels</strong> — colored
+              labels for categorization (per-idea, 12 colors)
+            </li>
+            <li>
+              <strong className="text-foreground">Due Date</strong> — track
+              deadlines with visual overdue/upcoming indicators
+            </li>
+            <li>
+              <strong className="text-foreground">Checklists</strong> — break
+              tasks into subtasks with progress tracking
+            </li>
+            <li>
+              <strong className="text-foreground">Comments</strong> — discuss
+              tasks with your team, with @mention support
+            </li>
+            <li>
+              <strong className="text-foreground">File Attachments</strong>{" "}
+              — upload images, documents, and other files (up to 10MB each)
+            </li>
+            <li>
+              <strong className="text-foreground">Activity Log</strong> — full
+              history of all changes to the task
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-2xl font-semibold">Drag & Drop</h2>
+          <p className="mb-4 text-muted-foreground">
+            Move tasks between columns by dragging and dropping. The board uses
+            optimistic updates — changes appear instantly while syncing in the
+            background.
+          </p>
+          <ul className="list-inside list-disc space-y-2 text-muted-foreground">
+            <li>
+              Drag tasks between columns to update their status
+            </li>
+            <li>Reorder tasks within a column</li>
+            <li>
+              Reorder columns by dragging the column header
+            </li>
+            <li>
+              Works on both desktop (mouse) and mobile (touch)
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-2xl font-semibold">Columns</h2>
+          <p className="mb-4 text-muted-foreground">
+            Customize your workflow by adding, renaming, or reordering columns.
+          </p>
+          <ul className="list-inside list-disc space-y-2 text-muted-foreground">
+            <li>Add new columns with the + button</li>
+            <li>Rename columns by clicking the edit icon in the header</li>
+            <li>
+              Mark any column as a{" "}
+              <strong className="text-foreground">Done column</strong> — tasks
+              in done columns are excluded from dashboard task counts
+            </li>
+            <li>Delete columns (moves tasks to the first column)</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-2xl font-semibold">Search & Filters</h2>
+          <p className="mb-4 text-muted-foreground">
+            Use the board toolbar to find specific tasks:
+          </p>
+          <ul className="list-inside list-disc space-y-2 text-muted-foreground">
+            <li>Search by task title</li>
+            <li>Filter by assignee</li>
+            <li>Filter by label</li>
+            <li>Filter by due date (overdue, due today, due this week)</li>
+            <li>Toggle visibility of archived tasks</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-2xl font-semibold">Bulk Import</h2>
+          <p className="mb-4 text-muted-foreground">
+            Migrate tasks from other tools or quickly add many tasks at once.
+            The import dialog supports three formats:
+          </p>
+          <ul className="mb-4 list-inside list-disc space-y-2 text-muted-foreground">
+            <li>
+              <strong className="text-foreground">CSV</strong> — with
+              auto-mapping of column headers
+            </li>
+            <li>
+              <strong className="text-foreground">JSON</strong> — Trello export
+              format or custom JSON
+            </li>
+            <li>
+              <strong className="text-foreground">Bulk Text</strong> — paste a
+              list of task titles, one per line
+            </li>
+          </ul>
+          <div className="rounded-xl border border-border bg-muted/30 p-6">
+            <p className="text-sm text-muted-foreground">
+              <strong className="text-foreground">Tip:</strong> CSV import
+              auto-maps column names case-insensitively and lets you map columns
+              to existing board columns or create new ones. Up to 500 tasks per
+              import.
+            </p>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-2xl font-semibold">Real-time Sync</h2>
+          <p className="text-muted-foreground">
+            All board changes are synced in real-time via Supabase Realtime. If
+            a collaborator moves a task or adds a comment, you&apos;ll see the
+            update immediately without refreshing.
+          </p>
+        </section>
+      </div>
+
+      <div className="mt-12 flex justify-between border-t border-border pt-6">
+        <Link href="/guide/collaboration">
+          <Button variant="outline" className="gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Collaboration
+          </Button>
+        </Link>
+        <Link href="/guide/mcp-integration">
+          <Button variant="outline" className="gap-2">
+            MCP Integration
+            <ArrowRight className="h-4 w-4" />
+          </Button>
+        </Link>
+      </div>
+    </div>
+  );
+}

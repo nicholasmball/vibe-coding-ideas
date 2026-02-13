@@ -1,14 +1,55 @@
 # VibeCodes
 
-A collaborative idea board for vibe coding projects. Share ideas, find collaborators, and build together.
+A collaborative idea board for vibe coding projects. Share ideas, find collaborators, manage tasks with kanban boards, and integrate with Claude Code via MCP.
+
+**Live:** [vibe-coding-ideas.vercel.app](https://vibe-coding-ideas.vercel.app)
+
+## MCP Integration
+
+Connect Claude Code to VibeCodes and manage your ideas, boards, and tasks from the terminal:
+
+```bash
+claude mcp add --transport http vibecodes https://vibe-coding-ideas.vercel.app/api/mcp
+```
+
+OAuth 2.1 + PKCE — log in with your VibeCodes account when prompted. 18 tools available (list ideas, manage boards, create/move tasks, comment, report bugs, and more). See the [MCP Integration guide](https://vibe-coding-ideas.vercel.app/guide/mcp-integration) for details.
+
+## Features
+
+- **Idea Feed** — search, filter by status/tags, sort by newest/popular/discussed, paginated
+- **Voting** — optimistic upvotes with real-time count updates
+- **Threaded Comments** — comment, suggestion, and question types with markdown support
+- **Collaboration** — join projects, add collaborators, team-only access to boards
+- **Kanban Boards** — drag-and-drop task management per idea with:
+  - Labels (12 colors), due dates, checklists, assignees
+  - File attachments (images, docs, up to 10MB)
+  - Task comments with @mentions
+  - Activity log tracking all changes
+  - Bulk import (CSV, JSON/Trello, bulk text)
+  - Real-time sync across all collaborators
+- **Notifications** — votes, comments, collaborators, status changes, @mentions (configurable)
+- **User Profiles** — avatar upload, bio, activity history
+- **Admin Tools** — delete any idea or non-admin user
+- **Visibility** — public or private ideas (private = author + collaborators + admins only)
+- **Authentication** — GitHub OAuth, Google OAuth, email/password with reset flow
+- **Dark/Light Theme** — system-aware with manual toggle
+- **Remote MCP Server** — OAuth 2.1 + PKCE, 18 tools, per-user RLS enforcement
+- **Public Guide** — in-app documentation at `/guide`
 
 ## Tech Stack
 
-- **Framework**: Next.js 15 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS v4 + shadcn/ui
-- **Backend**: Supabase (Auth, Database, Realtime)
-- **Theming**: next-themes (dark/light mode)
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 16 (App Router, Turbopack) |
+| Language | TypeScript |
+| Styling | Tailwind CSS v4 + shadcn/ui (New York, Zinc) |
+| Backend | Supabase (Auth, Postgres, Realtime, Storage, RLS) |
+| Drag & Drop | @dnd-kit/core, @dnd-kit/sortable |
+| Markdown | react-markdown + remark-gfm |
+| Theming | next-themes |
+| MCP | mcp-handler (Vercel adapter) + @modelcontextprotocol/sdk |
+| Testing | Vitest + @testing-library/react + jsdom |
+| Hosting | Vercel |
 
 ## Getting Started
 
@@ -25,17 +66,15 @@ npm install
 
 ### 2. Configure Environment
 
-Copy `.env.example` to `.env.local` and fill in your Supabase credentials:
-
 ```bash
 cp .env.example .env.local
 ```
 
-Get your project URL and anon key from the [Supabase Dashboard](https://supabase.com/dashboard) under Settings > API.
+Fill in your Supabase project URL and anon key from the [Supabase Dashboard](https://supabase.com/dashboard) (Settings > API).
 
 ### 3. Set Up the Database
 
-Run the SQL migration files in `supabase/migrations/` in order (00001 through 00007) in the Supabase SQL Editor.
+Run the SQL migration files in `supabase/migrations/` in order in the Supabase SQL Editor. There are 33 migrations covering tables, RLS policies, triggers, and functions.
 
 ### 4. Configure OAuth Providers
 
@@ -58,30 +97,49 @@ Open [http://localhost:3000](http://localhost:3000) to see the app.
 
 ```
 src/
-├── app/                    # Next.js App Router pages
-│   ├── (auth)/             # Auth pages (login, signup, callback)
-│   └── (main)/             # Authenticated pages (feed, ideas, profile)
+├── app/
+│   ├── (auth)/             # Auth pages (login, signup, forgot/reset password)
+│   ├── (main)/             # Authenticated pages (dashboard, feed, ideas, profile)
+│   ├── guide/              # Public guide pages (5 sections)
+│   ├── api/mcp/            # Remote MCP endpoint
+│   ├── api/oauth/          # OAuth 2.1 endpoints (DCR, authorize, token)
+│   ├── .well-known/        # OAuth discovery (RFC 8414, RFC 9728)
+│   └── oauth/              # OAuth consent UI
+├── actions/                # Server Actions (ideas, board, votes, comments, etc.)
 ├── components/
-│   ├── ui/                 # shadcn/ui components
-│   ├── layout/             # Navbar, theme toggle
-│   ├── auth/               # OAuth buttons
-│   ├── ideas/              # Idea card, feed, form, voting
-│   ├── comments/           # Comment thread, form, items
-│   └── profile/            # Profile header, tabs
-├── actions/                # Server Actions (ideas, votes, comments, etc.)
-├── hooks/                  # Custom hooks (useUser, useRealtime)
-├── lib/                    # Utilities, constants, Supabase clients
-└── types/                  # TypeScript types
+│   ├── ui/                 # shadcn/ui primitives
+│   ├── layout/             # Navbar, theme toggle, notification bell
+│   ├── board/              # Kanban board, task dialogs, import, labels, etc.
+│   ├── ideas/              # Idea card, feed, form, voting, collaborators
+│   ├── comments/           # Comment thread, form, type badges
+│   ├── dashboard/          # Stats, active boards, tasks, activity
+│   └── profile/            # Profile header, tabs, settings
+├── hooks/                  # useUser, useRealtime
+├── lib/                    # Supabase clients, validation, constants, utils
+├── types/                  # Database types, derived types
+└── test/                   # Vitest setup and shared mocks
+mcp-server/                 # MCP server (stdio + shared tools for remote)
+supabase/migrations/        # 33 SQL migration files
 ```
 
-## Features
+## Database
 
-- **OAuth Authentication** via GitHub and Google
-- **Idea Feed** with sorting (newest, popular, most discussed)
-- **Idea Submission** with tags and optional GitHub link
-- **Voting** with optimistic updates
-- **Threaded Comments** with comment types (comment, suggestion, question)
-- **Collaborator System** - join/leave projects
-- **Real-time Updates** via Supabase Realtime
-- **Dark/Light Theme** toggle
-- **Responsive Design** for mobile and desktop
+16 tables with Row Level Security:
+
+- **Core**: users, ideas, comments, votes, collaborators, notifications
+- **Board**: board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items, board_task_activity, board_task_comments, board_task_attachments
+- **MCP**: mcp_oauth_clients, mcp_oauth_codes
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start dev server (http://localhost:3000) |
+| `npm run build` | Production build (Turbopack) |
+| `npm run lint` | ESLint |
+| `npm run test` | Vitest (single run) |
+| `npm run test:watch` | Vitest (watch mode) |
+
+## License
+
+MIT
