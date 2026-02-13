@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Check } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
 import { Popover as PopoverPrimitive } from "radix-ui";
 import {
   Popover,
@@ -170,10 +170,21 @@ export function LabelPicker({
   }
 
   const pickerContent = (
-    <>
-      <p className="mb-2 text-xs font-medium text-muted-foreground">
-        Labels
-      </p>
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
+    <div onClick={(e) => e.stopPropagation()}>
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-xs font-medium text-muted-foreground">
+          Labels
+        </p>
+        <button
+          className="cursor-pointer rounded-sm p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+          onClick={() => setOpen(false)}
+          type="button"
+          aria-label="Close"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
 
       {/* Existing labels */}
       <div className="space-y-1">
@@ -313,7 +324,7 @@ export function LabelPicker({
           Create a label
         </Button>
       )}
-    </>
+    </div>
   );
 
   // When inside a Dialog, render without Portal to avoid focus trap conflicts

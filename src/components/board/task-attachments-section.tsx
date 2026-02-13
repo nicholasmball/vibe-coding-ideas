@@ -400,7 +400,7 @@ export function TaskAttachmentsSection({
                     {formatRelativeTime(attachment.created_at)}
                   </p>
                 </div>
-                <div className="flex shrink-0 gap-0.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+                <div className="flex shrink-0 gap-0.5">
                   {isImageType(attachment.content_type) && (
                     attachment.storage_path === localCoverPath ? (
                       <Tooltip>
