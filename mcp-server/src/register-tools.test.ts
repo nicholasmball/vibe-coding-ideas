@@ -18,6 +18,9 @@ const EXPECTED_TOOL_NAMES = [
   "add_idea_comment",
   "add_task_comment",
   "report_bug",
+  "list_attachments",
+  "upload_attachment",
+  "delete_attachment",
 ];
 
 function createMockServer() {
@@ -25,13 +28,13 @@ function createMockServer() {
 }
 
 describe("registerTools", () => {
-  it("registers exactly 15 tools", () => {
+  it("registers exactly 18 tools", () => {
     const server = createMockServer();
     const getContext = vi.fn();
 
     registerTools(server, getContext);
 
-    expect(server.tool).toHaveBeenCalledTimes(15);
+    expect(server.tool).toHaveBeenCalledTimes(18);
   });
 
   it("registers all expected tool names", () => {

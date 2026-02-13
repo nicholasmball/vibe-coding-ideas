@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
-import { Tag, Trash2, Archive, ArchiveRestore } from "lucide-react";
+import { Tag, Trash2, Archive, ArchiveRestore, Pencil } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -29,6 +29,7 @@ import { ChecklistSection } from "./checklist-section";
 import { ActivityTimeline } from "./activity-timeline";
 import { TaskCommentsSection } from "./task-comments-section";
 import { TaskAttachmentsSection } from "./task-attachments-section";
+import { Markdown } from "@/components/ui/markdown";
 import { updateBoardTask, deleteBoardTask } from "@/actions/board";
 import { createClient } from "@/lib/supabase/client";
 import { logTaskActivity } from "@/lib/activity";
@@ -70,6 +71,8 @@ export function TaskDetailDialog({
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [archiving, setArchiving] = useState(false);
+  const [editingDescription, setEditingDescription] = useState(false);
+  const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const isArchived = task.archived;
 
@@ -81,6 +84,7 @@ export function TaskDetailDialog({
     setTitle(task.title);
     setDescription(task.description ?? "");
     setLocalAssigneeId(task.assignee_id);
+    setEditingDescription(false);
     setLastTaskId(task.id);
   }
 
@@ -115,6 +119,7 @@ export function TaskDetailDialog({
   }
 
   async function handleDescriptionBlur() {
+    setEditingDescription(false);
     const newDesc = description.trim() || null;
     if (newDesc === (task.description ?? null)) return;
     setSavingDesc(true);
@@ -356,16 +361,62 @@ export function TaskDetailDialog({
 
               {/* Description */}
               <div className="space-y-2">
-                <span className="text-sm font-medium">Description</span>
-                <Textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  onBlur={handleDescriptionBlur}
-                  placeholder="Add a description..."
-                  rows={3}
-                  className="text-sm"
-                  disabled={savingDesc}
-                />
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Description</span>
+                  {!editingDescription && description && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 gap-1 text-xs text-muted-foreground"
+                      onClick={() => {
+                        setEditingDescription(true);
+                        requestAnimationFrame(() => {
+                          descriptionTextareaRef.current?.focus();
+                        });
+                      }}
+                    >
+                      <Pencil className="h-3 w-3" />
+                      Edit
+                    </Button>
+                  )}
+                </div>
+                {editingDescription ? (
+                  <Textarea
+                    ref={descriptionTextareaRef}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    onBlur={handleDescriptionBlur}
+                    placeholder="Add a description... (supports markdown)"
+                    rows={6}
+                    className="text-sm"
+                    disabled={savingDesc}
+                    autoFocus
+                  />
+                ) : description ? (
+                  <div
+                    className="cursor-pointer rounded-md border border-transparent px-3 py-2 text-sm transition-colors hover:border-border hover:bg-muted/50"
+                    onClick={() => {
+                      setEditingDescription(true);
+                      requestAnimationFrame(() => {
+                        descriptionTextareaRef.current?.focus();
+                      });
+                    }}
+                  >
+                    <Markdown>{description}</Markdown>
+                  </div>
+                ) : (
+                  <div
+                    className="cursor-pointer rounded-md border border-dashed border-border px-3 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted/50"
+                    onClick={() => {
+                      setEditingDescription(true);
+                      requestAnimationFrame(() => {
+                        descriptionTextareaRef.current?.focus();
+                      });
+                    }}
+                  >
+                    Add a description...
+                  </div>
+                )}
               </div>
 
               <Separator />

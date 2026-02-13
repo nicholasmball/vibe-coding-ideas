@@ -47,6 +47,14 @@ import {
   reportBug,
   reportBugSchema,
 } from "./tools/labels";
+import {
+  listAttachments,
+  listAttachmentsSchema,
+  uploadAttachment,
+  uploadAttachmentSchema,
+  deleteAttachment,
+  deleteAttachmentSchema,
+} from "./tools/attachments";
 
 function jsonResult(data: unknown) {
   return {
@@ -284,6 +292,50 @@ export function registerTools(
       try {
         const ctx = getContext(extra);
         return jsonResult(await reportBug(ctx, reportBugSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  // --- Attachment Tools ---
+
+  server.tool(
+    "list_attachments",
+    "List all attachments for a task with 1-hour signed download URLs.",
+    listAttachmentsSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await listAttachments(ctx, listAttachmentsSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "upload_attachment",
+    "Upload a file attachment to a task. Accepts base64-encoded file content. Max 10MB. Auto-sets cover image for first image upload.",
+    uploadAttachmentSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await uploadAttachment(ctx, uploadAttachmentSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "delete_attachment",
+    "Delete a file attachment from a task. Also clears cover image if the deleted attachment was the cover.",
+    deleteAttachmentSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = getContext(extra);
+        return jsonResult(await deleteAttachment(ctx, deleteAttachmentSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
       }

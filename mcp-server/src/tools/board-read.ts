@@ -126,6 +126,13 @@ export async function getTask(ctx: McpContext, params: z.infer<typeof getTaskSch
     .order("created_at", { ascending: false })
     .limit(10);
 
+  // Fetch attachments (metadata only, no signed URLs — use list_attachments for URLs)
+  const { data: attachments } = await ctx.supabase
+    .from("board_task_attachments")
+    .select("id, file_name, file_size, content_type, created_at")
+    .eq("task_id", params.task_id)
+    .order("created_at");
+
   return {
     ...task,
     assignee: (task as Record<string, unknown>).users ?? null,
@@ -148,6 +155,7 @@ export async function getTask(ctx: McpContext, params: z.infer<typeof getTaskSch
         actor: (a as Record<string, unknown>).users,
         users: undefined,
       })) ?? [],
+    attachments: attachments ?? [],
   };
 }
 
