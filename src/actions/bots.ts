@@ -91,6 +91,7 @@ export async function updateBot(
   }
 
   revalidatePath(`/profile/${user.id}`);
+  revalidatePath("/ideas");
 }
 
 export async function deleteBot(botId: string) {
