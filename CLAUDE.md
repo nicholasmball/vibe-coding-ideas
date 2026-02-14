@@ -18,6 +18,7 @@
 - **Drag & Drop**: @dnd-kit/core, @dnd-kit/sortable (kanban board)
 - **Notifications**: sonner (toasts)
 - **Testing**: Vitest + @testing-library/react + jsdom
+- **PWA**: Manual service worker + Next.js manifest (Turbopack-compatible, zero runtime deps)
 - **Remote MCP**: mcp-handler (Vercel MCP adapter) + OAuth 2.1 + PKCE
 
 ## Project Structure
@@ -25,7 +26,8 @@
 ```
 src/
 ├── app/                    # Next.js App Router
-│   ├── layout.tsx          # Root layout (ThemeProvider, Toaster)
+│   ├── layout.tsx          # Root layout (ThemeProvider, Toaster, SW register, install prompt)
+│   ├── manifest.ts         # PWA web app manifest (standalone, dark theme)
 │   ├── page.tsx            # Landing page (public, live stats)
 │   ├── (auth)/             # Auth routes (no navbar)
 │   │   ├── login/
@@ -81,6 +83,7 @@ src/
 │   ├── board/              # kanban-board, board-column, board-task-card, board-toolbar, task-edit-dialog, task-detail-dialog, column-edit-dialog, add-column-button, board-realtime, label-picker, due-date-picker, due-date-badge, task-label-badges, checklist-section, activity-timeline, task-comments-section, task-attachments-section, mention-autocomplete, import-dialog, import-csv-tab, import-json-tab, import-bulk-text-tab, import-column-mapper, import-preview-table
 │   ├── dashboard/          # stats-cards, active-boards, my-tasks-list, activity-feed
 │   ├── comments/           # thread, item, form, type-badge
+│   ├── pwa/                # service-worker-register, install-prompt
 │   └── profile/            # header, tabs, delete-user-button, edit-profile-dialog, notification-settings, complete-profile-banner, bot-management, create-bot-dialog, edit-bot-dialog
 ├── hooks/
 │   ├── use-user.ts         # Client-side auth state
@@ -102,7 +105,15 @@ src/
 │   ├── setup.ts            # Vitest setup (@testing-library/jest-dom)
 │   └── mocks.ts            # Shared mocks (Supabase client, Next.js navigation)
 middleware.ts               # Root middleware (calls updateSession)
+next.config.ts              # Next.js config (SW cache-control headers)
 vitest.config.ts            # Vitest config (jsdom, @/ alias, react plugin)
+public/
+├── sw.js                   # Service worker (cache-first statics, network-first navigation, offline fallback)
+├── offline.html            # Standalone offline fallback page (no Next.js dependency)
+├── favicon.ico             # Favicon (generated from icon.svg)
+├── apple-touch-icon.png    # Apple touch icon (180x180)
+└── icons/                  # PWA icons (192, 512, maskable-512)
+scripts/generate-icons.mjs  # One-time icon generation script (requires sharp)
 supabase/migrations/        # 34 SQL migration files (run in order)
 mcp-server/                 # MCP server for Claude Code integration
 ├── package.json            # ESM, separate deps
@@ -210,6 +221,24 @@ mcp-server/                 # MCP server for Claude Code integration
 - Auto-collaborator: assigning a bot to a task automatically adds it as collaborator on the idea
 - MCP `set_bot_identity` tool allows session-level identity switching; `VIBECODES_BOT_ID` env var for startup
 - `McpContext.ownerUserId` distinguishes the real human from the active bot identity (for ownership validation)
+
+### PWA (Progressive Web App)
+- **Installable** from browser on Android, iOS, and desktop ("Add to Home Screen")
+- `src/app/manifest.ts` generates `/manifest.webmanifest` — standalone, dark theme, `/dashboard` start URL
+- `public/sw.js` — manual service worker (no build-tool dependency, compatible with Turbopack)
+  - **Cache-first** for static assets (`_next/static/`, images, fonts, CSS, JS)
+  - **Network-first** for navigation, falling back to `offline.html`
+  - **Skips** cross-origin requests, `/api/`, `/oauth/`, `/.well-known/`
+  - `skipWaiting()` + `clients.claim()` for immediate activation
+  - Versioned cache name (`vibecodes-v3`) — bump version when changing `sw.js` or `offline.html`
+- `public/offline.html` — **standalone HTML** (no Next.js, no JS, inline styles + SVG) so link clicks work without hydration
+- `src/components/pwa/service-worker-register.tsx` — registers SW on mount, renders null
+- `src/components/pwa/install-prompt.tsx` — intercepts `beforeinstallprompt` (Chrome/Edge/Android) + iOS Safari instructions, dismissible per session
+- `next.config.ts` sets `Cache-Control: no-cache` on `/sw.js` so browsers always check for updates
+- `middleware.ts` excludes `sw.js` from auth middleware
+- **Testing**: SW only works in production mode — use `npm run build && npm start`, not `npm run dev`
+- **Icons**: generated via `scripts/generate-icons.mjs` (requires `sharp` as temp devDep) from `src/app/icon.svg`
+- **Not included**: offline data sync, push notifications, app store listing (separate future tasks)
 
 ### Testing
 - **Framework**: Vitest + jsdom + @testing-library/react
