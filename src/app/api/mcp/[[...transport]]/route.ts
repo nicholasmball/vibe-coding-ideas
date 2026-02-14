@@ -6,28 +6,41 @@ import type { Database } from "@/types/database";
 
 const handler = createMcpHandler(
   (server) => {
-    registerTools(server, (extra) => {
-      const authInfo = extra.authInfo;
-      if (!authInfo) {
-        throw new Error("Authentication required");
-      }
+    // Per-connection mutable bot identity (set by set_bot_identity tool)
+    let activeBotId: string | null = null;
 
-      const userId = authInfo.extra?.userId as string;
-      const token = authInfo.token;
-
-      // Per-request Supabase client with user's JWT — RLS enforced
-      const supabase = createClient<Database>(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          global: {
-            headers: { Authorization: `Bearer ${token}` },
-          },
+    registerTools(
+      server,
+      (extra) => {
+        const authInfo = extra.authInfo;
+        if (!authInfo) {
+          throw new Error("Authentication required");
         }
-      );
 
-      return { supabase, userId } satisfies McpContext;
-    });
+        const realUserId = authInfo.extra?.userId as string;
+        const token = authInfo.token;
+
+        // Per-request Supabase client with user's JWT — RLS enforced
+        const supabase = createClient<Database>(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+            global: {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          }
+        );
+
+        return {
+          supabase,
+          userId: activeBotId || realUserId,
+          ownerUserId: realUserId,
+        } satisfies McpContext;
+      },
+      (botId) => {
+        activeBotId = botId;
+      }
+    );
   },
   {
     serverInfo: { name: "vibecodes-remote", version: "1.0.0" },
