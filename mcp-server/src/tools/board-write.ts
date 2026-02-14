@@ -180,7 +180,7 @@ export const moveTaskSchema = z.object({
   task_id: z.string().uuid().describe("The task ID"),
   idea_id: z.string().uuid().describe("The idea ID"),
   column_id: z.string().uuid().describe("Target column ID"),
-  position: z
+  position: z.coerce
     .number()
     .optional()
     .describe("Target position (auto-calculated if omitted)"),
