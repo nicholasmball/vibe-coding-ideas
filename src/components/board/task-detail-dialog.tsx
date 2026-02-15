@@ -80,14 +80,36 @@ export function TaskDetailDialog({
 
   const [localAssigneeId, setLocalAssigneeId] = useState<string | null>(task.assignee_id);
 
-  // Sync state when task prop changes
+  // Sync state when task prop changes (including external updates via Realtime/MCP)
   const [lastTaskId, setLastTaskId] = useState(task.id);
+  const [lastTaskDesc, setLastTaskDesc] = useState(task.description);
+  const [lastTaskTitle, setLastTaskTitle] = useState(task.title);
+  const [lastTaskAssigneeId, setLastTaskAssigneeId] = useState(task.assignee_id);
+
   if (task.id !== lastTaskId) {
+    // Different task — full reset
     setTitle(task.title);
     setDescription(task.description ?? "");
     setLocalAssigneeId(task.assignee_id);
     setEditingDescription(false);
     setLastTaskId(task.id);
+    setLastTaskDesc(task.description);
+    setLastTaskTitle(task.title);
+    setLastTaskAssigneeId(task.assignee_id);
+  } else {
+    // Same task — sync fields changed externally (only if user isn't actively editing)
+    if (task.description !== lastTaskDesc && !editingDescription) {
+      setDescription(task.description ?? "");
+      setLastTaskDesc(task.description);
+    }
+    if (task.title !== lastTaskTitle && !savingTitle) {
+      setTitle(task.title);
+      setLastTaskTitle(task.title);
+    }
+    if (task.assignee_id !== lastTaskAssigneeId) {
+      setLocalAssigneeId(task.assignee_id);
+      setLastTaskAssigneeId(task.assignee_id);
+    }
   }
 
   // Switch to initialTab when dialog opens
