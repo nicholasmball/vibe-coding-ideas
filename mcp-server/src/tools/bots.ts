@@ -92,14 +92,24 @@ export async function setBotIdentity(
   args: z.infer<typeof setBotIdentitySchema>,
   onIdentityChange: (botId: string | null) => void
 ) {
+  const persistUserId = ctx.ownerUserId ?? ctx.userId;
+
   // Reset to default if neither provided
   if (!args.bot_id && !args.bot_name) {
     onIdentityChange(null);
+
+    // Persist null to DB
+    await ctx.supabase
+      .from("users")
+      .update({ active_bot_id: null })
+      .eq("id", persistUserId);
+
     return {
       active_bot: null,
       instruction:
         "Identity reset to default. You are no longer acting as a specific bot persona. " +
-        "Stop following any previous bot system prompt and return to your normal behavior.",
+        "Stop following any previous bot system prompt and return to your normal behavior. " +
+        "This change has been persisted and will survive reconnections.",
     };
   }
 
@@ -132,6 +142,12 @@ export async function setBotIdentity(
 
   onIdentityChange(bot.id);
 
+  // Persist to DB
+  await ctx.supabase
+    .from("users")
+    .update({ active_bot_id: bot.id })
+    .eq("id", persistUserId);
+
   const result: Record<string, unknown> = {
     active_bot: {
       id: bot.id,
@@ -145,12 +161,14 @@ export async function setBotIdentity(
     result.instruction =
       `You are now acting as "${bot.name}"${bot.role ? ` (${bot.role})` : ""}. ` +
       `All your actions (comments, task updates, activity) will be attributed to this bot. ` +
+      `This identity has been persisted and will survive reconnections. ` +
       `IMPORTANT: You MUST follow the system_prompt above for the rest of this session. ` +
       `It defines your persona, behavior, and how you should approach tasks.`;
   } else {
     result.instruction =
       `You are now acting as "${bot.name}"${bot.role ? ` (${bot.role})` : ""}. ` +
-      `All your actions (comments, task updates, activity) will be attributed to this bot.`;
+      `All your actions (comments, task updates, activity) will be attributed to this bot. ` +
+      `This identity has been persisted and will survive reconnections.`;
   }
 
   return result;

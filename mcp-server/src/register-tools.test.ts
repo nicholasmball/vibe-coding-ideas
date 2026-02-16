@@ -179,8 +179,11 @@ describe("registerTools", () => {
 
   it("set_bot_identity calls onIdentityChange when provided", async () => {
     const server = createMockServer();
+    // Mock supabase with chained update call for identity persistence
+    const mockUpdate = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
+    const mockFrom = vi.fn().mockReturnValue({ update: mockUpdate });
     const mockContext: McpContext = {
-      supabase: {} as McpContext["supabase"],
+      supabase: { from: mockFrom } as unknown as McpContext["supabase"],
       userId: "test-user",
     };
     const getContext = vi.fn(() => mockContext);
@@ -200,12 +203,17 @@ describe("registerTools", () => {
 
     expect(result.isError).toBeUndefined();
     expect(onIdentityChange).toHaveBeenCalledWith(null);
+    expect(mockFrom).toHaveBeenCalledWith("users");
+    expect(mockUpdate).toHaveBeenCalledWith({ active_bot_id: null });
   });
 
   it("set_bot_identity uses noop when onIdentityChange not provided", async () => {
     const server = createMockServer();
+    // Mock supabase with chained update call for identity persistence
+    const mockUpdate = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
+    const mockFrom = vi.fn().mockReturnValue({ update: mockUpdate });
     const mockContext: McpContext = {
-      supabase: {} as McpContext["supabase"],
+      supabase: { from: mockFrom } as unknown as McpContext["supabase"],
       userId: "test-user",
     };
     const getContext = vi.fn(() => mockContext);

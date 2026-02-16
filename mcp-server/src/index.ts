@@ -32,6 +32,29 @@ registerTools(server, getContext, setActiveBotId);
 // --- Start server ---
 
 async function main() {
+  // If no explicit bot ID from env var, read persisted identity from DB
+  if (!process.env.VIBECODES_BOT_ID) {
+    const { data } = await supabase
+      .from("users")
+      .select("active_bot_id")
+      .eq("id", BOT_USER_ID)
+      .maybeSingle();
+
+    if (data?.active_bot_id) {
+      // Verify the bot is still active
+      const { data: bot } = await supabase
+        .from("bot_profiles")
+        .select("id, is_active")
+        .eq("id", data.active_bot_id)
+        .maybeSingle();
+
+      if (bot?.is_active) {
+        setActiveBotId(bot.id);
+        console.error(`Restored persisted bot identity: ${bot.id}`);
+      }
+    }
+  }
+
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("VibeCodes MCP server running on stdio");

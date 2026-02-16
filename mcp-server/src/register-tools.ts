@@ -124,7 +124,7 @@ function errorResult(error: unknown) {
 
 export function registerTools(
   server: AnyMcpServer,
-  getContext: (extra: ServerExtra) => McpContext,
+  getContext: (extra: ServerExtra) => McpContext | Promise<McpContext>,
   onIdentityChange?: (botId: string | null) => void
 ): void {
   // --- Read Tools ---
@@ -135,7 +135,7 @@ export function registerTools(
     listIdeasSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await listIdeas(ctx, listIdeasSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -149,7 +149,7 @@ export function registerTools(
     getIdeaSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await getIdea(ctx, getIdeaSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -163,7 +163,7 @@ export function registerTools(
     getBoardSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await getBoard(ctx, getBoardSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -177,7 +177,7 @@ export function registerTools(
     getTaskSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await getTask(ctx, getTaskSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -191,7 +191,7 @@ export function registerTools(
     getMyTasksSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await getMyTasks(ctx, getMyTasksSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -207,7 +207,7 @@ export function registerTools(
     createTaskSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await createTask(ctx, createTaskSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -221,7 +221,7 @@ export function registerTools(
     updateTaskSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await updateTask(ctx, updateTaskSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -235,7 +235,7 @@ export function registerTools(
     moveTaskSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await moveTask(ctx, moveTaskSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -249,7 +249,7 @@ export function registerTools(
     deleteTaskSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await deleteTask(ctx, deleteTaskSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -263,7 +263,7 @@ export function registerTools(
     updateIdeaDescriptionSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(
           await updateIdeaDescription(ctx, updateIdeaDescriptionSchema.parse(args))
         );
@@ -279,7 +279,7 @@ export function registerTools(
     createIdeaSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await createIdea(ctx, createIdeaSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -293,7 +293,7 @@ export function registerTools(
     deleteIdeaSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await deleteIdea(ctx, deleteIdeaSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -307,7 +307,7 @@ export function registerTools(
     updateIdeaStatusSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await updateIdeaStatus(ctx, updateIdeaStatusSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -321,7 +321,7 @@ export function registerTools(
     updateIdeaTagsSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await updateIdeaTags(ctx, updateIdeaTagsSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -335,7 +335,7 @@ export function registerTools(
     toggleVoteSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await toggleVote(ctx, toggleVoteSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -351,7 +351,7 @@ export function registerTools(
     addCollaboratorSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await addCollaborator(ctx, addCollaboratorSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -365,7 +365,7 @@ export function registerTools(
     removeCollaboratorSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await removeCollaborator(ctx, removeCollaboratorSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -379,7 +379,7 @@ export function registerTools(
     listCollaboratorsSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await listCollaborators(ctx, listCollaboratorsSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -395,7 +395,7 @@ export function registerTools(
     createColumnSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await createColumn(ctx, createColumnSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -409,7 +409,7 @@ export function registerTools(
     updateColumnSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await updateColumn(ctx, updateColumnSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -423,7 +423,7 @@ export function registerTools(
     deleteColumnSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await deleteColumn(ctx, deleteColumnSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -437,7 +437,7 @@ export function registerTools(
     reorderColumnsSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await reorderColumns(ctx, reorderColumnsSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -453,7 +453,7 @@ export function registerTools(
     manageLabelsSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await manageLabels(ctx, manageLabelsSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -467,7 +467,7 @@ export function registerTools(
     manageChecklistSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(
           await manageChecklist(ctx, manageChecklistSchema.parse(args))
         );
@@ -483,7 +483,7 @@ export function registerTools(
     addIdeaCommentSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(
           await addIdeaComment(ctx, addIdeaCommentSchema.parse(args))
         );
@@ -499,7 +499,7 @@ export function registerTools(
     addTaskCommentSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(
           await addTaskComment(ctx, addTaskCommentSchema.parse(args))
         );
@@ -515,7 +515,7 @@ export function registerTools(
     reportBugSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await reportBug(ctx, reportBugSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -531,7 +531,7 @@ export function registerTools(
     listAttachmentsSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await listAttachments(ctx, listAttachmentsSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -545,7 +545,7 @@ export function registerTools(
     uploadAttachmentSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await uploadAttachment(ctx, uploadAttachmentSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -559,7 +559,7 @@ export function registerTools(
     deleteAttachmentSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await deleteAttachment(ctx, deleteAttachmentSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -575,7 +575,7 @@ export function registerTools(
     listNotificationsSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await listNotifications(ctx, listNotificationsSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -589,7 +589,7 @@ export function registerTools(
     markNotificationReadSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await markNotificationRead(ctx, markNotificationReadSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -603,7 +603,7 @@ export function registerTools(
     markAllNotificationsReadSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await markAllNotificationsRead(ctx));
       } catch (e) {
         return errorResult(e);
@@ -619,7 +619,7 @@ export function registerTools(
     updateProfileSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await updateProfile(ctx, updateProfileSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -635,7 +635,7 @@ export function registerTools(
     listBotsSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await listBots(ctx, listBotsSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -649,7 +649,7 @@ export function registerTools(
     getBotPromptSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await getBotPrompt(ctx, getBotPromptSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
@@ -663,7 +663,7 @@ export function registerTools(
     setBotIdentitySchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         const changeHandler = onIdentityChange ?? (() => {});
         return jsonResult(
           await setBotIdentity(ctx, setBotIdentitySchema.parse(args), changeHandler)
@@ -680,7 +680,7 @@ export function registerTools(
     createBotSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
-        const ctx = getContext(extra);
+        const ctx = await getContext(extra);
         return jsonResult(await createBot(ctx, createBotSchema.parse(args)));
       } catch (e) {
         return errorResult(e);

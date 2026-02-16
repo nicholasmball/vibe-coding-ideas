@@ -8,10 +8,11 @@ const handler = createMcpHandler(
   (server) => {
     // Per-connection mutable bot identity (set by set_bot_identity tool)
     let activeBotId: string | null = null;
+    let identityInitialized = false;
 
     registerTools(
       server,
-      (extra) => {
+      async (extra) => {
         const authInfo = extra.authInfo;
         if (!authInfo) {
           throw new Error("Authentication required");
@@ -30,6 +31,28 @@ const handler = createMcpHandler(
             },
           }
         );
+
+        // Lazily read persisted bot identity on first tool call
+        if (!identityInitialized) {
+          identityInitialized = true;
+          const { data } = await supabase
+            .from("users")
+            .select("active_bot_id")
+            .eq("id", realUserId)
+            .maybeSingle();
+
+          if (data?.active_bot_id) {
+            const { data: bot } = await supabase
+              .from("bot_profiles")
+              .select("id, is_active")
+              .eq("id", data.active_bot_id)
+              .maybeSingle();
+
+            if (bot?.is_active) {
+              activeBotId = bot.id;
+            }
+          }
+        }
 
         return {
           supabase,
