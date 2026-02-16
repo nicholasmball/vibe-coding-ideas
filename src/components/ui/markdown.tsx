@@ -36,7 +36,7 @@ function renderMentions(text: string): React.ReactNode[] {
 
 export function Markdown({ children, className }: MarkdownProps) {
   return (
-    <div className={`min-w-0 ${className ?? ""}`}>
+    <div className={`min-w-0 overflow-hidden break-words ${className ?? ""}`}>
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
@@ -67,12 +67,14 @@ export function Markdown({ children, className }: MarkdownProps) {
             {children}
           </a>
         ),
-        code: ({ className, children, ...props }) => {
-          const isBlock = className?.includes("language-");
+        code: ({ className, children, node, ...props }) => {
+          // Block code: has language class OR parent is <pre>
+          const isBlock = className?.includes("language-") ||
+            node?.position?.start?.line !== node?.position?.end?.line;
           if (isBlock) {
             return (
               <code
-                className={`block overflow-x-auto max-w-full rounded-lg bg-muted p-4 text-sm ${className ?? ""}`}
+                className={`block rounded-lg bg-muted p-4 text-sm whitespace-pre ${className ?? ""}`}
                 {...props}
               >
                 {children}
@@ -85,7 +87,7 @@ export function Markdown({ children, className }: MarkdownProps) {
             </code>
           );
         },
-        pre: ({ children }) => <pre className="mb-3 last:mb-0 overflow-x-auto">{children}</pre>,
+        pre: ({ children }) => <pre className="mb-3 last:mb-0 overflow-x-auto max-w-full">{children}</pre>,
         blockquote: ({ children }) => (
           <blockquote className="mb-3 border-l-2 border-primary/30 pl-4 italic text-muted-foreground">
             {children}
