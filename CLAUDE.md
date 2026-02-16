@@ -81,7 +81,7 @@ src/
 │   ├── auth/               # oauth-buttons
 │   ├── ideas/              # card, feed, form, edit-form, vote-button, collaborator-button, add-collaborator-popover, remove-collaborator-button, etc.
 │   ├── board/              # kanban-board, board-column, board-task-card, board-toolbar, task-edit-dialog, task-detail-dialog, column-edit-dialog, add-column-button, board-realtime, label-picker, due-date-picker, due-date-badge, task-label-badges, checklist-section, activity-timeline, task-comments-section, task-attachments-section, mention-autocomplete, import-dialog, import-csv-tab, import-json-tab, import-bulk-text-tab, import-column-mapper, import-preview-table
-│   ├── dashboard/          # collapsible-section, dashboard-grid, stats-cards, active-boards, my-bots, my-tasks-list, activity-feed
+│   ├── dashboard/          # collapsible-section, dashboard-grid, stats-cards, active-boards, my-bots, bot-activity-dialog, my-tasks-list, activity-feed
 │   ├── comments/           # thread, item, form, type-badge
 │   ├── pwa/                # service-worker-register, install-prompt
 │   └── profile/            # header, tabs, delete-user-button, edit-profile-dialog, notification-settings, complete-profile-banner, bot-management, create-bot-dialog, edit-bot-dialog
@@ -90,6 +90,7 @@ src/
 │   └── use-realtime.ts     # Supabase realtime subscription
 ├── lib/
 │   ├── activity.ts         # logTaskActivity() — client-side fire-and-forget activity logging
+│   ├── activity-format.ts  # formatActivityDetails(), groupIntoSessions() — shared activity rendering helpers
 │   ├── constants.ts        # Status/comment type configs, sort options, tags, board defaults, LABEL_COLORS, ACTIVITY_ACTIONS, BOT_ROLE_TEMPLATES
 │   ├── dashboard-order.ts  # Panel reordering utils (PanelPlacement, DEFAULT_PANEL_ORDER, move/reconcile/localStorage helpers)
 │   ├── import.ts           # CSV/JSON/bulk-text parsers, auto-mapping, executeBulkImport()
@@ -193,7 +194,8 @@ mcp-server/                 # MCP server for Claude Code integration
 - All dashboard sections wrapped in `CollapsibleSection` (client component): chevron toggle, item count badge, collapse state persisted in `localStorage` (`dashboard-collapsed-{sectionId}`), all expanded by default
 - My Tasks and Recent Activity bounded to 5 items with "Show all (N)" toggle (session-only, not persisted)
 - Dashboard "Active Boards" section shows up to 5 most recently active boards (by task `updated_at`) for ideas the user owns or collaborates on, with per-column task counts
-- Dashboard "My Bots" section (conditionally rendered if user has bots): shows each bot's name, role badge, MCP Active badge (if `users.active_bot_id` matches), current task assignment (most recent non-done, non-archived task), last activity action + relative time; inactive bots dimmed; links to profile for management
+- Dashboard "My Bots" section (conditionally rendered if user has bots): shows each bot's name, role badge, MCP Active badge (if `users.active_bot_id` matches), current task assignment (most recent non-done, non-archived task), last activity action + relative time; inactive bots dimmed; clicking a bot opens bot activity dialog
+- Bot activity dialog: assigned tasks, merged activity+comments feed grouped by session (30-min gap), activity details rendered from JSONB (e.g. "moved to In Progress", "added a label "Bug""), comment previews with markdown rendering
 - Idea card board icon (`LayoutDashboard`) is a `<Link>` to `/ideas/[id]/board` (shown when `taskCount > 0`)
 - Board uses @dnd-kit for drag-and-drop with optimistic UI updates
   - `MouseSensor` (distance: 8) for desktop, `TouchSensor` (delay: 200ms) for mobile, `KeyboardSensor` for a11y
@@ -257,7 +259,7 @@ mcp-server/                 # MCP server for Claude Code integration
 - **Framework**: Vitest + jsdom + @testing-library/react
 - **Config**: `vitest.config.ts` (react plugin, `@/` alias, `src/test/setup.ts`)
 - **Test files**: Co-located as `*.test.ts` next to source (e.g., `utils.test.ts`, `import.test.ts`)
-- **Coverage**: 230 tests across 10 files — utils, validation, types, import parsers, constants integrity, prompt builder, dashboard-order, OAuth endpoints (PKCE, registration, authorization, token exchange), well-known metadata, MCP register-tools (incl. bot identity persistence)
+- **Coverage**: 253 tests across 11 files — utils, validation, types, import parsers, constants integrity, prompt builder, dashboard-order, activity-format, OAuth endpoints (PKCE, registration, authorization, token exchange), well-known metadata, MCP register-tools (incl. bot identity persistence)
 - **Convention**: Write tests for all new pure logic, validators, parsers, and utility functions. Component/UI changes are verified via build + manual testing.
 - **Run**: `npm run test` (single run) or `npm run test:watch` (watch mode)
 

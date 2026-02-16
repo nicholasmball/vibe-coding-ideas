@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/utils";
+import { formatActivityDetails } from "@/lib/activity-format";
 import { ACTIVITY_ACTIONS } from "@/lib/constants";
 import type { BoardTaskActivityWithActor } from "@/types";
 
@@ -160,6 +161,10 @@ export function ActivityTimeline({ taskId, ideaId }: ActivityTimelineProps) {
               ? ICON_MAP[config.icon] ?? Activity
               : Activity;
             const label = config?.label ?? activity.action;
+            const detailText = formatActivityDetails(
+              activity.action,
+              activity.details as Record<string, unknown> | null
+            );
 
             return (
               <div key={activity.id} className="flex items-start gap-2">
@@ -175,6 +180,9 @@ export function ActivityTimeline({ taskId, ideaId }: ActivityTimelineProps) {
                       {activity.actor?.full_name ?? "Someone"}
                     </span>{" "}
                     {label}
+                    {detailText && (
+                      <span className="text-muted-foreground"> {detailText}</span>
+                    )}
                   </p>
                   <p className="text-[10px] text-muted-foreground">
                     {formatRelativeTime(activity.created_at)}

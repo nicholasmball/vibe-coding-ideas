@@ -72,7 +72,7 @@ export function Markdown({ children, className }: MarkdownProps) {
           if (isBlock) {
             return (
               <code
-                className={`block overflow-x-auto rounded-lg bg-muted p-4 text-sm ${className ?? ""}`}
+                className={`block overflow-x-auto max-w-full rounded-lg bg-muted p-4 text-sm ${className ?? ""}`}
                 {...props}
               >
                 {children}
@@ -80,7 +80,7 @@ export function Markdown({ children, className }: MarkdownProps) {
             );
           }
           return (
-            <code className="rounded bg-muted px-1.5 py-0.5 text-sm" {...props}>
+            <code className="rounded bg-muted px-1.5 py-0.5 text-sm break-all" {...props}>
               {children}
             </code>
           );

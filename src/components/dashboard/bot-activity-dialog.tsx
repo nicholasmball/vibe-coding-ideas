@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import {
   Plus,
@@ -34,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/utils";
+import { formatActivityDetails, groupIntoSessions } from "@/lib/activity-format";
 import { ACTIVITY_ACTIONS } from "@/lib/constants";
 import type { DashboardBot } from "@/types";
 
@@ -66,6 +67,28 @@ type BotActivityEntry = {
   idea: { id: string; title: string } | null;
 };
 
+type BotCommentEntry = {
+  id: string;
+  content: string;
+  created_at: string;
+  task: { id: string; title: string } | null;
+  idea: { id: string; title: string } | null;
+};
+
+/** Unified feed entry — either an activity or a comment. */
+type FeedEntry = {
+  id: string;
+  kind: "activity" | "comment";
+  created_at: string;
+  task: { id: string; title: string } | null;
+  idea: { id: string; title: string } | null;
+  // Activity-specific
+  action?: string;
+  details?: Record<string, unknown> | null;
+  // Comment-specific
+  content?: string;
+};
+
 type BotAssignedTask = {
   id: string;
   title: string;
@@ -81,15 +104,130 @@ interface BotActivityDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
+function mergeAndSort(
+  activities: BotActivityEntry[],
+  comments: BotCommentEntry[]
+): FeedEntry[] {
+  const feed: FeedEntry[] = [];
+
+  for (const a of activities) {
+    // Skip comment_added activities — the actual comment is shown from board_task_comments
+    if (a.action === "comment_added" && comments.length > 0) continue;
+
+    feed.push({
+      id: a.id,
+      kind: "activity",
+      created_at: a.created_at,
+      task: a.task,
+      idea: a.idea,
+      action: a.action,
+      details: a.details,
+    });
+  }
+
+  for (const c of comments) {
+    feed.push({
+      id: `comment-${c.id}`,
+      kind: "comment",
+      created_at: c.created_at,
+      task: c.task,
+      idea: c.idea,
+      content: c.content,
+    });
+  }
+
+  // Newest first
+  feed.sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  );
+
+  return feed;
+}
+
+/** A run of consecutive entries about the same task (or no task). */
+type TaskGroup = {
+  taskId: string | null;
+  taskTitle: string | null;
+  ideaId: string | null;
+  ideaTitle: string | null;
+  entries: FeedEntry[];
+};
+
+/** Groups consecutive session entries by task — avoids repeating the task title on every line. */
+function groupByTask(entries: FeedEntry[]): TaskGroup[] {
+  if (entries.length === 0) return [];
+
+  const groups: TaskGroup[] = [];
+  let current: TaskGroup = {
+    taskId: entries[0].task?.id ?? null,
+    taskTitle: entries[0].task?.title ?? null,
+    ideaId: entries[0].idea?.id ?? null,
+    ideaTitle: entries[0].idea?.title ?? null,
+    entries: [entries[0]],
+  };
+
+  for (let i = 1; i < entries.length; i++) {
+    const entryTaskId = entries[i].task?.id ?? null;
+    if (entryTaskId === current.taskId) {
+      current.entries.push(entries[i]);
+    } else {
+      groups.push(current);
+      current = {
+        taskId: entryTaskId,
+        taskTitle: entries[i].task?.title ?? null,
+        ideaId: entries[i].idea?.id ?? null,
+        ideaTitle: entries[i].idea?.title ?? null,
+        entries: [entries[i]],
+      };
+    }
+  }
+  groups.push(current);
+  return groups;
+}
+
+function formatSessionTime(entries: FeedEntry[]): string {
+  if (entries.length === 0) return "";
+  // Entries are newest-first; last entry is the earliest
+  const earliest = entries[entries.length - 1].created_at;
+  const latest = entries[0].created_at;
+
+  const start = new Date(earliest);
+  const end = new Date(latest);
+
+  const dateStr = start.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+  const startTime = start.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  const endTime = end.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+
+  if (startTime === endTime) return `${dateStr} at ${startTime}`;
+  return `${dateStr}, ${startTime} – ${endTime}`;
+}
+
 export function BotActivityDialog({
   bot,
   open,
   onOpenChange,
 }: BotActivityDialogProps) {
   const [activities, setActivities] = useState<BotActivityEntry[]>([]);
+  const [comments, setComments] = useState<BotCommentEntry[]>([]);
   const [assignedTasks, setAssignedTasks] = useState<BotAssignedTask[]>([]);
   const [loading, setLoading] = useState(true);
   const [hasMore, setHasMore] = useState(false);
+
+  const feed = useMemo(
+    () => mergeAndSort(activities, comments),
+    [activities, comments]
+  );
+  const sessions = useMemo(() => groupIntoSessions(feed), [feed]);
 
   const fetchData = useCallback(
     async (offset = 0) => {
@@ -97,14 +235,22 @@ export function BotActivityDialog({
       const supabase = createClient();
 
       if (offset === 0) {
-        // Fetch both activity and assigned tasks on initial load
-        const [activityResult, tasksResult] = await Promise.all([
+        // Fetch activity, comments, and assigned tasks on initial load
+        const [activityResult, commentsResult, tasksResult] = await Promise.all([
           supabase
             .from("board_task_activity")
             .select(
               "id, action, details, created_at, task:board_tasks!board_task_activity_task_id_fkey(id, title), idea:ideas!board_task_activity_idea_id_fkey(id, title)"
             )
             .eq("actor_id", bot.id)
+            .order("created_at", { ascending: false })
+            .range(0, PAGE_SIZE - 1),
+          supabase
+            .from("board_task_comments")
+            .select(
+              "id, content, created_at, task:board_tasks!board_task_comments_task_id_fkey(id, title), idea:ideas!board_task_comments_idea_id_fkey(id, title)"
+            )
+            .eq("author_id", bot.id)
             .order("created_at", { ascending: false })
             .range(0, PAGE_SIZE - 1),
           supabase
@@ -122,12 +268,16 @@ export function BotActivityDialog({
         setActivities(actItems);
         setHasMore(actItems.length === PAGE_SIZE);
 
+        const commentItems = (commentsResult.data ??
+          []) as unknown as BotCommentEntry[];
+        setComments(commentItems);
+
         const taskItems = (
           (tasksResult.data ?? []) as unknown as BotAssignedTask[]
         ).filter((t) => !t.column.is_done_column);
         setAssignedTasks(taskItems);
       } else {
-        // Paginate activity only
+        // Paginate activity only (comments are limited to first page)
         const { data } = await supabase
           .from("board_task_activity")
           .select(
@@ -151,6 +301,7 @@ export function BotActivityDialog({
     if (open && bot) {
       setLoading(true);
       setActivities([]);
+      setComments([]);
       setAssignedTasks([]);
       fetchData();
     }
@@ -160,7 +311,7 @@ export function BotActivityDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <Avatar className="h-9 w-9 shrink-0">
@@ -238,67 +389,119 @@ export function BotActivityDialog({
             )}
           </section>
 
-          {/* Activity Feed Section */}
+          {/* Activity Feed Section (sessions) */}
           <section>
             <h3 className="text-sm font-medium mb-2 flex items-center gap-1.5">
               <Activity className="h-4 w-4" />
               Activity
-              {activities.length > 0 && (
+              {feed.length > 0 && (
                 <Badge
                   variant="secondary"
                   className="text-[10px] font-normal"
                 >
-                  {activities.length}
+                  {feed.length}
                   {hasMore ? "+" : ""}
                 </Badge>
               )}
             </h3>
             {loading ? (
               <p className="text-xs text-muted-foreground">Loading...</p>
-            ) : activities.length === 0 ? (
+            ) : feed.length === 0 ? (
               <p className="text-xs text-muted-foreground">
                 No activity recorded yet
               </p>
             ) : (
               <>
-                <ScrollArea className="max-h-72">
-                  <div className="space-y-2.5 pr-4">
-                    {activities.map((entry) => {
-                      const config = ACTIVITY_ACTIONS[entry.action];
-                      const IconComponent = config
-                        ? (ICON_MAP[config.icon] ?? Activity)
-                        : Activity;
-                      const label = config?.label ?? entry.action;
+                <ScrollArea className="max-h-96">
+                  <div className="space-y-4 pr-4 min-w-0 overflow-hidden">
+                    {sessions.map((session, sessionIdx) => {
+                      const taskGroups = groupByTask(session);
 
                       return (
-                        <div key={entry.id} className="flex items-start gap-2">
-                          <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted">
-                            <IconComponent className="h-3 w-3 text-muted-foreground" />
+                        <div key={sessionIdx}>
+                          {/* Session header */}
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className="h-px flex-1 bg-border" />
+                            <span className="text-[10px] text-muted-foreground shrink-0">
+                              {formatSessionTime(session)}
+                              {" "}
+                              ({session.length} {session.length === 1 ? "action" : "actions"})
+                            </span>
+                            <div className="h-px flex-1 bg-border" />
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs">
-                              <span className="font-medium">{label}</span>
-                              {entry.task && (
-                                <>
-                                  {" "}
-                                  <Link
-                                    href={`/ideas/${entry.idea?.id}/board?taskId=${entry.task.id}`}
-                                    className="text-primary hover:underline"
-                                    onClick={() => onOpenChange(false)}
-                                  >
-                                    {entry.task.title}
-                                  </Link>
-                                </>
-                              )}
-                            </p>
-                            {entry.idea && (
-                              <p className="text-[10px] text-muted-foreground truncate">
-                                {entry.idea.title}
-                              </p>
-                            )}
-                            <p className="text-[10px] text-muted-foreground">
-                              {formatRelativeTime(entry.created_at)}
-                            </p>
+
+                          {/* Task groups within session */}
+                          <div className="space-y-3">
+                            {taskGroups.map((group, groupIdx) => (
+                              <div key={groupIdx}>
+                                {/* Task title header (shown once per group) */}
+                                {group.taskTitle && (
+                                  <div className="mb-1.5 min-w-0 overflow-hidden">
+                                    <Link
+                                      href={`/ideas/${group.ideaId}/board?taskId=${group.taskId}`}
+                                      className="text-xs font-medium text-primary hover:underline truncate block"
+                                      onClick={() => onOpenChange(false)}
+                                      title={group.taskTitle}
+                                    >
+                                      {group.taskTitle}
+                                    </Link>
+                                    {group.ideaTitle && (
+                                      <p className="text-[10px] text-muted-foreground truncate">
+                                        {group.ideaTitle}
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Compact entries */}
+                                <div className="space-y-1.5 pl-2 border-l-2 border-border">
+                                  {group.entries.map((entry) => {
+                                    if (entry.kind === "comment") {
+                                      return (
+                                        <div key={entry.id} className="flex items-start gap-1.5">
+                                          <MessageSquare className="h-3 w-3 mt-0.5 shrink-0 text-muted-foreground" />
+                                          <div className="min-w-0 flex-1">
+                                            <div className="rounded-md border border-border bg-muted/30 px-2 py-1 text-xs max-h-12 overflow-hidden relative">
+                                              <p className="line-clamp-2 break-words whitespace-pre-wrap text-muted-foreground">{(entry.content ?? "").replace(/[`#*_~\[\]]/g, "").replace(/\n+/g, " ").slice(0, 200)}</p>
+                                            </div>
+                                            <p className="text-[10px] text-muted-foreground mt-0.5">
+                                              {formatRelativeTime(entry.created_at)}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      );
+                                    }
+
+                                    const config = entry.action
+                                      ? ACTIVITY_ACTIONS[entry.action]
+                                      : undefined;
+                                    const IconComponent = config
+                                      ? (ICON_MAP[config.icon] ?? Activity)
+                                      : Activity;
+                                    const label = config?.label ?? entry.action ?? "unknown action";
+                                    const detailText = formatActivityDetails(
+                                      entry.action ?? "",
+                                      entry.details ?? null
+                                    );
+
+                                    return (
+                                      <div key={entry.id} className="flex items-center gap-1.5">
+                                        <IconComponent className="h-3 w-3 shrink-0 text-muted-foreground" />
+                                        <span className="text-xs truncate">
+                                          {label}
+                                          {detailText && (
+                                            <span className="text-muted-foreground"> {detailText}</span>
+                                          )}
+                                        </span>
+                                        <span className="text-[10px] text-muted-foreground shrink-0 ml-auto">
+                                          {formatRelativeTime(entry.created_at)}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       );
