@@ -24,6 +24,13 @@ export function DueDatePicker({ taskId, ideaId, dueDate, currentUserId }: DueDat
   const [open, setOpen] = useState(false);
   const [optimisticDate, setOptimisticDate] = useState<string | null | undefined>(undefined);
 
+  // Reset optimistic state when the prop changes externally (e.g. via Realtime/MCP)
+  const [lastPropDate, setLastPropDate] = useState(dueDate);
+  if (dueDate !== lastPropDate) {
+    setLastPropDate(dueDate);
+    setOptimisticDate(undefined);
+  }
+
   const displayDate = optimisticDate !== undefined ? optimisticDate : dueDate;
   const selected = displayDate ? new Date(displayDate) : undefined;
   const status = displayDate ? getDueDateStatus(displayDate) : null;
