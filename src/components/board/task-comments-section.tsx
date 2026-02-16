@@ -253,8 +253,8 @@ export function TaskCommentsSection({
       {loading ? (
         <p className="text-xs text-muted-foreground">Loading...</p>
       ) : comments.length > 0 ? (
-        <div className="max-h-[45vh] overflow-y-auto rounded-md">
-          <div className="space-y-3 pr-1">
+        <div>
+          <div className="space-y-3">
             {comments.map((comment) => {
               const initials =
                 comment.author?.full_name
