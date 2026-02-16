@@ -16,7 +16,7 @@ export const supabase = createClient<Database>(
 );
 
 export const BOT_USER_ID =
-  process.env.VIBECODES_BOT_USER_ID || "a0000000-0000-0000-0000-000000000001";
+  process.env.VIBECODES_BOT_USER_ID || "a0000000-0000-4000-a000-000000000001";
 
 // Re-export constants for backward compatibility
 export { POSITION_GAP, DEFAULT_BOARD_COLUMNS, VALID_LABEL_COLORS } from "./constants";

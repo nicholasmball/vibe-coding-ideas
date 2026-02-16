@@ -33,7 +33,7 @@ export function EditBotDialog({ bot, children }: EditBotDialogProps) {
   const [deleting, setDeleting] = useState(false);
   const confirmTimer = useRef<ReturnType<typeof setTimeout>>(null);
 
-  const isDefaultBot = bot.id === "a0000000-0000-0000-0000-000000000001";
+  const isDefaultBot = bot.id === "a0000000-0000-4000-a000-000000000001";
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
