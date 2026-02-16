@@ -364,7 +364,7 @@ describe("POST /api/oauth/token (authorization_code)", () => {
     expect(body.scope).toBe("mcp:tools");
   });
 
-  it("falls back to stored tokens if refresh fails", async () => {
+  it("returns error if refresh fails instead of stale tokens", async () => {
     const authCode = makeAuthCode();
     const codeChain = makeChain({ data: authCode, error: null });
     const updateChain = makeChain({ data: null, error: null });
@@ -384,12 +384,11 @@ describe("POST /api/oauth/token (authorization_code)", () => {
     });
 
     const response = await tokenPOST(request);
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(400);
 
     const body = await response.json();
-    expect(body.access_token).toBe("sb-access-token");
-    expect(body.expires_in).toBe(3600);
-    expect(body.refresh_token).toBe("sb-refresh-token");
+    expect(body.error).toBe("invalid_grant");
+    expect(body.error_description).toContain("re-authenticate");
   });
 
   it("rejects missing required params", async () => {

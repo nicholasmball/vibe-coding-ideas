@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { Bot } from "lucide-react";
 import { getLabelColorConfig } from "@/lib/utils";
 import { createBoardTask, addLabelToTask } from "@/actions/board";
 import { logTaskActivity } from "@/lib/activity";
@@ -34,6 +35,7 @@ interface TaskEditDialogProps {
   teamMembers: User[];
   boardLabels: BoardLabel[];
   currentUserId: string;
+  userBots?: User[];
 }
 
 export function TaskEditDialog({
@@ -44,6 +46,7 @@ export function TaskEditDialog({
   teamMembers,
   boardLabels,
   currentUserId,
+  userBots = [],
 }: TaskEditDialogProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -133,6 +136,23 @@ export function TaskEditDialog({
                     {member.full_name ?? member.email}
                   </SelectItem>
                 ))}
+                {userBots.length > 0 && (
+                  <>
+                    <div className="px-2 py-1.5 text-[10px] font-medium text-muted-foreground">
+                      My Bots
+                    </div>
+                    {userBots
+                      .filter((b) => !teamMembers.some((m) => m.id === b.id))
+                      .map((bot) => (
+                        <SelectItem key={bot.id} value={bot.id}>
+                          <span className="inline-flex items-center gap-1">
+                            <Bot className="h-3 w-3" />
+                            {bot.full_name ?? bot.email}
+                          </span>
+                        </SelectItem>
+                      ))}
+                  </>
+                )}
               </SelectContent>
             </Select>
           </div>

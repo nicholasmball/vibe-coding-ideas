@@ -36,7 +36,7 @@ function renderMentions(text: string): React.ReactNode[] {
 
 export function Markdown({ children, className }: MarkdownProps) {
   return (
-    <div className={className}>
+    <div className={`min-w-0 ${className ?? ""}`}>
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
@@ -85,7 +85,7 @@ export function Markdown({ children, className }: MarkdownProps) {
             </code>
           );
         },
-        pre: ({ children }) => <pre className="mb-3 last:mb-0">{children}</pre>,
+        pre: ({ children }) => <pre className="mb-3 last:mb-0 overflow-x-auto">{children}</pre>,
         blockquote: ({ children }) => (
           <blockquote className="mb-3 border-l-2 border-primary/30 pl-4 italic text-muted-foreground">
             {children}

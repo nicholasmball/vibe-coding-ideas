@@ -215,6 +215,7 @@ export function BoardColumn({
         teamMembers={teamMembers}
         boardLabels={boardLabels}
         currentUserId={currentUserId}
+        userBots={userBots}
       />
       <ColumnEditDialog
         open={renameOpen}

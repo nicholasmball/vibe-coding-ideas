@@ -123,22 +123,18 @@ async function handleAuthorizationCode(body: FormData) {
     refresh_token: authCode.supabase_refresh_token,
   });
 
-  if (!refreshError && refreshed.session) {
-    return NextResponse.json({
-      access_token: refreshed.session.access_token,
-      token_type: "bearer",
-      expires_in: refreshed.session.expires_in,
-      refresh_token: refreshed.session.refresh_token,
-      scope: authCode.scope || "mcp:tools",
-    });
+  if (refreshError || !refreshed.session) {
+    return NextResponse.json(
+      { error: "invalid_grant", error_description: "Session expired — please re-authenticate" },
+      { status: 400 }
+    );
   }
 
-  // Fallback to stored tokens if refresh fails
   return NextResponse.json({
-    access_token: authCode.supabase_access_token,
+    access_token: refreshed.session.access_token,
     token_type: "bearer",
-    expires_in: 3600,
-    refresh_token: authCode.supabase_refresh_token,
+    expires_in: refreshed.session.expires_in,
+    refresh_token: refreshed.session.refresh_token,
     scope: authCode.scope || "mcp:tools",
   });
 }

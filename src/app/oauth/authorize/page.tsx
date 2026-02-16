@@ -47,7 +47,14 @@ function OAuthAuthorizeContent() {
 
     const checkSession = async () => {
       const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
+      // Validate session server-side (getSession only reads local storage)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setCheckingSession(false);
+        return;
+      }
+      // Refresh to get the freshest token pair with maximum TTL
+      const { data: { session } } = await supabase.auth.refreshSession();
       if (session) {
         await completeAuthorization(session.access_token, session.refresh_token);
       } else {
