@@ -71,5 +71,24 @@ export type DashboardTask = BoardTask & {
   idea: { id: string; title: string };
 };
 
+// Dashboard bot types
+export type DashboardBotTask = {
+  id: string;
+  title: string;
+  idea: { id: string; title: string };
+  column: { title: string };
+};
+
+export type DashboardBotActivity = {
+  action: string;
+  created_at: string;
+};
+
+export type DashboardBot = BotProfile & {
+  currentTask: DashboardBotTask | null;
+  lastActivity: DashboardBotActivity | null;
+  isActiveMcpBot: boolean;
+};
+
 // Sort options
 export type SortOption = "newest" | "popular" | "discussed";

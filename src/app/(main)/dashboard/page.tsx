@@ -6,6 +6,7 @@ import { getDueDateStatus } from "@/lib/utils";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { ActiveBoards } from "@/components/dashboard/active-boards";
 import type { ActiveBoard } from "@/components/dashboard/active-boards";
+import { MyBots } from "@/components/dashboard/my-bots";
 import { MyTasksList } from "@/components/dashboard/my-tasks-list";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { IdeaCard } from "@/components/ideas/idea-card";
@@ -14,7 +15,11 @@ import type {
   IdeaWithAuthor,
   NotificationWithDetails,
   DashboardTask,
+  DashboardBot,
+  DashboardBotTask,
+  DashboardBotActivity,
   BoardLabel,
+  BotProfile,
 } from "@/types";
 
 export const metadata = {
@@ -39,6 +44,8 @@ export default async function DashboardPage() {
     votesResult,
     notificationsResult,
     tasksResult,
+    botProfilesResult,
+    currentUserResult,
   ] = await Promise.all([
     // My ideas (limit 5)
     supabase
@@ -89,6 +96,18 @@ export default async function DashboardPage() {
       )
       .eq("assignee_id", user.id)
       .eq("archived", false),
+    // Bot profiles owned by user
+    supabase
+      .from("bot_profiles")
+      .select("*")
+      .eq("owner_id", user.id)
+      .order("created_at"),
+    // Current user record (for active_bot_id)
+    supabase
+      .from("users")
+      .select("active_bot_id")
+      .eq("id", user.id)
+      .maybeSingle(),
   ]);
 
   const myIdeas = (myIdeasResult.data ?? []) as unknown as IdeaWithAuthor[];
@@ -107,12 +126,17 @@ export default async function DashboardPage() {
     (tasksResult.data ?? []) as unknown as DashboardTask[]
   ).filter((t) => !t.column.is_done_column);
 
+  // Bot profiles
+  const botProfiles = (botProfilesResult.data ?? []) as BotProfile[];
+  const activeBotId = currentUserResult.data?.active_bot_id ?? null;
+  const botUserIds = botProfiles.map((b) => b.id);
+
   // All idea IDs the user owns or collaborates on (for board queries)
   const myIdeaIds = (myIdeaIdsResult.data ?? []).map((i) => i.id);
   const allUserIdeaIds = [...new Set([...myIdeaIds, ...collabIdeaIds])];
 
   // Phase 2: Dependent queries
-  const [collabIdeasResult, taskLabelsResult, boardColumnsResult, boardTasksResult] = await Promise.all([
+  const [collabIdeasResult, taskLabelsResult, boardColumnsResult, boardTasksResult, botTasksResult, botActivityResult] = await Promise.all([
     // Collaboration idea details
     collabIdeaIds.length > 0
       ? supabase
@@ -148,9 +172,68 @@ export default async function DashboardPage() {
           .in("idea_id", allUserIdeaIds)
           .eq("archived", false)
       : Promise.resolve({ data: [] }),
+    // Tasks assigned to bots (non-archived, with column + idea info)
+    botUserIds.length > 0
+      ? supabase
+          .from("board_tasks")
+          .select(
+            "id, title, assignee_id, updated_at, column:board_columns!board_tasks_column_id_fkey(title, is_done_column), idea:ideas!board_tasks_idea_id_fkey(id, title)"
+          )
+          .in("assignee_id", botUserIds)
+          .eq("archived", false)
+          .order("updated_at", { ascending: false })
+      : Promise.resolve({ data: [] }),
+    // Recent activity by bots
+    botUserIds.length > 0
+      ? supabase
+          .from("board_task_activity")
+          .select("actor_id, action, created_at")
+          .in("actor_id", botUserIds)
+          .order("created_at", { ascending: false })
+          .limit(botUserIds.length * 3)
+      : Promise.resolve({ data: [] }),
   ]);
 
   const collabIdeas = (collabIdeasResult.data ?? []) as unknown as IdeaWithAuthor[];
+
+  // Process bot dashboard data
+  type BotTaskRow = { id: string; title: string; assignee_id: string; updated_at: string; column: { title: string; is_done_column: boolean }; idea: { id: string; title: string } };
+  type BotActivityRow = { actor_id: string; action: string; created_at: string };
+  const botTaskRows = (botTasksResult.data ?? []) as unknown as BotTaskRow[];
+  const botActivityRows = (botActivityResult.data ?? []) as BotActivityRow[];
+
+  // Find most recent non-done-column task per bot
+  const botCurrentTask = new Map<string, DashboardBotTask>();
+  for (const t of botTaskRows) {
+    if (t.column.is_done_column) continue;
+    if (!botCurrentTask.has(t.assignee_id)) {
+      botCurrentTask.set(t.assignee_id, {
+        id: t.id,
+        title: t.title,
+        idea: t.idea,
+        column: { title: t.column.title },
+      });
+    }
+  }
+
+  // Find most recent activity per bot
+  const botLastActivity = new Map<string, DashboardBotActivity>();
+  for (const a of botActivityRows) {
+    if (!botLastActivity.has(a.actor_id)) {
+      botLastActivity.set(a.actor_id, {
+        action: a.action,
+        created_at: a.created_at,
+      });
+    }
+  }
+
+  // Assemble DashboardBot[]
+  const dashboardBots: DashboardBot[] = botProfiles.map((bot) => ({
+    ...bot,
+    currentTask: botCurrentTask.get(bot.id) ?? null,
+    lastActivity: botLastActivity.get(bot.id) ?? null,
+    isActiveMcpBot: activeBotId === bot.id,
+  }));
 
   // Process active boards data
   type BoardColumnRow = { id: string; idea_id: string; title: string; is_done_column: boolean; position: number; idea: { id: string; title: string } };
@@ -269,6 +352,13 @@ export default async function DashboardPage() {
       <div className="mt-8">
         <ActiveBoards boards={topActiveBoards} />
       </div>
+
+      {/* My Bots */}
+      {dashboardBots.length > 0 && (
+        <div className="mt-8">
+          <MyBots bots={dashboardBots} userId={user.id} />
+        </div>
+      )}
 
       {/* My Tasks */}
       <div className="mt-8">

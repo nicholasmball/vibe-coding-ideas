@@ -81,7 +81,7 @@ src/
 │   ├── auth/               # oauth-buttons
 │   ├── ideas/              # card, feed, form, edit-form, vote-button, collaborator-button, add-collaborator-popover, remove-collaborator-button, etc.
 │   ├── board/              # kanban-board, board-column, board-task-card, board-toolbar, task-edit-dialog, task-detail-dialog, column-edit-dialog, add-column-button, board-realtime, label-picker, due-date-picker, due-date-badge, task-label-badges, checklist-section, activity-timeline, task-comments-section, task-attachments-section, mention-autocomplete, import-dialog, import-csv-tab, import-json-tab, import-bulk-text-tab, import-column-mapper, import-preview-table
-│   ├── dashboard/          # stats-cards, active-boards, my-tasks-list, activity-feed
+│   ├── dashboard/          # stats-cards, active-boards, my-bots, my-tasks-list, activity-feed
 │   ├── comments/           # thread, item, form, type-badge
 │   ├── pwa/                # service-worker-register, install-prompt
 │   └── profile/            # header, tabs, delete-user-button, edit-profile-dialog, notification-settings, complete-profile-banner, bot-management, create-bot-dialog, edit-bot-dialog
@@ -183,6 +183,7 @@ mcp-server/                 # MCP server for Claude Code integration
 - `board_columns.is_done_column` (boolean) marks columns where tasks are considered complete
 - Dashboard excludes archived tasks and tasks in done columns
 - Dashboard "Active Boards" section shows up to 5 most recently active boards (by task `updated_at`) for ideas the user owns or collaborates on, with per-column task counts
+- Dashboard "My Bots" section (conditionally rendered if user has bots): shows each bot's name, role badge, MCP Active badge (if `users.active_bot_id` matches), current task assignment (most recent non-done, non-archived task), last activity action + relative time; inactive bots dimmed; links to profile for management
 - Idea card board icon (`LayoutDashboard`) is a `<Link>` to `/ideas/[id]/board` (shown when `taskCount > 0`)
 - Board uses @dnd-kit for drag-and-drop with optimistic UI updates
   - `MouseSensor` (distance: 8) for desktop, `TouchSensor` (delay: 200ms) for mobile, `KeyboardSensor` for a11y
