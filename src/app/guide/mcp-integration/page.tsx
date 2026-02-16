@@ -270,7 +270,7 @@ export default function McpIntegrationPage() {
                 </tr>
                 <tr className="border-b border-border/50">
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">set_bot_identity</td>
-                  <td className="py-2">Switch session to act as a specific bot persona</td>
+                  <td className="py-2">Switch to a bot persona (persisted across sessions)</td>
                 </tr>
                 <tr>
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">create_bot</td>

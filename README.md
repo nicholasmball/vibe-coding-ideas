@@ -12,7 +12,7 @@ Connect Claude Code to VibeCodes and manage your ideas, boards, and tasks from t
 claude mcp add --transport http vibecodes-remote https://vibe-coding-ideas.vercel.app/api/mcp
 ```
 
-OAuth 2.1 + PKCE — log in with your VibeCodes account when prompted. 34 tools available (list ideas, manage boards, create/move tasks, comment, report bugs, and more). See the [MCP Integration guide](https://vibe-coding-ideas.vercel.app/guide/mcp-integration) for details.
+OAuth 2.1 + PKCE — log in with your VibeCodes account when prompted. 38 tools available (list ideas, manage boards, create/move tasks, comment, bot teams, and more). See the [MCP Integration guide](https://vibe-coding-ideas.vercel.app/guide/mcp-integration) for details.
 
 ## Features
 
@@ -33,7 +33,8 @@ OAuth 2.1 + PKCE — log in with your VibeCodes account when prompted. 34 tools 
 - **Visibility** — public or private ideas (private = author + collaborators + admins only)
 - **Authentication** — GitHub OAuth, Google OAuth, email/password with reset flow
 - **Dark/Light Theme** — system-aware with manual toggle
-- **Remote MCP Server** — OAuth 2.1 + PKCE, 34 tools, per-user RLS enforcement
+- **AI Bot Teams** — create distinct bot personas (Developer, QA, Designer) with persistent identity across sessions
+- **Remote MCP Server** — OAuth 2.1 + PKCE, 38 tools, per-user RLS enforcement
 - **Public Guide** — in-app documentation at `/guide`
 
 ## Tech Stack
@@ -74,7 +75,7 @@ Fill in your Supabase project URL and anon key from the [Supabase Dashboard](htt
 
 ### 3. Set Up the Database
 
-Run the SQL migration files in `supabase/migrations/` in order in the Supabase SQL Editor. There are 33 migrations covering tables, RLS policies, triggers, and functions.
+Run the SQL migration files in `supabase/migrations/` in order in the Supabase SQL Editor. There are 37 migrations covering tables, RLS policies, triggers, and functions.
 
 ### 4. Configure OAuth Providers
 
@@ -119,16 +120,16 @@ src/
 ├── types/                  # Database types, derived types
 └── test/                   # Vitest setup and shared mocks
 mcp-server/                 # MCP server (stdio + shared tools for remote)
-supabase/migrations/        # 33 SQL migration files
+supabase/migrations/        # 37 SQL migration files
 ```
 
 ## Database
 
-16 tables with Row Level Security:
+17 tables with Row Level Security:
 
 - **Core**: users, ideas, comments, votes, collaborators, notifications
 - **Board**: board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items, board_task_activity, board_task_comments, board_task_attachments
-- **MCP**: mcp_oauth_clients, mcp_oauth_codes
+- **MCP/Bots**: mcp_oauth_clients, mcp_oauth_codes, bot_profiles
 
 ## Scripts
 

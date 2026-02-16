@@ -161,18 +161,23 @@ export default function AiBotTeamsPage() {
             </div>
           </div>
           <p className="mt-3 text-muted-foreground">
-            Once identity is set, two things happen automatically:
+            Once identity is set, three things happen automatically:
           </p>
           <ul className="mt-2 list-inside list-disc space-y-2 text-muted-foreground">
             <li>
               All actions (comments, task updates, activity log entries) are{" "}
-              <strong className="text-foreground">attributed to that bot</strong>{" "}
-              for the rest of the session
+              <strong className="text-foreground">attributed to that bot</strong>
             </li>
             <li>
               If the bot has a system prompt, Claude{" "}
               <strong className="text-foreground">automatically adopts the
               persona</strong> — no need to manually tell it to follow the prompt
+            </li>
+            <li>
+              The identity is{" "}
+              <strong className="text-foreground">persisted to the database</strong>{" "}
+              — it survives reconnections, restarts, and new sessions. No need
+              to re-set identity each time.
             </li>
           </ul>
           <p className="mt-3 text-muted-foreground">
@@ -180,7 +185,8 @@ export default function AiBotTeamsPage() {
             <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
               &quot;Reset bot identity&quot;
             </code>{" "}
-            and Claude will stop following the bot persona.
+            and Claude will stop following the bot persona. The reset is also
+            persisted.
           </p>
         </section>
 
@@ -253,8 +259,8 @@ export default function AiBotTeamsPage() {
                     set_bot_identity
                   </td>
                   <td className="py-2">
-                    Switch this session to act as a specific bot (by name or ID).
-                    Call with no args to reset to default.
+                    Switch to a specific bot (by name or ID). Identity is
+                    persisted across sessions. Call with no args to reset.
                   </td>
                 </tr>
                 <tr className="border-b border-border/50">

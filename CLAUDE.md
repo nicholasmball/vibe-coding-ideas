@@ -114,7 +114,7 @@ public/
 ├── apple-touch-icon.png    # Apple touch icon (180x180)
 └── icons/                  # PWA icons (192, 512, maskable-512)
 scripts/generate-icons.mjs  # One-time icon generation script (requires sharp)
-supabase/migrations/        # 34 SQL migration files (run in order)
+supabase/migrations/        # 37 SQL migration files (run in order)
 mcp-server/                 # MCP server for Claude Code integration
 ├── package.json            # ESM, separate deps
 ├── tsconfig.json           # noEmit, includes ../src/types
@@ -211,6 +211,7 @@ mcp-server/                 # MCP server for Claude Code integration
 
 ### Multi-Bot Support
 - `users.is_bot` (boolean) distinguishes bot users from human users
+- `users.active_bot_id` (UUID, FK to bot_profiles, ON DELETE SET NULL) persists the active bot identity across sessions
 - `bot_profiles` table stores bot metadata: name, role, system_prompt, avatar_url, is_active, owner_id
 - `create_bot_user` and `delete_bot_user` SECURITY DEFINER RPCs handle atomic bot creation/deletion
 - Bots get their own `users` row for FK compatibility (assignee_id, actor_id, author_id)
@@ -219,7 +220,8 @@ mcp-server/                 # MCP server for Claude Code integration
 - Assignee picker in task detail dialog includes "My Bots" section below team members
 - Bot indicators (Bot icon) shown in activity timeline, task comments, task cards, and assignee avatars
 - Auto-collaborator: assigning a bot to a task automatically adds it as collaborator on the idea
-- MCP `set_bot_identity` tool allows session-level identity switching; `VIBECODES_BOT_ID` env var for startup
+- MCP `set_bot_identity` tool persists identity to DB (`users.active_bot_id`) — survives reconnections, restarts, and context compaction
+- `VIBECODES_BOT_ID` env var overrides DB-persisted identity on local MCP startup
 - `McpContext.ownerUserId` distinguishes the real human from the active bot identity (for ownership validation)
 
 ### PWA (Progressive Web App)
@@ -244,7 +246,7 @@ mcp-server/                 # MCP server for Claude Code integration
 - **Framework**: Vitest + jsdom + @testing-library/react
 - **Config**: `vitest.config.ts` (react plugin, `@/` alias, `src/test/setup.ts`)
 - **Test files**: Co-located as `*.test.ts` next to source (e.g., `utils.test.ts`, `import.test.ts`)
-- **Coverage**: 173 tests across 8 files — utils, validation, types, import parsers, constants integrity, OAuth endpoints (PKCE, registration, authorization, token exchange), well-known metadata, MCP register-tools (incl. bot tools)
+- **Coverage**: 192 tests across 9 files — utils, validation, types, import parsers, constants integrity, prompt builder, OAuth endpoints (PKCE, registration, authorization, token exchange), well-known metadata, MCP register-tools (incl. bot identity persistence)
 - **Convention**: Write tests for all new pure logic, validators, parsers, and utility functions. Component/UI changes are verified via build + manual testing.
 - **Run**: `npm run test` (single run) or `npm run test:watch` (watch mode)
 
@@ -346,9 +348,9 @@ Both modes share the same 38 tools via `mcp-server/src/register-tools.ts` with d
 ### Architecture (Dependency Injection)
 - `mcp-server/src/context.ts` defines `McpContext` interface: `{ supabase, userId, ownerUserId? }`
 - All tool handler functions accept `ctx: McpContext` as first parameter
-- `mcp-server/src/register-tools.ts` wires tools to MCP server via `getContext(extra)` callback
-- Local mode: mutable context (service-role + bot user, identity switchable via `set_bot_identity`)
-- Remote mode: per-request context (user JWT + user ID from auth, `ownerUserId` tracks real human)
+- `mcp-server/src/register-tools.ts` wires tools to MCP server via `getContext(extra)` callback (sync or async)
+- Local mode: mutable context (service-role + bot user, identity switchable via `set_bot_identity`); reads persisted `active_bot_id` from DB on startup if no `VIBECODES_BOT_ID` env var
+- Remote mode: per-request context (user JWT + user ID from auth, `ownerUserId` tracks real human); lazily reads persisted `active_bot_id` from DB on first tool call per connection
 
 ### Key Details
 - All write tools log to `board_task_activity` with `actor_id` from context (bot or real user)
