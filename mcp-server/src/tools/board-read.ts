@@ -8,6 +8,10 @@ export const getBoardSchema = z.object({
     .boolean()
     .default(false)
     .describe("Include archived tasks"),
+  exclude_done: z
+    .boolean()
+    .default(true)
+    .describe("Exclude tasks in done columns (default true)"),
 });
 
 export async function getBoard(ctx: McpContext, params: z.infer<typeof getBoardSchema>) {
@@ -69,28 +73,34 @@ export async function getBoard(ctx: McpContext, params: z.infer<typeof getBoardS
     .select("*")
     .eq("idea_id", params.idea_id);
 
-  // Group tasks by column
-  const board = columns!.map((col) => ({
-    ...col,
-    tasks: (tasks ?? [])
-      .filter((t) => t.column_id === col.id)
-      .map((t) => ({
-        id: t.id,
-        title: t.title,
-        description: t.description,
-        position: t.position,
-        assignee: (t as Record<string, unknown>).users ?? null,
-        due_date: t.due_date,
-        archived: t.archived,
-        checklist_total: t.checklist_total,
-        checklist_done: t.checklist_done,
-        attachment_count: t.attachment_count,
-        labels:
-          ((t as Record<string, unknown>).board_task_labels as Array<Record<string, unknown>>)?.map(
-            (tl) => tl.board_labels
-          ) ?? [],
-      })),
-  }));
+  // Determine which columns to exclude (done columns when exclude_done is true)
+  const doneColumnIds = params.exclude_done
+    ? new Set(columns!.filter((c) => c.is_done_column).map((c) => c.id))
+    : new Set<string>();
+
+  // Group tasks by column, omit descriptions to keep payload small (use get_task for full details)
+  const board = columns!
+    .filter((col) => !doneColumnIds.has(col.id))
+    .map((col) => ({
+      ...col,
+      tasks: (tasks ?? [])
+        .filter((t) => t.column_id === col.id)
+        .map((t) => ({
+          id: t.id,
+          title: t.title,
+          position: t.position,
+          assignee: (t as Record<string, unknown>).users ?? null,
+          due_date: t.due_date,
+          archived: t.archived,
+          checklist_total: t.checklist_total,
+          checklist_done: t.checklist_done,
+          attachment_count: t.attachment_count,
+          labels:
+            ((t as Record<string, unknown>).board_task_labels as Array<Record<string, unknown>>)?.map(
+              (tl) => tl.board_labels
+            ) ?? [],
+        })),
+    }));
 
   return { columns: board, labels: labels ?? [] };
 }
@@ -218,10 +228,11 @@ export async function getMyTasks(ctx: McpContext, params: z.infer<typeof getMyTa
     if (!grouped[ideaId]) {
       grouped[ideaId] = { idea_id: ideaId, idea_title: ideaTitle, tasks: [] };
     }
+    const desc = task.description;
     grouped[ideaId].tasks.push({
       id: task.id,
       title: task.title,
-      description: task.description,
+      description: desc && desc.length > 200 ? desc.slice(0, 200) + "…" : desc,
       column: ((task as Record<string, unknown>).board_columns as Record<string, unknown>)?.title,
       due_date: task.due_date,
       checklist_total: task.checklist_total,
