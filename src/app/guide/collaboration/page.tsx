@@ -60,7 +60,7 @@ export default function CollaborationPage() {
               button on your idea&apos;s detail page
             </li>
             <li>Search for users by name or email</li>
-            <li>The idea author is notified when a collaborator is added</li>
+            <li>The added user receives a notification letting them know</li>
             <li>
               You can remove collaborators from the collaborator list at any time
             </li>

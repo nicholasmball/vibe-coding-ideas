@@ -56,8 +56,9 @@ export default function AiBotTeamsPage() {
             <li>Enter a name (e.g., &quot;Dev Alpha&quot;)</li>
             <li>
               Pick a <strong className="text-foreground">role template</strong>{" "}
-              — Developer, UX Designer, Business Analyst, or QA Tester — or
-              leave it blank for a general-purpose bot
+              — Developer, UX Designer, Business Analyst, QA Tester, Product
+              Owner, Automated Tester, DevOps, or Support — or leave it blank
+              for a general-purpose bot
             </li>
             <li>
               Customize the <strong className="text-foreground">system prompt
@@ -80,9 +81,11 @@ export default function AiBotTeamsPage() {
         <section>
           <h2 className="mb-4 text-2xl font-semibold">Role Templates</h2>
           <p className="mb-4 text-muted-foreground">
-            VibeCodes includes four role templates with pre-written system
-            prompts. Pick one as a starting point, then edit to match your
-            needs:
+            VibeCodes includes eight role templates with pre-written system
+            prompts. Each template comes with a{" "}
+            <strong className="text-foreground">structured prompt</strong>{" "}
+            (goal, constraints, and approach) that you can customise. Pick one
+            as a starting point, then edit to match your needs:
           </p>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-lg border border-border p-4">
@@ -95,15 +98,15 @@ export default function AiBotTeamsPage() {
             <div className="rounded-lg border border-border p-4">
               <h3 className="font-medium">UX Designer</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Reviews for usability and accessibility. Adds design feedback
-                as comments. Suggests UI improvements.
+                Reviews for usability and accessibility. Checks WCAG
+                compliance. Suggests UI improvements.
               </p>
             </div>
             <div className="rounded-lg border border-border p-4">
               <h3 className="font-medium">Business Analyst</h3>
               <p className="mt-1 text-sm text-muted-foreground">
-                Reviews requirements for completeness. Asks clarifying
-                questions. Breaks vague tasks into actionable subtasks.
+                Reviews requirements for completeness. Writes acceptance
+                criteria. Breaks vague tasks into actionable subtasks.
               </p>
             </div>
             <div className="rounded-lg border border-border p-4">
@@ -113,7 +116,68 @@ export default function AiBotTeamsPage() {
                 Reports issues with reproduction steps.
               </p>
             </div>
+            <div className="rounded-lg border border-border p-4">
+              <h3 className="font-medium">Product Owner</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Prioritises backlog by user impact. Writes user stories.
+                Communicates trade-offs to stakeholders.
+              </p>
+            </div>
+            <div className="rounded-lg border border-border p-4">
+              <h3 className="font-medium">Automated Tester</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Writes and maintains automated tests. Tracks coverage.
+                Catches regressions early.
+              </p>
+            </div>
+            <div className="rounded-lg border border-border p-4">
+              <h3 className="font-medium">DevOps</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Manages CI/CD pipelines. Automates deployments. Keeps
+                environments consistent and monitored.
+              </p>
+            </div>
+            <div className="rounded-lg border border-border p-4">
+              <h3 className="font-medium">Support</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Triages user-reported issues. Reproduces bugs. Escalates
+                with clear reproduction steps and severity.
+              </p>
+            </div>
           </div>
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-2xl font-semibold">
+            Structured Prompt Builder
+          </h2>
+          <p className="mb-4 text-muted-foreground">
+            When creating or editing a bot, the{" "}
+            <strong className="text-foreground">prompt builder</strong> helps
+            you craft effective system prompts using three structured fields:
+          </p>
+          <ul className="list-inside list-disc space-y-2 text-muted-foreground">
+            <li>
+              <strong className="text-foreground">Goal</strong> — what the bot
+              should achieve (e.g., &quot;Deliver production-ready code that
+              follows project conventions&quot;)
+            </li>
+            <li>
+              <strong className="text-foreground">Constraints</strong> — what
+              the bot must never do (e.g., &quot;Ship code without tests&quot;)
+            </li>
+            <li>
+              <strong className="text-foreground">Approach</strong> — how the
+              bot should work (e.g., &quot;Read existing code before writing
+              new code&quot;)
+            </li>
+          </ul>
+          <p className="mt-3 text-muted-foreground">
+            Role templates pre-fill these fields. You can edit them or switch
+            to a freeform text prompt at any time. The builder combines the
+            fields into a single system prompt that Claude follows when acting
+            as that bot.
+          </p>
         </section>
 
         <section>
