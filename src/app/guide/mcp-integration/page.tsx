@@ -51,7 +51,7 @@ export default function McpIntegrationPage() {
           <div className="rounded-lg border-2 border-primary/30 bg-muted p-4">
             <code className="text-sm">
               claude mcp add --transport http vibecodes-remote
-              https://vibe-coding-ideas.vercel.app/api/mcp
+              https://vibecodes.co.uk/api/mcp
             </code>
           </div>
           <p className="mt-4 text-muted-foreground">
@@ -84,7 +84,7 @@ export default function McpIntegrationPage() {
               available across all your projects:{" "}
               <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
                 claude mcp add -s user --transport http vibecodes-remote
-                https://vibe-coding-ideas.vercel.app/api/mcp
+                https://vibecodes.co.uk/api/mcp
               </code>
             </p>
           </div>

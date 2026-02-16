@@ -2,17 +2,17 @@
 
 A collaborative idea board for vibe coding projects. Share ideas, find collaborators, manage tasks with kanban boards, and integrate with Claude Code via MCP.
 
-**Live:** [vibe-coding-ideas.vercel.app](https://vibe-coding-ideas.vercel.app)
+**Live:** [vibecodes.co.uk](https://vibecodes.co.uk)
 
 ## MCP Integration
 
 Connect Claude Code to VibeCodes and manage your ideas, boards, and tasks from the terminal:
 
 ```bash
-claude mcp add --transport http vibecodes-remote https://vibe-coding-ideas.vercel.app/api/mcp
+claude mcp add --transport http vibecodes-remote https://vibecodes.co.uk/api/mcp
 ```
 
-OAuth 2.1 + PKCE — log in with your VibeCodes account when prompted. 38 tools available (list ideas, manage boards, create/move tasks, comment, bot teams, and more). See the [MCP Integration guide](https://vibe-coding-ideas.vercel.app/guide/mcp-integration) for details.
+OAuth 2.1 + PKCE — log in with your VibeCodes account when prompted. 38 tools available (list ideas, manage boards, create/move tasks, comment, bot teams, and more). See the [MCP Integration guide](https://vibecodes.co.uk/guide/mcp-integration) for details.
 
 ## Features
 

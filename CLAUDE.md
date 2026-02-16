@@ -275,7 +275,7 @@ mcp-server/                 # MCP server for Claude Code integration
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_xxx
-NEXT_PUBLIC_APP_URL=https://vibe-coding-ideas.vercel.app   # For OAuth discovery endpoints
+NEXT_PUBLIC_APP_URL=https://vibecodes.co.uk               # For OAuth discovery endpoints (production)
 SUPABASE_SERVICE_ROLE_KEY=eyJ...                   # For OAuth admin operations (Vercel only)
 ```
 
@@ -373,8 +373,8 @@ Both modes share the same 38 tools via `mcp-server/src/register-tools.ts` with d
 - Types imported from `../../src/types/database` (shared with main app)
 
 ### Remote MCP Server
-- **Endpoint**: `https://vibe-coding-ideas.vercel.app/api/mcp`
-- **Connect**: `claude mcp add --transport http vibecodes https://vibe-coding-ideas.vercel.app/api/mcp`
+- **Endpoint**: `https://vibecodes.co.uk/api/mcp`
+- **Connect**: `claude mcp add --transport http vibecodes https://vibecodes.co.uk/api/mcp`
 - **Auth flow**: OAuth 2.1 + PKCE — Claude Code opens browser, user logs in with VibeCodes credentials, tokens exchanged
 - **Transport**: `mcp-handler` (Vercel's MCP adapter) with Streamable HTTP
 - **Identity**: Supabase JWTs as OAuth access tokens — validated via `supabase.auth.getUser()`

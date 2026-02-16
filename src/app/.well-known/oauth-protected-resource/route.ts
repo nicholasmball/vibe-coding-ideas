@@ -5,7 +5,7 @@ import {
 
 const handler = protectedResourceHandler({
   authServerUrls: [
-    process.env.NEXT_PUBLIC_APP_URL || "https://vibe-coding-ideas.vercel.app",
+    process.env.NEXT_PUBLIC_APP_URL || "https://vibecodes.co.uk",
   ],
 });
 
