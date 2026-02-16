@@ -48,7 +48,7 @@ export async function listBots(
   ctx: McpContext,
   args: z.infer<typeof listBotsSchema>
 ) {
-  const ownerId = args.owner_id ?? ctx.userId;
+  const ownerId = args.owner_id ?? ctx.ownerUserId ?? ctx.userId;
 
   const { data, error } = await ctx.supabase
     .from("bot_profiles")

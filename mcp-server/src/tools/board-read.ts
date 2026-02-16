@@ -29,7 +29,7 @@ export async function getBoard(ctx: McpContext, params: z.infer<typeof getBoardS
     const { data: userProfile } = await ctx.supabase
       .from("users")
       .select("default_board_columns")
-      .eq("id", ctx.userId)
+      .eq("id", ctx.ownerUserId ?? ctx.userId)
       .single();
 
     const columnDefs = userProfile?.default_board_columns ?? DEFAULT_BOARD_COLUMNS;

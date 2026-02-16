@@ -152,7 +152,7 @@ export async function createIdea(
     .insert({
       title: params.title,
       description: params.description,
-      author_id: ctx.userId,
+      author_id: ctx.ownerUserId ?? ctx.userId,
       tags: params.tags,
       visibility: params.visibility,
     })
@@ -182,14 +182,15 @@ export async function deleteIdea(
 
   if (!idea) throw new Error(`Idea not found: ${params.idea_id}`);
 
-  const isAuthor = idea.author_id === ctx.userId;
+  const humanId = ctx.ownerUserId ?? ctx.userId;
+  const isAuthor = idea.author_id === humanId;
 
   if (!isAuthor) {
     // Check if admin
     const { data: profile } = await ctx.supabase
       .from("users")
       .select("is_admin")
-      .eq("id", ctx.userId)
+      .eq("id", humanId)
       .single();
 
     if (!profile?.is_admin) {

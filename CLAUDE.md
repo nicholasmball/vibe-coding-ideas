@@ -259,7 +259,7 @@ mcp-server/                 # MCP server for Claude Code integration
 - **Framework**: Vitest + jsdom + @testing-library/react
 - **Config**: `vitest.config.ts` (react plugin, `@/` alias, `src/test/setup.ts`)
 - **Test files**: Co-located as `*.test.ts` next to source (e.g., `utils.test.ts`, `import.test.ts`)
-- **Coverage**: 253 tests across 11 files — utils, validation, types, import parsers, constants integrity, prompt builder, dashboard-order, activity-format, OAuth endpoints (PKCE, registration, authorization, token exchange), well-known metadata, MCP register-tools (incl. bot identity persistence)
+- **Coverage**: 265 tests across 12 files — utils, validation, types, import parsers, constants integrity, prompt builder, dashboard-order, activity-format, OAuth endpoints (PKCE, registration, authorization, token exchange), well-known metadata, MCP register-tools (incl. bot identity persistence), bot-identity context (human vs bot ID correctness)
 - **Convention**: Write tests for all new pure logic, validators, parsers, and utility functions. Component/UI changes are verified via build + manual testing.
 - **Run**: `npm run test` (single run) or `npm run test:watch` (watch mode)
 

@@ -14,7 +14,7 @@ export async function toggleVote(
     .from("votes")
     .select("id")
     .eq("idea_id", params.idea_id)
-    .eq("user_id", ctx.userId)
+    .eq("user_id", ctx.ownerUserId ?? ctx.userId)
     .maybeSingle();
 
   if (existingVote) {
@@ -23,7 +23,7 @@ export async function toggleVote(
       .from("votes")
       .delete()
       .eq("idea_id", params.idea_id)
-      .eq("user_id", ctx.userId);
+      .eq("user_id", ctx.ownerUserId ?? ctx.userId);
 
     if (error) throw new Error(`Failed to remove vote: ${error.message}`);
     return { success: true, action: "removed", voted: false };
@@ -31,7 +31,7 @@ export async function toggleVote(
     // Add vote
     const { error } = await ctx.supabase.from("votes").insert({
       idea_id: params.idea_id,
-      user_id: ctx.userId,
+      user_id: ctx.ownerUserId ?? ctx.userId,
       type: "upvote",
     });
 
