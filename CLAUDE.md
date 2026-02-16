@@ -58,7 +58,7 @@ src/
 │   │   └── mcp-integration/
 │   └── (main)/             # Authenticated routes (with navbar)
 │       ├── layout.tsx      # Navbar wrapper
-│       ├── dashboard/      # Personal dashboard (stats, active boards, tasks, ideas, activity)
+│       ├── dashboard/      # Personal dashboard (two-column grid, collapsible sections, bounded lists)
 │       ├── feed/           # Idea feed with search/filter/pagination
 │       ├── ideas/new       # Submit idea form
 │       ├── ideas/[id]      # Idea detail (votes, comments, collaborators)
@@ -81,7 +81,7 @@ src/
 │   ├── auth/               # oauth-buttons
 │   ├── ideas/              # card, feed, form, edit-form, vote-button, collaborator-button, add-collaborator-popover, remove-collaborator-button, etc.
 │   ├── board/              # kanban-board, board-column, board-task-card, board-toolbar, task-edit-dialog, task-detail-dialog, column-edit-dialog, add-column-button, board-realtime, label-picker, due-date-picker, due-date-badge, task-label-badges, checklist-section, activity-timeline, task-comments-section, task-attachments-section, mention-autocomplete, import-dialog, import-csv-tab, import-json-tab, import-bulk-text-tab, import-column-mapper, import-preview-table
-│   ├── dashboard/          # stats-cards, active-boards, my-bots, my-tasks-list, activity-feed
+│   ├── dashboard/          # collapsible-section, stats-cards, active-boards, my-bots, my-tasks-list, activity-feed
 │   ├── comments/           # thread, item, form, type-badge
 │   ├── pwa/                # service-worker-register, install-prompt
 │   └── profile/            # header, tabs, delete-user-button, edit-profile-dialog, notification-settings, complete-profile-banner, bot-management, create-bot-dialog, edit-bot-dialog
@@ -182,6 +182,11 @@ mcp-server/                 # MCP server for Claude Code integration
 - Board columns lazy-initialized with "To Do", "In Progress", "Done" (done column) on first visit
 - `board_columns.is_done_column` (boolean) marks columns where tasks are considered complete
 - Dashboard excludes archived tasks and tasks in done columns
+- Dashboard layout: two-column grid on `lg:` (1024px+), single column below; container `max-w-6xl`
+  - Left column: Active Boards, My Bots (conditional), My Tasks
+  - Right column: My Ideas, Collaborations, Recent Activity
+- All dashboard sections wrapped in `CollapsibleSection` (client component): chevron toggle, item count badge, collapse state persisted in `localStorage` (`dashboard-collapsed-{sectionId}`), all expanded by default
+- My Tasks and Recent Activity bounded to 5 items with "Show all (N)" toggle (session-only, not persisted)
 - Dashboard "Active Boards" section shows up to 5 most recently active boards (by task `updated_at`) for ideas the user owns or collaborates on, with per-column task counts
 - Dashboard "My Bots" section (conditionally rendered if user has bots): shows each bot's name, role badge, MCP Active badge (if `users.active_bot_id` matches), current task assignment (most recent non-done, non-archived task), last activity action + relative time; inactive bots dimmed; links to profile for management
 - Idea card board icon (`LayoutDashboard`) is a `<Link>` to `/ideas/[id]/board` (shown when `taskCount > 0`)
@@ -292,7 +297,7 @@ The MCP server has two modes:
 Both modes share the same 38 tools via `mcp-server/src/register-tools.ts` with dependency injection (`McpContext`).
 
 ### Bot User
-- **ID**: `a0000000-0000-0000-0000-000000000001`
+- **ID**: `a0000000-0000-4000-a000-000000000001`
 - **Email**: `bot@vibecodes.local`
 - Cannot log in (empty password) — only used by MCP server
 - Appears in activity logs, comments, and task assignments

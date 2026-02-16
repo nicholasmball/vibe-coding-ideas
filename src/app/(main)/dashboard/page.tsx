@@ -1,6 +1,15 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowRight, Lightbulb, Plus, Users } from "lucide-react";
+import {
+  ArrowRight,
+  Bell,
+  Bot,
+  CheckSquare,
+  LayoutDashboard,
+  Lightbulb,
+  Plus,
+  Users,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getDueDateStatus } from "@/lib/utils";
 import { StatsCards } from "@/components/dashboard/stats-cards";
@@ -9,6 +18,7 @@ import type { ActiveBoard } from "@/components/dashboard/active-boards";
 import { MyBots } from "@/components/dashboard/my-bots";
 import { MyTasksList } from "@/components/dashboard/my-tasks-list";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
+import { CollapsibleSection } from "@/components/dashboard/collapsible-section";
 import { IdeaCard } from "@/components/ideas/idea-card";
 import { Button } from "@/components/ui/button";
 import type {
@@ -337,10 +347,10 @@ export default async function DashboardPage() {
     });
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      <h1 className="mb-6 text-3xl font-bold">Dashboard</h1>
+    <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8 sm:px-6 lg:px-8">
+      <h1 className="mb-4 sm:mb-6 text-2xl sm:text-3xl font-bold">Dashboard</h1>
 
-      {/* Stats */}
+      {/* Stats — full width */}
       <StatsCards
         ideasCount={ideasCount}
         collaborationsCount={collaborationsCount}
@@ -348,111 +358,150 @@ export default async function DashboardPage() {
         tasksAssigned={tasks.length}
       />
 
-      {/* Active Boards */}
-      <div className="mt-8">
-        <ActiveBoards boards={topActiveBoards} />
-      </div>
+      {/* Two-column grid on lg:, single column below */}
+      <div className="mt-4 sm:mt-8 grid gap-4 sm:gap-6 lg:grid-cols-2">
+        {/* Left column */}
+        <div className="min-w-0 space-y-4 sm:space-y-6">
+          {/* Active Boards */}
+          <CollapsibleSection
+            sectionId="active-boards"
+            title="Active Boards"
+            icon={<LayoutDashboard className="h-5 w-5" />}
+            count={topActiveBoards.length}
+          >
+            <ActiveBoards boards={topActiveBoards} />
+          </CollapsibleSection>
 
-      {/* My Bots */}
-      {dashboardBots.length > 0 && (
-        <div className="mt-8">
-          <MyBots bots={dashboardBots} userId={user.id} />
-        </div>
-      )}
-
-      {/* My Tasks */}
-      <div className="mt-8">
-        <MyTasksList tasks={tasks} />
-      </div>
-
-      {/* My Ideas */}
-      <div className="mt-8">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-lg font-semibold">
-            <Lightbulb className="h-5 w-5" />
-            My Ideas
-          </h2>
-          {myIdeas.length > 0 && (
-            <Link
-              href={`/profile/${user.id}`}
-              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          {/* My Bots (conditional) */}
+          {dashboardBots.length > 0 && (
+            <CollapsibleSection
+              sectionId="my-bots"
+              title="My Bots"
+              icon={<Bot className="h-5 w-5" />}
+              count={dashboardBots.length}
+              headerRight={
+                <Link
+                  href={`/profile/${user.id}`}
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Manage
+                </Link>
+              }
             >
-              View all
-              <ArrowRight className="h-4 w-4" />
-            </Link>
+              <MyBots bots={dashboardBots} />
+            </CollapsibleSection>
           )}
-        </div>
-        {myIdeas.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border p-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              You haven&apos;t created any ideas yet.
-            </p>
-            <Link href="/ideas/new">
-              <Button variant="outline" size="sm" className="mt-3 gap-2">
-                <Plus className="h-4 w-4" />
-                Create your first idea
-              </Button>
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {myIdeas.map((idea) => (
-              <IdeaCard
-                key={idea.id}
-                idea={idea}
-                hasVoted={votedIdeaIds.has(idea.id)}
-                taskCount={taskCounts[idea.id]}
-              />
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* Collaborations */}
-      <div className="mt-8">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="flex items-center gap-2 text-lg font-semibold">
-            <Users className="h-5 w-5" />
-            Collaborations
-          </h2>
-          {collabIdeas.length > 0 && (
-            <Link
-              href={`/profile/${user.id}`}
-              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              View all
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          )}
+          {/* My Tasks */}
+          <CollapsibleSection
+            sectionId="my-tasks"
+            title="My Tasks"
+            icon={<CheckSquare className="h-5 w-5" />}
+            count={tasks.length}
+          >
+            <MyTasksList tasks={tasks} />
+          </CollapsibleSection>
         </div>
-        {collabIdeas.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-border p-8 text-center">
-            <p className="text-sm text-muted-foreground">
-              Not collaborating on any ideas yet.
-            </p>
-            <Link href="/feed">
-              <Button variant="outline" size="sm" className="mt-3">
-                Browse the feed
-              </Button>
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {collabIdeas.map((idea) => (
-              <IdeaCard
-                key={idea.id}
-                idea={idea}
-                hasVoted={votedIdeaIds.has(idea.id)}
-                taskCount={taskCounts[idea.id]}
-              />
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* Recent Activity */}
-      <div className="mt-8">
-        <ActivityFeed notifications={notifications} />
+        {/* Right column */}
+        <div className="min-w-0 space-y-4 sm:space-y-6">
+          {/* My Ideas */}
+          <CollapsibleSection
+            sectionId="my-ideas"
+            title="My Ideas"
+            icon={<Lightbulb className="h-5 w-5" />}
+            count={ideasCount}
+            headerRight={
+              myIdeas.length > 0 ? (
+                <Link
+                  href={`/profile/${user.id}`}
+                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  View all
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              ) : undefined
+            }
+          >
+            {myIdeas.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border p-8 text-center">
+                <p className="text-sm text-muted-foreground">
+                  You haven&apos;t created any ideas yet.
+                </p>
+                <Link href="/ideas/new">
+                  <Button variant="outline" size="sm" className="mt-3 gap-2">
+                    <Plus className="h-4 w-4" />
+                    Create your first idea
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {myIdeas.map((idea) => (
+                  <IdeaCard
+                    key={idea.id}
+                    idea={idea}
+                    hasVoted={votedIdeaIds.has(idea.id)}
+                    taskCount={taskCounts[idea.id]}
+                  />
+                ))}
+              </div>
+            )}
+          </CollapsibleSection>
+
+          {/* Collaborations */}
+          <CollapsibleSection
+            sectionId="collaborations"
+            title="Collaborations"
+            icon={<Users className="h-5 w-5" />}
+            count={collaborationsCount}
+            headerRight={
+              collabIdeas.length > 0 ? (
+                <Link
+                  href={`/profile/${user.id}`}
+                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  View all
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              ) : undefined
+            }
+          >
+            {collabIdeas.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-border p-8 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Not collaborating on any ideas yet.
+                </p>
+                <Link href="/feed">
+                  <Button variant="outline" size="sm" className="mt-3">
+                    Browse the feed
+                  </Button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {collabIdeas.map((idea) => (
+                  <IdeaCard
+                    key={idea.id}
+                    idea={idea}
+                    hasVoted={votedIdeaIds.has(idea.id)}
+                    taskCount={taskCounts[idea.id]}
+                  />
+                ))}
+              </div>
+            )}
+          </CollapsibleSection>
+
+          {/* Recent Activity */}
+          <CollapsibleSection
+            sectionId="recent-activity"
+            title="Recent Activity"
+            icon={<Bell className="h-5 w-5" />}
+            count={notifications.length}
+          >
+            <ActivityFeed notifications={notifications} />
+          </CollapsibleSection>
+        </div>
       </div>
     </div>
   );
