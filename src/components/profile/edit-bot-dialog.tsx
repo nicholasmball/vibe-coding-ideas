@@ -11,10 +11,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { updateBot, deleteBot } from "@/actions/bots";
+import { PromptBuilder } from "./prompt-builder";
 import type { BotProfile } from "@/types";
 
 interface EditBotDialogProps {
@@ -79,7 +79,7 @@ export function EditBotDialog({ bot, children }: EditBotDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Pencil className="h-4 w-4" />
@@ -109,18 +109,11 @@ export function EditBotDialog({ bot, children }: EditBotDialogProps) {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="edit-bot-prompt">System Prompt</Label>
-            <Textarea
-              id="edit-bot-prompt"
-              value={systemPrompt}
-              onChange={(e) => setSystemPrompt(e.target.value)}
-              placeholder="Instructions for this bot persona..."
-              rows={4}
-              maxLength={10000}
-              className="text-sm"
-            />
-          </div>
+          <PromptBuilder
+            role={role}
+            value={systemPrompt}
+            onChange={setSystemPrompt}
+          />
 
           <div className="space-y-2">
             <Label htmlFor="edit-bot-avatar">Avatar URL</Label>

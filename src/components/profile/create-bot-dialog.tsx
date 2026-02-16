@@ -11,7 +11,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -23,6 +22,8 @@ import {
 } from "@/components/ui/select";
 import { BOT_ROLE_TEMPLATES } from "@/lib/constants";
 import { createBot } from "@/actions/bots";
+import { PromptBuilder } from "./prompt-builder";
+import type { StructuredPromptFields } from "@/lib/prompt-builder";
 
 export function CreateBotDialog() {
   const [open, setOpen] = useState(false);
@@ -31,12 +32,30 @@ export function CreateBotDialog() {
   const [systemPrompt, setSystemPrompt] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [templateStructured, setTemplateStructured] =
+    useState<StructuredPromptFields | null>(null);
+  const [promptKey, setPromptKey] = useState(0);
 
   function handleTemplateSelect(templateRole: string) {
     const template = BOT_ROLE_TEMPLATES.find((t) => t.role === templateRole);
     if (template) {
       setRole(template.role);
       setSystemPrompt(template.prompt);
+      setTemplateStructured(
+        template.structured ? { ...template.structured } : null
+      );
+    }
+  }
+
+  function handleOpenChange(isOpen: boolean) {
+    setOpen(isOpen);
+    if (!isOpen) {
+      setName("");
+      setRole("");
+      setSystemPrompt("");
+      setAvatarUrl("");
+      setTemplateStructured(null);
+      setPromptKey((k) => k + 1);
     }
   }
 
@@ -53,11 +72,7 @@ export function CreateBotDialog() {
         avatarUrl.trim() || null
       );
       toast.success("Bot created");
-      setOpen(false);
-      setName("");
-      setRole("");
-      setSystemPrompt("");
-      setAvatarUrl("");
+      handleOpenChange(false);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create bot");
     } finally {
@@ -66,14 +81,14 @@ export function CreateBotDialog() {
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
           <Plus className="h-4 w-4" />
           Create Bot
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5" />
@@ -95,7 +110,7 @@ export function CreateBotDialog() {
 
           <div className="space-y-2">
             <Label>Role Template</Label>
-            <Select onValueChange={handleTemplateSelect}>
+            <Select key={promptKey} onValueChange={handleTemplateSelect}>
               <SelectTrigger className="text-sm">
                 <SelectValue placeholder="Pick a template (optional)" />
               </SelectTrigger>
@@ -120,18 +135,13 @@ export function CreateBotDialog() {
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="bot-prompt">System Prompt</Label>
-            <Textarea
-              id="bot-prompt"
-              value={systemPrompt}
-              onChange={(e) => setSystemPrompt(e.target.value)}
-              placeholder="Instructions for this bot persona..."
-              rows={4}
-              maxLength={10000}
-              className="text-sm"
-            />
-          </div>
+          <PromptBuilder
+            key={promptKey}
+            role={role}
+            value={systemPrompt}
+            onChange={setSystemPrompt}
+            templateStructured={templateStructured}
+          />
 
           <div className="space-y-2">
             <Label htmlFor="bot-avatar">Avatar URL (optional)</Label>
@@ -148,7 +158,7 @@ export function CreateBotDialog() {
             <Button
               type="button"
               variant="ghost"
-              onClick={() => setOpen(false)}
+              onClick={() => handleOpenChange(false)}
             >
               Cancel
             </Button>
