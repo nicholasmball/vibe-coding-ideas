@@ -240,13 +240,23 @@ export default async function DashboardPage() {
     }
   }
 
-  // Assemble DashboardBot[]
-  const dashboardBots: DashboardBot[] = botProfiles.map((bot) => ({
-    ...bot,
-    currentTask: botCurrentTask.get(bot.id) ?? null,
-    lastActivity: botLastActivity.get(bot.id) ?? null,
-    isActiveMcpBot: activeBotId === bot.id,
-  }));
+  // Assemble DashboardBot[] — sorted by latest activity (most recent first),
+  // bots with no activity fall to the bottom sorted by creation date
+  const dashboardBots: DashboardBot[] = botProfiles
+    .map((bot) => ({
+      ...bot,
+      currentTask: botCurrentTask.get(bot.id) ?? null,
+      lastActivity: botLastActivity.get(bot.id) ?? null,
+      isActiveMcpBot: activeBotId === bot.id,
+    }))
+    .sort((a, b) => {
+      const aTime = a.lastActivity?.created_at;
+      const bTime = b.lastActivity?.created_at;
+      if (aTime && bTime) return bTime.localeCompare(aTime);
+      if (aTime && !bTime) return -1;
+      if (!aTime && bTime) return 1;
+      return a.created_at.localeCompare(b.created_at);
+    });
 
   // Process active boards data
   type BoardColumnRow = { id: string; idea_id: string; title: string; is_done_column: boolean; position: number; idea: { id: string; title: string } };
