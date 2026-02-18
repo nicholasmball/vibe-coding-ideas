@@ -18,6 +18,9 @@ function getAnthropicProvider(encryptedKey: string | null) {
       // Fall back to platform key if decryption fails
     }
   }
+  if (!apiKey) {
+    throw new Error("No API key available — add your own key in your profile settings");
+  }
   return createAnthropic({ apiKey });
 }
 
