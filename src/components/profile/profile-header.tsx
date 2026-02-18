@@ -1,4 +1,4 @@
-import { Github, Calendar, AtSign } from "lucide-react";
+import { Github, Calendar, AtSign, ShieldCheck } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatRelativeTime } from "@/lib/utils";
@@ -32,9 +32,17 @@ export function ProfileHeader({
           <AvatarFallback className="text-2xl">{initials}</AvatarFallback>
         </Avatar>
         <div className="flex-1 text-center sm:text-left">
-          <h1 className="text-2xl font-bold">
-            {user.full_name ?? "Anonymous"}
-          </h1>
+          <div className="flex items-center justify-center gap-2 sm:justify-start">
+            <h1 className="text-2xl font-bold">
+              {user.full_name ?? "Anonymous"}
+            </h1>
+            {user.is_admin && (
+              <Badge variant="secondary" className="gap-1">
+                <ShieldCheck className="h-3 w-3" />
+                Admin
+              </Badge>
+            )}
+          </div>
           {user.bio && (
             <p className="mt-1 text-muted-foreground">{user.bio}</p>
           )}
