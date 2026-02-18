@@ -1,6 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 export async function deleteUser(userId: string) {
@@ -81,5 +81,6 @@ export async function deleteUser(userId: string) {
     throw new Error(error.message);
   }
 
-  redirect("/feed");
+  revalidatePath("/members");
+  revalidatePath("/feed");
 }

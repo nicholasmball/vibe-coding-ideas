@@ -137,31 +137,33 @@ export async function uploadAttachment(
     throw new Error(`Failed to save attachment record: ${dbError.message}`);
   }
 
-  // Auto-set cover image if first image upload
-  if (params.content_type.startsWith("image/")) {
-    const { data: task } = await ctx.supabase
-      .from("board_tasks")
-      .select("cover_image_path")
-      .eq("id", params.task_id)
-      .single();
-
-    if (!task?.cover_image_path) {
-      await ctx.supabase
-        .from("board_tasks")
-        .update({ cover_image_path: storagePath })
-        .eq("id", params.task_id);
-    }
-  }
-
-  // Log activity
-  await logActivity(ctx, params.task_id, params.idea_id, "attachment_added", {
-    file_name: params.file_name,
-  });
-
-  // Generate signed URL for the response
-  const { data: urlData } = await ctx.supabase.storage
-    .from("task-attachments")
-    .createSignedUrl(storagePath, 3600);
+  // Run post-upload operations in parallel for speed
+  const [, , urlResult] = await Promise.all([
+    // Auto-set cover image if first image upload
+    params.content_type.startsWith("image/")
+      ? ctx.supabase
+          .from("board_tasks")
+          .select("cover_image_path")
+          .eq("id", params.task_id)
+          .single()
+          .then(({ data: task }) => {
+            if (!task?.cover_image_path) {
+              return ctx.supabase
+                .from("board_tasks")
+                .update({ cover_image_path: storagePath })
+                .eq("id", params.task_id);
+            }
+          })
+      : Promise.resolve(),
+    // Log activity
+    logActivity(ctx, params.task_id, params.idea_id, "attachment_added", {
+      file_name: params.file_name,
+    }),
+    // Generate signed URL for the response
+    ctx.supabase.storage
+      .from("task-attachments")
+      .createSignedUrl(storagePath, 3600),
+  ]);
 
   return {
     success: true,
@@ -169,7 +171,7 @@ export async function uploadAttachment(
       id: attachment.id,
       file_name: attachment.file_name,
       storage_path: attachment.storage_path,
-      url: urlData?.signedUrl ?? null,
+      url: urlResult.data?.signedUrl ?? null,
     },
   };
 }

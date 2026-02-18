@@ -22,6 +22,7 @@ import {
 import { BoardColumn } from "./board-column";
 import { AddColumnButton } from "./add-column-button";
 import { BoardToolbar } from "./board-toolbar";
+import { toast } from "sonner";
 import { moveBoardTask, reorderBoardColumns } from "@/actions/board";
 import { POSITION_GAP } from "@/lib/constants";
 import { getDueDateStatus } from "@/lib/utils";
@@ -31,28 +32,35 @@ import type {
   BoardLabel,
   BoardChecklistItem,
   User,
+  BotProfile,
 } from "@/types";
 
 interface KanbanBoardProps {
   columns: BoardColumnWithTasks[];
   ideaId: string;
+  ideaDescription?: string;
   teamMembers: User[];
   boardLabels: BoardLabel[];
   checklistItemsByTaskId: Record<string, BoardChecklistItem[]>;
   currentUserId: string;
   initialTaskId?: string;
   userBots?: User[];
+  aiEnabled?: boolean;
+  botProfiles?: BotProfile[];
 }
 
 export function KanbanBoard({
   columns: initialColumns,
   ideaId,
+  ideaDescription = "",
   teamMembers,
   boardLabels,
   checklistItemsByTaskId,
   currentUserId,
   initialTaskId,
   userBots = [],
+  aiEnabled = false,
+  botProfiles = [],
 }: KanbanBoardProps) {
   const [columns, setColumns] = useState(initialColumns);
   const columnsRef = useRef(columns);
@@ -329,6 +337,7 @@ export function KanbanBoard({
             newColumns.map((c) => c.id)
           );
         } catch {
+          toast.error("Failed to reorder columns");
           setLastServerKey(""); // force re-sync when pendingMoves reaches 0
         } finally {
           setPendingMoves((n) => n - 1);
@@ -340,15 +349,28 @@ export function KanbanBoard({
       // Task drag end
       setActiveTask(null);
 
-      if (!over) return;
-      if (!activeData || activeData.type !== "task") return;
+      const movedBetweenColumns = dragSourceColumnRef.current !== (activeData?.columnId as string | undefined);
+
+      // Dropped on nothing — revert if task was moved between columns
+      if (!over || !activeData || activeData.type !== "task") {
+        if (movedBetweenColumns) {
+          setLastServerKey(""); // force re-sync to revert optimistic cross-column move
+        }
+        return;
+      }
 
       const activeColumnId = activeData.columnId as string;
       const col = currentColumns.find((c) => c.id === activeColumnId);
-      if (!col) return;
+      if (!col) {
+        setLastServerKey("");
+        return;
+      }
 
       const activeIndex = col.tasks.findIndex((t) => t.id === active.id);
-      if (activeIndex === -1) return;
+      if (activeIndex === -1) {
+        setLastServerKey("");
+        return;
+      }
 
       // Determine the target index from the over item
       const overData = over.data.current;
@@ -362,7 +384,6 @@ export function KanbanBoard({
       }
 
       // If same-column reorder with no position change, nothing to persist
-      const movedBetweenColumns = dragSourceColumnRef.current !== activeColumnId;
       if (!movedBetweenColumns && activeIndex === overIndex) {
         return;
       }
@@ -403,6 +424,7 @@ export function KanbanBoard({
           newPosition
         );
       } catch {
+        toast.error("Failed to move task");
         setLastServerKey(""); // force re-sync when pendingMoves reaches 0
       } finally {
         setPendingMoves((n) => n - 1);
@@ -432,7 +454,10 @@ export function KanbanBoard({
         archivedCount={archivedCount}
         columns={columns}
         ideaId={ideaId}
+        ideaDescription={ideaDescription}
         currentUserId={currentUserId}
+        aiEnabled={aiEnabled}
+        botProfiles={botProfiles}
       />
       <DndContext
         sensors={sensors}

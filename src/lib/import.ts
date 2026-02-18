@@ -627,3 +627,258 @@ export async function executeBulkImport(
 
   return { created, errors };
 }
+
+// ── Sequential Insert (for AI Generate) ─────────────────────────────
+
+const THROTTLE_MS = 150;
+const RETRY_DELAY_MS = 500;
+
+export interface SequentialInsertCallbacks {
+  onTaskCreated: (index: number, title: string) => void;
+  onTaskError: (index: number, title: string, error: string) => void;
+  onSetupComplete?: (stats: { columns: number; labels: number }) => void;
+}
+
+export interface SequentialInsertResult {
+  created: number;
+  failed: { index: number; title: string; error: string }[];
+  columnsCreated: number;
+  labelsCreated: number;
+}
+
+export async function insertTasksSequentially(
+  tasks: ImportTask[],
+  ideaId: string,
+  currentUserId: string,
+  columns: BoardColumnWithTasks[],
+  columnMapping: ColumnMapping,
+  defaultColumnId: string,
+  boardLabels: BoardLabel[],
+  teamMembers: User[],
+  callbacks: SequentialInsertCallbacks,
+  signal?: AbortSignal
+): Promise<SequentialInsertResult> {
+  const supabase = createClient();
+  const cappedTasks = tasks.slice(0, MAX_TASKS);
+  const failed: SequentialInsertResult["failed"] = [];
+
+  // ── Setup: Create columns ──────────────────────────────────────────
+
+  const newColumnNames = Object.entries(columnMapping)
+    .filter(([, v]) => v === "__new__")
+    .map(([k]) => k);
+
+  let maxColPosition =
+    columns.length > 0
+      ? Math.max(...columns.map((c) => c.position))
+      : -POSITION_GAP;
+
+  let columnsCreated = 0;
+
+  if (newColumnNames.length > 0) {
+    const inserts = newColumnNames.map((name) => {
+      maxColPosition += POSITION_GAP;
+      return { idea_id: ideaId, title: name, position: maxColPosition };
+    });
+
+    const { data: newCols, error } = await supabase
+      .from("board_columns")
+      .insert(inserts)
+      .select("id, title");
+
+    if (error) {
+      throw new Error(`Failed to create columns: ${error.message}`);
+    }
+
+    for (const col of newCols ?? []) {
+      columnMapping[col.title] = col.id;
+    }
+    columnsCreated = newCols?.length ?? 0;
+  }
+
+  // ── Setup: Create/match labels ─────────────────────────────────────
+
+  const allLabelNames = new Set<string>();
+  for (const t of cappedTasks) {
+    if (t.labels) {
+      for (const l of t.labels) allLabelNames.add(l);
+    }
+  }
+
+  const labelMap = new Map<string, string>();
+  for (const label of boardLabels) {
+    labelMap.set(label.name.toLowerCase(), label.id);
+  }
+
+  const newLabels: string[] = [];
+  for (const name of allLabelNames) {
+    if (!labelMap.has(name.toLowerCase())) {
+      newLabels.push(name);
+    }
+  }
+
+  let labelsCreated = 0;
+
+  if (newLabels.length > 0) {
+    let colorIdx = boardLabels.length % LABEL_COLORS.length;
+    const labelInserts = newLabels.map((name) => {
+      const color = LABEL_COLORS[colorIdx % LABEL_COLORS.length].value;
+      colorIdx++;
+      return { idea_id: ideaId, name, color };
+    });
+
+    const { data: createdLabels, error } = await supabase
+      .from("board_labels")
+      .insert(labelInserts)
+      .select("id, name");
+
+    if (error) {
+      throw new Error(`Failed to create labels: ${error.message}`);
+    }
+
+    for (const l of createdLabels ?? []) {
+      labelMap.set(l.name.toLowerCase(), l.id);
+    }
+    labelsCreated = createdLabels?.length ?? 0;
+  }
+
+  callbacks.onSetupComplete?.({ columns: columnsCreated, labels: labelsCreated });
+
+  // ── Setup: Resolve assignees ───────────────────────────────────────
+
+  const assigneeMap = new Map<string, string>();
+  for (const member of teamMembers) {
+    if (member.full_name) {
+      assigneeMap.set(member.full_name.toLowerCase(), member.id);
+    }
+    if (member.email) {
+      assigneeMap.set(member.email.toLowerCase(), member.id);
+    }
+  }
+
+  // ── Setup: Position tracking per column ────────────────────────────
+
+  const positionByColumn = new Map<string, number>();
+  const columnIds = new Set<string>();
+  for (const t of cappedTasks) {
+    const colId = t.columnName
+      ? columnMapping[t.columnName] ?? defaultColumnId
+      : defaultColumnId;
+    columnIds.add(colId);
+  }
+
+  for (const colId of columnIds) {
+    const existing = columns.find((c) => c.id === colId);
+    if (existing && existing.tasks.length > 0) {
+      positionByColumn.set(
+        colId,
+        Math.max(...existing.tasks.map((t) => t.position))
+      );
+    } else {
+      positionByColumn.set(colId, -POSITION_GAP);
+    }
+  }
+
+  // ── Sequential insert loop ─────────────────────────────────────────
+
+  let created = 0;
+
+  for (let i = 0; i < cappedTasks.length; i++) {
+    if (signal?.aborted) break;
+
+    const t = cappedTasks[i];
+    const colId = t.columnName
+      ? columnMapping[t.columnName] ?? defaultColumnId
+      : defaultColumnId;
+
+    const pos = (positionByColumn.get(colId) ?? -POSITION_GAP) + POSITION_GAP;
+    positionByColumn.set(colId, pos);
+
+    const assigneeId = t.assigneeName
+      ? assigneeMap.get(t.assigneeName.toLowerCase()) ?? null
+      : null;
+
+    const taskRow = {
+      idea_id: ideaId,
+      column_id: colId,
+      title: t.title,
+      description: t.description ?? null,
+      assignee_id: assigneeId,
+      position: pos,
+      due_date: t.dueDate ?? null,
+    };
+
+    // Insert with one retry
+    let taskId: string | null = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const { data, error } = await supabase
+        .from("board_tasks")
+        .insert(taskRow)
+        .select("id")
+        .single();
+
+      if (!error && data) {
+        taskId = data.id;
+        break;
+      }
+
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+      } else {
+        failed.push({ index: i, title: t.title, error: error?.message ?? "Unknown error" });
+        callbacks.onTaskError(i, t.title, error?.message ?? "Unknown error");
+      }
+    }
+
+    if (!taskId) continue;
+
+    // Insert labels for this task
+    if (t.labels && t.labels.length > 0) {
+      const labelRows = t.labels
+        .map((name) => {
+          const labelId = labelMap.get(name.toLowerCase());
+          return labelId ? { task_id: taskId!, label_id: labelId } : null;
+        })
+        .filter(Boolean) as { task_id: string; label_id: string }[];
+
+      if (labelRows.length > 0) {
+        await supabase.from("board_task_labels").insert(labelRows);
+      }
+    }
+
+    // Insert checklist items for this task
+    if (t.checklistItems && t.checklistItems.length > 0) {
+      const checklistRows = t.checklistItems.map((title, ci) => ({
+        task_id: taskId!,
+        idea_id: ideaId,
+        title,
+        position: ci * POSITION_GAP,
+      }));
+      await supabase.from("board_checklist_items").insert(checklistRows);
+    }
+
+    // Log activity (fire-and-forget)
+    supabase
+      .from("board_task_activity")
+      .insert({
+        task_id: taskId,
+        idea_id: ideaId,
+        actor_id: currentUserId,
+        action: "ai_generated",
+        details: null,
+      })
+      .then(({ error }) => {
+        if (error) console.error("Activity log failed:", error.message);
+      });
+
+    created++;
+    callbacks.onTaskCreated(i, t.title);
+
+    // Throttle between inserts (skip after last task)
+    if (i < cappedTasks.length - 1 && !signal?.aborted) {
+      await new Promise((r) => setTimeout(r, THROTTLE_MS));
+    }
+  }
+
+  return { created, failed, columnsCreated, labelsCreated };
+}

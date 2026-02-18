@@ -1,11 +1,22 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
+const DEBOUNCE_MS = 500;
+
 export function BoardRealtime({ ideaId }: { ideaId: string }) {
   const router = useRouter();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const debouncedRefresh = useCallback(() => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      router.refresh();
+      timeoutRef.current = null;
+    }, DEBOUNCE_MS);
+  }, [router]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -20,7 +31,7 @@ export function BoardRealtime({ ideaId }: { ideaId: string }) {
           table: "board_columns",
           filter: `idea_id=eq.${ideaId}`,
         },
-        () => router.refresh()
+        debouncedRefresh
       )
       .on(
         "postgres_changes",
@@ -30,7 +41,7 @@ export function BoardRealtime({ ideaId }: { ideaId: string }) {
           table: "board_tasks",
           filter: `idea_id=eq.${ideaId}`,
         },
-        () => router.refresh()
+        debouncedRefresh
       )
       .on(
         "postgres_changes",
@@ -40,7 +51,7 @@ export function BoardRealtime({ ideaId }: { ideaId: string }) {
           table: "board_labels",
           filter: `idea_id=eq.${ideaId}`,
         },
-        () => router.refresh()
+        debouncedRefresh
       )
       .on(
         "postgres_changes",
@@ -49,7 +60,7 @@ export function BoardRealtime({ ideaId }: { ideaId: string }) {
           schema: "public",
           table: "board_task_labels",
         },
-        () => router.refresh()
+        debouncedRefresh
       )
       .on(
         "postgres_changes",
@@ -59,17 +70,7 @@ export function BoardRealtime({ ideaId }: { ideaId: string }) {
           table: "board_checklist_items",
           filter: `idea_id=eq.${ideaId}`,
         },
-        () => router.refresh()
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "board_task_activity",
-          filter: `idea_id=eq.${ideaId}`,
-        },
-        () => router.refresh()
+        debouncedRefresh
       )
       .on(
         "postgres_changes",
@@ -79,7 +80,7 @@ export function BoardRealtime({ ideaId }: { ideaId: string }) {
           table: "board_task_comments",
           filter: `idea_id=eq.${ideaId}`,
         },
-        () => router.refresh()
+        debouncedRefresh
       )
       .on(
         "postgres_changes",
@@ -89,14 +90,15 @@ export function BoardRealtime({ ideaId }: { ideaId: string }) {
           table: "board_task_attachments",
           filter: `idea_id=eq.${ideaId}`,
         },
-        () => router.refresh()
+        debouncedRefresh
       )
       .subscribe();
 
     return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
       channel.unsubscribe();
     };
-  }, [ideaId, router]);
+  }, [ideaId, debouncedRefresh]);
 
   return null;
 }

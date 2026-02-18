@@ -1,0 +1,190 @@
+"use server";
+
+import { createClient } from "@/lib/supabase/server";
+import { generateText, generateObject } from "ai";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { z } from "zod";
+
+const anthropic = createAnthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
+
+const AI_MODEL = "claude-sonnet-4-5-20250929";
+
+// ── Enhance Idea Description ───────────────────────────────────────────
+
+export async function enhanceIdeaDescription(
+  ideaId: string,
+  prompt: string,
+  personaPrompt?: string | null
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+
+  // Check ai_enabled
+  const { data: profile } = await supabase
+    .from("users")
+    .select("ai_enabled")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.ai_enabled) {
+    throw new Error("AI features are not enabled for your account");
+  }
+
+  // Check ownership
+  const { data: idea } = await supabase
+    .from("ideas")
+    .select("id, title, description, author_id")
+    .eq("id", ideaId)
+    .single();
+
+  if (!idea) throw new Error("Idea not found");
+  if (idea.author_id !== user.id) {
+    throw new Error("Only the idea author can enhance the description");
+  }
+
+  const systemPrompt = personaPrompt
+    ? `${personaPrompt}\n\nYou are helping to enhance an idea description on a project management platform.`
+    : "You are an expert product manager and technical writer helping to enhance idea descriptions on a project management platform.";
+
+  const { text } = await generateText({
+    model: anthropic(AI_MODEL),
+    system: systemPrompt,
+    prompt: `${prompt}\n\n---\n\n**Idea Title:** ${idea.title}\n\n**Current Description:**\n${idea.description}`,
+    maxOutputTokens: 4000,
+  });
+
+  return { enhanced: text, original: idea.description };
+}
+
+// ── Apply Enhanced Description ──────────────────────────────────────────
+
+export async function applyEnhancedDescription(
+  ideaId: string,
+  description: string
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+
+  const { error } = await supabase
+    .from("ideas")
+    .update({ description })
+    .eq("id", ideaId)
+    .eq("author_id", user.id);
+
+  if (error) throw new Error(error.message);
+}
+
+// ── Generate Board Tasks ────────────────────────────────────────────────
+
+const GeneratedTaskSchema = z.object({
+  title: z.string(),
+  description: z.string().optional(),
+  columnName: z.string().optional(),
+  labels: z.array(z.string()).optional(),
+  checklistItems: z.array(z.string()).optional(),
+  dueDate: z.string().optional(),
+});
+
+const GeneratedBoardSchema = z.object({
+  tasks: z.array(GeneratedTaskSchema),
+});
+
+export async function generateBoardTasks(
+  ideaId: string,
+  prompt: string,
+  personaPrompt?: string | null
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+
+  // Check ai_enabled
+  const { data: profile } = await supabase
+    .from("users")
+    .select("ai_enabled")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.ai_enabled) {
+    throw new Error("AI features are not enabled for your account");
+  }
+
+  // Check team membership (author or collaborator)
+  const { data: idea } = await supabase
+    .from("ideas")
+    .select("id, title, description, author_id")
+    .eq("id", ideaId)
+    .single();
+
+  if (!idea) throw new Error("Idea not found");
+
+  const isAuthor = idea.author_id === user.id;
+  if (!isAuthor) {
+    const { data: collab } = await supabase
+      .from("collaborators")
+      .select("id")
+      .eq("idea_id", ideaId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!collab) {
+      throw new Error("Only team members can generate board tasks");
+    }
+  }
+
+  // Fetch existing board state for context
+  const { data: columns } = await supabase
+    .from("board_columns")
+    .select("title")
+    .eq("idea_id", ideaId)
+    .order("position");
+
+  const existingColumns = (columns ?? []).map((c) => c.title);
+
+  const systemPrompt = personaPrompt
+    ? `${personaPrompt}\n\nYou are generating a structured task board for a software project on a kanban-style project management platform.`
+    : "You are an expert project manager generating a structured task board for a software project on a kanban-style project management platform.";
+
+  const contextParts = [
+    `${prompt}`,
+    `---`,
+    `**Idea Title:** ${idea.title}`,
+    `**Idea Description:**\n${idea.description}`,
+  ];
+
+  if (existingColumns.length > 0) {
+    contextParts.push(
+      `**Existing Board Columns:** ${existingColumns.join(", ")}`,
+      `Use existing column names where appropriate, or suggest new ones if needed.`
+    );
+  }
+
+  const { object } = await generateObject({
+    model: anthropic(AI_MODEL),
+    system: systemPrompt,
+    prompt: contextParts.join("\n\n"),
+    schema: GeneratedBoardSchema,
+    maxOutputTokens: 8000,
+  });
+
+  // Cap at 50 tasks (Anthropic API doesn't support maxItems in schema)
+  const tasks = object.tasks.slice(0, 50);
+
+  return {
+    tasks,
+    count: tasks.length,
+  };
+}

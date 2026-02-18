@@ -13,11 +13,12 @@ import { StatusSelect } from "@/components/ideas/status-select";
 import { CommentThread } from "@/components/comments/comment-thread";
 import { IdeaDetailRealtime } from "@/components/ideas/idea-detail-realtime";
 import { DeleteIdeaButton } from "@/components/ideas/delete-idea-button";
+import { EnhanceIdeaButton } from "@/components/ideas/enhance-idea-button";
 import { AddCollaboratorPopover } from "@/components/ideas/add-collaborator-popover";
 import { RemoveCollaboratorButton } from "@/components/ideas/remove-collaborator-button";
 import { Markdown } from "@/components/ui/markdown";
 import { formatRelativeTime } from "@/lib/utils";
-import type { CommentWithAuthor, CollaboratorWithUser } from "@/types";
+import type { CommentWithAuthor, CollaboratorWithUser, BotProfile } from "@/types";
 import type { Metadata } from "next";
 
 interface PageProps {
@@ -115,19 +116,33 @@ export default async function IdeaDetailPage({ params }: PageProps) {
     isCollaborator = !!collab;
   }
 
-  // Check if user is admin
+  // Check if user is admin and has AI access
   let isAdmin = false;
+  let aiEnabled = false;
   if (user) {
     const { data: profile } = await supabase
       .from("users")
-      .select("is_admin")
+      .select("is_admin, ai_enabled")
       .eq("id", user.id)
       .single();
     isAdmin = profile?.is_admin ?? false;
+    aiEnabled = profile?.ai_enabled ?? false;
   }
 
   const isAuthor = user?.id === idea.author_id;
   const canDelete = isAuthor || isAdmin;
+
+  // Fetch user's bot profiles for AI persona selector
+  let userBots: BotProfile[] = [];
+  if (user && aiEnabled) {
+    const { data: bots } = await supabase
+      .from("bot_profiles")
+      .select("*")
+      .eq("owner_id", user.id)
+      .eq("is_active", true)
+      .order("created_at", { ascending: true });
+    userBots = (bots ?? []) as BotProfile[];
+  }
   const author = idea.author as unknown as { full_name: string | null; avatar_url: string | null; id: string };
   const authorInitials =
     author.full_name
@@ -205,6 +220,13 @@ export default async function IdeaDetailPage({ params }: PageProps) {
               Edit
             </Button>
           </Link>
+        )}
+        {isAuthor && aiEnabled && (
+          <EnhanceIdeaButton
+            ideaId={idea.id}
+            currentDescription={idea.description}
+            bots={userBots}
+          />
         )}
         {canDelete && (
           <DeleteIdeaButton ideaId={idea.id} />

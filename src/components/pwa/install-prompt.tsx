@@ -21,8 +21,8 @@ export function InstallPrompt() {
     // Don't show if already installed as standalone
     if (window.matchMedia("(display-mode: standalone)").matches) return;
 
-    // Don't show if dismissed this session
-    if (sessionStorage.getItem(DISMISSED_KEY)) return;
+    // Don't show if previously dismissed
+    if (localStorage.getItem(DISMISSED_KEY)) return;
 
     setDismissed(false);
 
@@ -51,7 +51,7 @@ export function InstallPrompt() {
     setDismissed(true);
     setDeferredPrompt(null);
     setShowIosPrompt(false);
-    sessionStorage.setItem(DISMISSED_KEY, "1");
+    localStorage.setItem(DISMISSED_KEY, "1");
   };
 
   const install = async () => {

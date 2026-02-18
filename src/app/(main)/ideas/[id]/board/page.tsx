@@ -12,6 +12,7 @@ import type {
   BoardLabel,
   BoardChecklistItem,
   User,
+  BotProfile,
 } from "@/types";
 import type { Metadata } from "next";
 
@@ -50,7 +51,7 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
   // Fetch idea
   const { data: idea } = await supabase
     .from("ideas")
-    .select("id, title, author_id")
+    .select("id, title, description, author_id")
     .eq("id", id)
     .single();
 
@@ -163,11 +164,12 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
   // Fetch user's active bots for the assignee picker
   const { data: rawUserBots } = await supabase
     .from("bot_profiles")
-    .select("id")
+    .select("*")
     .eq("owner_id", user.id)
     .eq("is_active", true);
 
-  const userBotIds = (rawUserBots ?? []).map((b) => b.id);
+  const userBotProfiles = (rawUserBots ?? []) as BotProfile[];
+  const userBotIds = userBotProfiles.map((b) => b.id);
   let userBots: User[] = [];
   if (userBotIds.length > 0) {
     const { data: botUsers } = await supabase
@@ -176,6 +178,14 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
       .in("id", userBotIds);
     userBots = (botUsers ?? []) as User[];
   }
+
+  // Check if user has AI access
+  const { data: userProfile } = await supabase
+    .from("users")
+    .select("ai_enabled")
+    .eq("id", user.id)
+    .single();
+  const aiEnabled = userProfile?.ai_enabled ?? false;
 
   // Assemble columns with tasks (including labels)
   const columns: BoardColumnWithTasks[] = (rawColumns ?? []).map((col) => ({
@@ -208,12 +218,15 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
       <KanbanBoard
         columns={columns}
         ideaId={id}
+        ideaDescription={idea.description}
         teamMembers={teamMembers}
         boardLabels={(boardLabels ?? []) as BoardLabel[]}
         checklistItemsByTaskId={checklistItemsByTaskId}
         currentUserId={user.id}
         initialTaskId={initialTaskId}
         userBots={userBots}
+        aiEnabled={aiEnabled}
+        botProfiles={userBotProfiles}
       />
     </div>
   );

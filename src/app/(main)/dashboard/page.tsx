@@ -65,7 +65,7 @@ export default async function DashboardPage() {
       .from("ideas")
       .select("*, author:users!ideas_author_id_fkey(*)")
       .eq("author_id", user.id)
-      .order("created_at", { ascending: false })
+      .order("updated_at", { ascending: false })
       .limit(5),
     // Total ideas count
     supabase

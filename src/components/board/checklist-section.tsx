@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -33,51 +33,106 @@ export function ChecklistSection({
   ideaId,
   currentUserId,
 }: ChecklistSectionProps) {
+  const [localItems, setLocalItems] = useState<BoardChecklistItem[]>(items);
   const [newTitle, setNewTitle] = useState("");
-  const [loading, setLoading] = useState(false);
+  const pendingOps = useRef(0);
 
-  const total = items.length;
-  const done = items.filter((i) => i.completed).length;
+  // Sync from server props when no pending operations
+  useEffect(() => {
+    if (pendingOps.current === 0) {
+      setLocalItems(items);
+    }
+  }, [items]);
+
+  const total = localItems.length;
+  const done = localItems.filter((i) => i.completed).length;
   const progress = total > 0 ? Math.round((done / total) * 100) : 0;
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
-    if (!newTitle.trim()) return;
+    const title = newTitle.trim();
+    if (!title) return;
 
-    setLoading(true);
+    // Optimistic: add item immediately
+    const tempId = `temp-${Date.now()}`;
+    const maxPos = localItems.reduce((max, i) => Math.max(max, i.position), 0);
+    const optimisticItem: BoardChecklistItem = {
+      id: tempId,
+      task_id: taskId,
+      idea_id: ideaId,
+      title,
+      completed: false,
+      position: maxPos + 1,
+      created_at: new Date().toISOString(),
+    };
+    setLocalItems((prev) => [...prev, optimisticItem]);
+    setNewTitle("");
+
+    pendingOps.current++;
     try {
-      await createChecklistItem(taskId, ideaId, newTitle.trim());
+      await createChecklistItem(taskId, ideaId, title);
       if (currentUserId) {
         logTaskActivity(taskId, ideaId, currentUserId, "checklist_item_added", {
-          title: newTitle.trim(),
+          title,
         });
       }
-      setNewTitle("");
     } catch {
+      // Rollback
+      setLocalItems((prev) => prev.filter((i) => i.id !== tempId));
       toast.error("Failed to add checklist item");
     } finally {
-      setLoading(false);
+      pendingOps.current--;
     }
   }
 
   async function handleToggle(itemId: string) {
-    const item = items.find((i) => i.id === itemId);
+    const item = localItems.find((i) => i.id === itemId);
     if (!item) return;
 
+    // Optimistic: toggle immediately
+    const newCompleted = !item.completed;
+    setLocalItems((prev) =>
+      prev.map((i) => (i.id === itemId ? { ...i, completed: newCompleted } : i))
+    );
+
+    pendingOps.current++;
     try {
       await toggleChecklistItem(itemId, ideaId);
-      if (currentUserId && !item.completed) {
+      if (currentUserId && newCompleted) {
         logTaskActivity(taskId, ideaId, currentUserId, "checklist_item_completed", {
           title: item.title,
         });
       }
     } catch {
+      // Rollback
+      setLocalItems((prev) =>
+        prev.map((i) =>
+          i.id === itemId ? { ...i, completed: !newCompleted } : i
+        )
+      );
       toast.error("Failed to update checklist item");
+    } finally {
+      pendingOps.current--;
     }
   }
 
   async function handleDelete(itemId: string) {
-    await deleteChecklistItem(itemId, ideaId);
+    // Optimistic: remove immediately
+    const removed = localItems.find((i) => i.id === itemId);
+    setLocalItems((prev) => prev.filter((i) => i.id !== itemId));
+
+    pendingOps.current++;
+    try {
+      await deleteChecklistItem(itemId, ideaId);
+    } catch {
+      // Rollback
+      if (removed) {
+        setLocalItems((prev) => [...prev, removed]);
+      }
+      toast.error("Failed to delete checklist item");
+    } finally {
+      pendingOps.current--;
+    }
   }
 
   return (
@@ -94,7 +149,7 @@ export function ChecklistSection({
       {total > 0 && <Progress value={progress} className="h-1.5" />}
 
       <div className="space-y-1">
-        {items
+        {localItems
           .sort((a, b) => a.position - b.position)
           .map((item) => (
             <div
@@ -145,7 +200,7 @@ export function ChecklistSection({
               size="sm"
               variant="outline"
               className="h-8"
-              disabled={loading || !newTitle.trim()}
+              disabled={!newTitle.trim()}
             >
               <Plus className="h-3 w-3" />
             </Button>

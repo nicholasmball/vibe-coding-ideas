@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Sparkles, Plus, LogOut, User as UserIcon, Menu, LayoutDashboard, BookOpen } from "lucide-react";
+import { Sparkles, Plus, LogOut, User as UserIcon, Menu, LayoutDashboard, BookOpen, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -64,6 +64,12 @@ export function Navbar() {
                 <Link href="/feed">
                   <Button variant="ghost">Feed</Button>
                 </Link>
+                <Link href="/members">
+                  <Button variant="ghost" className="gap-2">
+                    <Users className="h-4 w-4" />
+                    Members
+                  </Button>
+                </Link>
                 <Link href="/ideas/new">
                   <Button variant="ghost" className="gap-2">
                     <Plus className="h-4 w-4" />
@@ -110,15 +116,6 @@ export function Navbar() {
                     </div>
                   </div>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link
-                      href="/dashboard"
-                      className="flex items-center gap-2"
-                    >
-                      <LayoutDashboard className="h-4 w-4" />
-                      Dashboard
-                    </Link>
-                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link
                       href={`/profile/${user.id}`}
@@ -190,6 +187,15 @@ export function Navbar() {
                   >
                     <Button variant="ghost" className="w-full justify-start">
                       Feed
+                    </Button>
+                  </Link>
+                  <Link
+                    href="/members"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Button variant="ghost" className="w-full justify-start gap-2">
+                      <Users className="h-4 w-4" />
+                      Members
                     </Button>
                   </Link>
                   <Link

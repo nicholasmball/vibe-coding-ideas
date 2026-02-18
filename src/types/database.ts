@@ -28,6 +28,7 @@ export type Database = {
           default_board_columns: { title: string; is_done_column: boolean }[] | null;
           is_admin: boolean;
           is_bot: boolean;
+          ai_enabled: boolean;
           active_bot_id: string | null;
           created_at: string;
           updated_at: string;
@@ -50,6 +51,7 @@ export type Database = {
           default_board_columns?: { title: string; is_done_column: boolean }[] | null;
           is_admin?: boolean;
           is_bot?: boolean;
+          ai_enabled?: boolean;
           active_bot_id?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -72,6 +74,7 @@ export type Database = {
           default_board_columns?: { title: string; is_done_column: boolean }[] | null;
           is_admin?: boolean;
           is_bot?: boolean;
+          ai_enabled?: boolean;
           active_bot_id?: string | null;
           created_at?: string;
           updated_at?: string;

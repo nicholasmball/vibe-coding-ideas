@@ -165,7 +165,7 @@ export default async function ProfilePage({ params }: PageProps) {
             </>
           )}
           {showDeleteButton && (
-            <DeleteUserButton userId={id} userName={profileUser.full_name} />
+            <DeleteUserButton userId={id} userName={profileUser.full_name} redirectTo="/feed" />
           )}
         </div>
       )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, X, Upload } from "lucide-react";
+import { Search, X, Upload, Sparkles, Archive } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -19,7 +19,8 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getLabelColorConfig } from "@/lib/utils";
 import { ImportDialog } from "./import-dialog";
-import type { BoardColumnWithTasks, BoardLabel, User } from "@/types";
+import { AiGenerateDialog } from "./ai-generate-dialog";
+import type { BoardColumnWithTasks, BoardLabel, User, BotProfile } from "@/types";
 
 interface BoardToolbarProps {
   searchQuery: string;
@@ -37,7 +38,10 @@ interface BoardToolbarProps {
   archivedCount: number;
   columns: BoardColumnWithTasks[];
   ideaId: string;
+  ideaDescription?: string;
   currentUserId: string;
+  aiEnabled?: boolean;
+  botProfiles?: BotProfile[];
 }
 
 export function BoardToolbar({
@@ -56,9 +60,13 @@ export function BoardToolbar({
   archivedCount,
   columns,
   ideaId,
+  ideaDescription = "",
   currentUserId,
+  aiEnabled = false,
+  botProfiles = [],
 }: BoardToolbarProps) {
   const [importOpen, setImportOpen] = useState(false);
+  const [aiGenerateOpen, setAiGenerateOpen] = useState(false);
 
   function handleLabelToggle(labelId: string) {
     if (labelFilter.includes(labelId)) {
@@ -158,9 +166,10 @@ export function BoardToolbar({
         <Button
           variant={showArchived ? "secondary" : "ghost"}
           size="sm"
-          className="h-8 text-xs"
+          className="h-8 gap-1.5 text-xs"
           onClick={() => onShowArchivedChange(!showArchived)}
         >
+          <Archive className="h-3.5 w-3.5" />
           {showArchived ? "Hide" : "Show"} archived ({archivedCount})
         </Button>
       )}
@@ -183,7 +192,18 @@ export function BoardToolbar({
         </Button>
       )}
 
-      <div className="ml-auto">
+      <div className="ml-auto flex gap-2">
+        {aiEnabled && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-xs"
+            onClick={() => setAiGenerateOpen(true)}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            AI Generate
+          </Button>
+        )}
         <Button
           variant="outline"
           size="sm"
@@ -204,6 +224,20 @@ export function BoardToolbar({
         boardLabels={boardLabels}
         teamMembers={teamMembers}
       />
+
+      {aiEnabled && (
+        <AiGenerateDialog
+          open={aiGenerateOpen}
+          onOpenChange={setAiGenerateOpen}
+          ideaId={ideaId}
+          ideaDescription={ideaDescription}
+          currentUserId={currentUserId}
+          columns={columns}
+          boardLabels={boardLabels}
+          teamMembers={teamMembers}
+          bots={botProfiles}
+        />
+      )}
     </div>
   );
 }

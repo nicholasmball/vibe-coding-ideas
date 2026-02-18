@@ -212,6 +212,13 @@ function formatSessionTime(entries: FeedEntry[]): string {
   return `${dateStr}, ${startTime} – ${endTime}`;
 }
 
+function formatEntryTime(timestamp: string): string {
+  return new Date(timestamp).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function BotActivityDialog({
   bot,
   open,
@@ -336,6 +343,11 @@ export function BotActivityDialog({
                   </Badge>
                 )}
               </div>
+              {!loading && feed.length > 0 && (
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Last active {formatRelativeTime(feed[0].created_at)}
+                </p>
+              )}
             </div>
           </DialogTitle>
         </DialogHeader>
@@ -424,8 +436,6 @@ export function BotActivityDialog({
                             <div className="h-px flex-1 bg-border" />
                             <span className="text-[10px] text-muted-foreground shrink-0">
                               {formatSessionTime(session)}
-                              {" "}
-                              ({session.length} {session.length === 1 ? "action" : "actions"})
                             </span>
                             <div className="h-px flex-1 bg-border" />
                           </div>
@@ -465,7 +475,7 @@ export function BotActivityDialog({
                                               <p className="line-clamp-2 break-words whitespace-pre-wrap text-muted-foreground">{(entry.content ?? "").replace(/[`#*_~\[\]]/g, "").replace(/\n+/g, " ").slice(0, 200)}</p>
                                             </div>
                                             <p className="text-[10px] text-muted-foreground mt-0.5">
-                                              {formatRelativeTime(entry.created_at)}
+                                              {formatEntryTime(entry.created_at)}
                                             </p>
                                           </div>
                                         </div>
@@ -494,7 +504,7 @@ export function BotActivityDialog({
                                           )}
                                         </span>
                                         <span className="text-[10px] text-muted-foreground shrink-0 ml-auto">
-                                          {formatRelativeTime(entry.created_at)}
+                                          {formatEntryTime(entry.created_at)}
                                         </span>
                                       </div>
                                     );

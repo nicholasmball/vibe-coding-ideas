@@ -19,6 +19,7 @@
 - **Notifications**: sonner (toasts)
 - **Testing**: Vitest + @testing-library/react + jsdom
 - **PWA**: Manual service worker + Next.js manifest (Turbopack-compatible, zero runtime deps)
+- **AI**: Vercel AI SDK (`ai` + `@ai-sdk/anthropic`) for idea enhancement and board generation
 - **Remote MCP**: mcp-handler (Vercel MCP adapter) + OAuth 2.1 + PKCE
 
 ## Project Structure
@@ -64,6 +65,7 @@ src/
 │       ├── ideas/[id]      # Idea detail (votes, comments, collaborators)
 │       ├── ideas/[id]/board # Kanban task board (author + collaborators only)
 │       ├── ideas/[id]/edit # Edit idea (author only)
+│       ├── members/        # User directory with search/sort/pagination
 │       └── profile/[id]    # User profile with tabs
 ├── actions/                # Server Actions (all use server-side validation)
 │   ├── ideas.ts            # create, update, updateStatus, delete
@@ -74,14 +76,16 @@ src/
 │   ├── collaborators.ts    # toggleCollaborator, addCollaborator, removeCollaborator
 │   ├── notifications.ts    # markRead, markAllRead, updateNotificationPreferences
 │   ├── profile.ts          # updateProfile (including avatar_url)
-│   └── users.ts            # deleteUser (admin only)
+│   ├── users.ts            # deleteUser (admin only)
+│   └── ai.ts               # enhanceIdeaDescription, applyEnhancedDescription, generateBoardTasks
 ├── components/
 │   ├── ui/                 # shadcn/ui (don't edit manually, except markdown.tsx)
 │   ├── layout/             # navbar, theme-toggle, notification-bell
 │   ├── auth/               # oauth-buttons
-│   ├── ideas/              # card, feed, form, edit-form, vote-button, collaborator-button, add-collaborator-popover, remove-collaborator-button, etc.
-│   ├── board/              # kanban-board, board-column, board-task-card, board-toolbar, task-edit-dialog, task-detail-dialog, column-edit-dialog, add-column-button, board-realtime, label-picker, due-date-picker, due-date-badge, task-label-badges, checklist-section, activity-timeline, task-comments-section, task-attachments-section, mention-autocomplete, import-dialog, import-csv-tab, import-json-tab, import-bulk-text-tab, import-column-mapper, import-preview-table
+│   ├── ideas/              # card, feed, form, edit-form, vote-button, collaborator-button, add-collaborator-popover, remove-collaborator-button, enhance-idea-button, enhance-idea-dialog
+│   ├── board/              # kanban-board, board-column, board-task-card, board-toolbar, task-edit-dialog, task-detail-dialog, column-edit-dialog, add-column-button, board-realtime, label-picker, due-date-picker, due-date-badge, task-label-badges, checklist-section, activity-timeline, task-comments-section, task-attachments-section, mention-autocomplete, import-dialog, import-csv-tab, import-json-tab, import-bulk-text-tab, import-column-mapper, import-preview-table, ai-generate-dialog
 │   ├── dashboard/          # collapsible-section, dashboard-grid, stats-cards, active-boards, my-bots, bot-activity-dialog, my-tasks-list, activity-feed
+│   ├── members/            # member-directory, member-card
 │   ├── comments/           # thread, item, form, type-badge
 │   ├── pwa/                # service-worker-register, install-prompt
 │   └── profile/            # header, tabs, delete-user-button, edit-profile-dialog, notification-settings, complete-profile-banner, bot-management, create-bot-dialog, edit-bot-dialog
@@ -116,7 +120,7 @@ public/
 ├── apple-touch-icon.png    # Apple touch icon (180x180)
 └── icons/                  # PWA icons (192, 512, maskable-512)
 scripts/generate-icons.mjs  # One-time icon generation script (requires sharp)
-supabase/migrations/        # 37 SQL migration files (run in order)
+supabase/migrations/        # 40 SQL migration files (run in order)
 mcp-server/                 # MCP server for Claude Code integration
 ├── package.json            # ESM, separate deps
 ├── tsconfig.json           # noEmit, includes ../src/types
@@ -237,6 +241,22 @@ mcp-server/                 # MCP server for Claude Code integration
 - `VIBECODES_BOT_ID` env var overrides DB-persisted identity on local MCP startup
 - `McpContext.ownerUserId` distinguishes the real human from the active bot identity (for ownership validation)
 
+### AI Features (Idea Enhancement & Board Generation)
+- **Dependencies**: `ai` (Vercel AI SDK) + `@ai-sdk/anthropic` (Claude provider)
+- **Access control**: `users.ai_enabled` boolean (default false), admin-toggled — AI buttons hidden entirely when false
+- **API key**: Platform `ANTHROPIC_API_KEY` stored as Vercel env var, server-side only
+- **Model**: Claude Sonnet 4.5 (`claude-sonnet-4-5-20250929`)
+- **Server actions** in `src/actions/ai.ts`:
+  - `enhanceIdeaDescription(ideaId, prompt, personaPrompt?)` — calls `generateText()`, returns original + enhanced
+  - `applyEnhancedDescription(ideaId, description)` — updates idea description (author-only)
+  - `generateBoardTasks(ideaId, prompt, personaPrompt?)` — calls `generateObject()` with Zod schema, returns `ImportTask[]`
+- **Enhance flow**: Idea detail page → "Enhance with AI" button (author + ai_enabled) → dialog with persona selector, editable prompt, original vs enhanced comparison → Apply/Try Again/Cancel
+- **Generate flow**: Board toolbar → "AI Generate" button (team member + ai_enabled) → dialog with persona selector, prompt, add/replace mode → preview table → Apply All
+- **Persona selector**: Uses user's active bot profiles as AI personas (system_prompt injected into AI call)
+- **Board generation**: Structured output via `generateObject()` with Zod schema → parsed into `ImportTask[]` → fed into existing `executeBulkImport()` pipeline
+- **Replace mode**: Deletes all existing tasks before applying AI-generated ones (with destructive warning)
+- **Components**: `enhance-idea-button.tsx`, `enhance-idea-dialog.tsx` (ideas), `ai-generate-dialog.tsx` (board)
+
 ### PWA (Progressive Web App)
 - **Installable** from browser on Android, iOS, and desktop ("Add to Home Screen")
 - `src/app/manifest.ts` generates `/manifest.webmanifest` — standalone, dark theme, `/dashboard` start URL
@@ -277,6 +297,7 @@ NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_xxx
 NEXT_PUBLIC_APP_URL=https://vibecodes.co.uk               # For OAuth discovery endpoints (production)
 SUPABASE_SERVICE_ROLE_KEY=eyJ...                   # For OAuth admin operations (Vercel only)
+ANTHROPIC_API_KEY=sk-ant-...                       # For AI features (Vercel only, server-side)
 ```
 
 ## Adding New Database Tables

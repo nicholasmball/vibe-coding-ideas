@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>Confirm your new email address</title>
+</head>
+<body style="margin:0;padding:0;background-color:#09090b;font-family:'Geist',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#09090b;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;">
+          <!-- Logo -->
+          <tr>
+            <td align="center" style="padding-bottom:32px;">
+              <img src="https://vibecodes.co.uk/apple-touch-icon.png" width="48" height="48" alt="VibeCodes" style="border-radius:12px;">
+              <span style="display:inline-block;vertical-align:middle;margin-left:12px;font-size:22px;font-weight:700;color:#fafafa;">VibeCodes</span>
+            </td>
+          </tr>
+          <!-- Card -->
+          <tr>
+            <td style="background-color:#18181b;border:1px solid #27272a;border-radius:12px;padding:40px 32px;">
+              <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#fafafa;">Confirm email change</h1>
+              <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#a1a1aa;">
+                You requested to change your VibeCodes email address. Click the button below to confirm this change.
+              </p>
+              <!-- Button -->
+              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 24px;">
+                <tr>
+                  <td style="background-color:#e4e4e7;border-radius:8px;">
+                    <a href="{{ .ConfirmationURL }}" target="_blank" style="display:inline-block;padding:12px 32px;font-size:14px;font-weight:600;color:#18181b;text-decoration:none;">
+                      Confirm New Email
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:0 0 16px;font-size:13px;line-height:1.5;color:#71717a;">
+                Or copy and paste this URL into your browser:
+              </p>
+              <p style="margin:0;font-size:12px;line-height:1.5;color:#71717a;word-break:break-all;">
+                {{ .ConfirmationURL }}
+              </p>
+            </td>
+          </tr>
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="padding-top:32px;">
+              <p style="margin:0;font-size:12px;color:#71717a;">
+                If you didn't request this change, please secure your account immediately by resetting your password.
+              </p>
+              <p style="margin:8px 0 0;font-size:12px;color:#71717a;">
+                &copy; 2026 VibeCodes. The AI-powered idea board.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

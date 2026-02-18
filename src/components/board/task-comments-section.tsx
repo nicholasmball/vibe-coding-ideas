@@ -89,12 +89,22 @@ export function TaskCommentsSection({
             .single();
 
           if (data) {
+            const comment = data as unknown as BoardTaskCommentWithAuthor;
             setComments((prev) => {
-              if (prev.some((c) => c.id === data.id)) return prev;
-              return [
-                ...prev,
-                data as unknown as BoardTaskCommentWithAuthor,
-              ];
+              if (prev.some((c) => c.id === comment.id)) return prev;
+              // Replace optimistic temp entry from same author with real data
+              const tempIdx = prev.findIndex(
+                (c) =>
+                  c.id.startsWith("temp-") &&
+                  c.author_id === comment.author_id &&
+                  c.content === comment.content
+              );
+              if (tempIdx !== -1) {
+                const updated = [...prev];
+                updated[tempIdx] = comment;
+                return updated;
+              }
+              return [...prev, comment];
             });
           }
         }
@@ -187,46 +197,60 @@ export function TaskCommentsSection({
     }
   }
 
-  function sendMentionNotifications() {
-    if (mentionedUserIds.size === 0) return;
-
-    const supabase = createClient();
-
-    for (const userId of mentionedUserIds) {
-      if (userId === currentUserId) continue;
-
-      const member = teamMembers.find((m) => m.id === userId);
-      if (!member) continue;
-      if (!member.notification_preferences?.task_mentions) continue;
-
-      supabase
-        .from("notifications")
-        .insert({
-          user_id: userId,
-          actor_id: currentUserId,
-          type: "task_mention" as const,
-          idea_id: ideaId,
-        })
-        .then(({ error }) => {
-          if (error)
-            console.error("Failed to send mention notification:", error.message);
-        });
-    }
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!content.trim()) return;
+    const text = content.trim();
+    if (!text) return;
 
+    // Optimistic: add comment immediately, clear input
+    const tempId = `temp-${Date.now()}`;
+    const currentUser = teamMembers.find((m) => m.id === currentUserId);
+    const optimisticComment: BoardTaskCommentWithAuthor = {
+      id: tempId,
+      task_id: taskId,
+      idea_id: ideaId,
+      author_id: currentUserId,
+      content: text,
+      created_at: new Date().toISOString(),
+      author: currentUser ?? null,
+    } as BoardTaskCommentWithAuthor;
+
+    setComments((prev) => [...prev, optimisticComment]);
+    setContent("");
+    setMentionQuery(null);
+    const savedMentionedUserIds = new Set(mentionedUserIds);
+    setMentionedUserIds(new Set());
     setSubmitting(true);
+
     try {
-      await createTaskComment(taskId, ideaId, content.trim());
+      await createTaskComment(taskId, ideaId, text);
       logTaskActivity(taskId, ideaId, currentUserId, "comment_added");
-      sendMentionNotifications();
-      setContent("");
-      setMentionQuery(null);
-      setMentionedUserIds(new Set());
+      // Send mention notifications with the saved set
+      if (savedMentionedUserIds.size > 0) {
+        const supabase = createClient();
+        for (const userId of savedMentionedUserIds) {
+          if (userId === currentUserId) continue;
+          const member = teamMembers.find((m) => m.id === userId);
+          if (!member) continue;
+          if (!member.notification_preferences?.task_mentions) continue;
+          supabase
+            .from("notifications")
+            .insert({
+              user_id: userId,
+              actor_id: currentUserId,
+              type: "task_mention" as const,
+              idea_id: ideaId,
+            })
+            .then(({ error }) => {
+              if (error)
+                console.error("Failed to send mention notification:", error.message);
+            });
+        }
+      }
     } catch {
+      // Rollback
+      setComments((prev) => prev.filter((c) => c.id !== tempId));
+      setContent(text);
       toast.error("Failed to post comment");
     } finally {
       setSubmitting(false);
@@ -234,9 +258,22 @@ export function TaskCommentsSection({
   }
 
   async function handleDelete(commentId: string) {
+    // Optimistic: remove immediately
+    const removed = comments.find((c) => c.id === commentId);
+    setComments((prev) => prev.filter((c) => c.id !== commentId));
+
     try {
       await deleteTaskComment(commentId, ideaId);
     } catch {
+      // Rollback
+      if (removed) {
+        setComments((prev) =>
+          [...prev, removed].sort(
+            (a, b) =>
+              new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          )
+        );
+      }
       toast.error("Failed to delete comment");
     }
   }

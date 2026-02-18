@@ -72,11 +72,10 @@ export function TaskDetailDialog({
   const [savingDesc, setSavingDesc] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const [archiving, setArchiving] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const isArchived = task.archived;
+  const [isArchived, setIsArchived] = useState(task.archived);
 
   const [localAssigneeId, setLocalAssigneeId] = useState<string | null>(task.assignee_id);
 
@@ -85,17 +84,20 @@ export function TaskDetailDialog({
   const [lastTaskDesc, setLastTaskDesc] = useState(task.description);
   const [lastTaskTitle, setLastTaskTitle] = useState(task.title);
   const [lastTaskAssigneeId, setLastTaskAssigneeId] = useState(task.assignee_id);
+  const [lastTaskArchived, setLastTaskArchived] = useState(task.archived);
 
   if (task.id !== lastTaskId) {
     // Different task — full reset
     setTitle(task.title);
     setDescription(task.description ?? "");
     setLocalAssigneeId(task.assignee_id);
+    setIsArchived(task.archived);
     setEditingDescription(false);
     setLastTaskId(task.id);
     setLastTaskDesc(task.description);
     setLastTaskTitle(task.title);
     setLastTaskAssigneeId(task.assignee_id);
+    setLastTaskArchived(task.archived);
   } else {
     // Same task — sync fields changed externally (only if user isn't actively editing)
     if (task.description !== lastTaskDesc && !editingDescription) {
@@ -109,6 +111,10 @@ export function TaskDetailDialog({
     if (task.assignee_id !== lastTaskAssigneeId) {
       setLocalAssigneeId(task.assignee_id);
       setLastTaskAssigneeId(task.assignee_id);
+    }
+    if (task.archived !== lastTaskArchived) {
+      setIsArchived(task.archived);
+      setLastTaskArchived(task.archived);
     }
   }
 
@@ -180,8 +186,9 @@ export function TaskDetailDialog({
   }
 
   async function handleArchiveToggle() {
-    setArchiving(true);
     const newArchived = !isArchived;
+    // Optimistic: update immediately
+    setIsArchived(newArchived);
     try {
       await updateBoardTask(task.id, ideaId, { archived: newArchived });
       logTaskActivity(
@@ -191,9 +198,9 @@ export function TaskDetailDialog({
         newArchived ? "archived" : "unarchived"
       );
     } catch {
+      // Rollback
+      setIsArchived(!newArchived);
       toast.error("Failed to update archive status");
-    } finally {
-      setArchiving(false);
     }
   }
 
@@ -518,17 +525,16 @@ export function TaskDetailDialog({
             size="sm"
             className="gap-1.5 text-muted-foreground"
             onClick={handleArchiveToggle}
-            disabled={archiving}
           >
             {isArchived ? (
               <>
                 <ArchiveRestore className="h-3.5 w-3.5" />
-                {archiving ? "Restoring..." : "Unarchive"}
+                Unarchive
               </>
             ) : (
               <>
                 <Archive className="h-3.5 w-3.5" />
-                {archiving ? "Archiving..." : "Archive"}
+                Archive
               </>
             )}
           </Button>
