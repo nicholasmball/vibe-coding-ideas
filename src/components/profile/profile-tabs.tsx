@@ -12,6 +12,7 @@ interface ProfileTabsProps {
   comments: (CommentWithAuthor & { idea_id: string; idea_title?: string })[];
   userVotes: string[];
   taskCounts: Record<string, number>;
+  isOwnProfile?: boolean;
 }
 
 export function ProfileTabs({
@@ -20,13 +21,14 @@ export function ProfileTabs({
   comments,
   userVotes,
   taskCounts,
+  isOwnProfile,
 }: ProfileTabsProps) {
   return (
     <Tabs defaultValue="ideas" className="mt-6">
       <TabsList className="w-full justify-start">
-        <TabsTrigger value="ideas">My Ideas ({ideas.length})</TabsTrigger>
+        <TabsTrigger value="ideas">{isOwnProfile ? "My Ideas" : "Ideas"} ({ideas.length})</TabsTrigger>
         <TabsTrigger value="collaborating">
-          Collaborating ({collaborations.length})
+          {isOwnProfile ? "Collaborating" : "Collaborations"} ({collaborations.length})
         </TabsTrigger>
         <TabsTrigger value="comments">Comments ({comments.length})</TabsTrigger>
       </TabsList>

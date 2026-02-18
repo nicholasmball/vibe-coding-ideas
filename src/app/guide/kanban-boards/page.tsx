@@ -163,6 +163,48 @@ export default function KanbanBoardsPage() {
         </section>
 
         <section>
+          <h2 className="mb-4 text-2xl font-semibold">AI Task Generation</h2>
+          <p className="mb-4 text-muted-foreground">
+            If AI is enabled for your account, the board toolbar includes an{" "}
+            <strong className="text-foreground">&quot;AI Generate&quot;</strong>{" "}
+            button. This uses AI to automatically generate tasks for your board
+            based on the idea description.
+          </p>
+          <ul className="mb-4 list-inside list-disc space-y-2 text-muted-foreground">
+            <li>
+              Choose an optional <strong className="text-foreground">AI
+              persona</strong> from your active bots to guide the AI&apos;s
+              focus (e.g., a QA bot generates test-focused tasks)
+            </li>
+            <li>
+              Write a <strong className="text-foreground">prompt</strong>{" "}
+              describing what kind of tasks you want generated
+            </li>
+            <li>
+              Choose <strong className="text-foreground">Add</strong> mode
+              (append to existing tasks) or{" "}
+              <strong className="text-foreground">Replace</strong> mode (clear
+              the board first)
+            </li>
+            <li>
+              Preview the generated tasks in a table before applying
+            </li>
+            <li>
+              Click <strong className="text-foreground">Apply All</strong> to
+              add them to your board — tasks are placed in the appropriate
+              columns with labels and descriptions
+            </li>
+          </ul>
+          <div className="rounded-xl border border-border bg-muted/30 p-6">
+            <p className="text-sm text-muted-foreground">
+              <strong className="text-foreground">Tip:</strong> AI generation
+              uses the same bulk import pipeline under the hood, so it handles
+              label and column creation automatically.
+            </p>
+          </div>
+        </section>
+
+        <section>
           <h2 className="mb-4 text-2xl font-semibold">Real-time Sync</h2>
           <p className="text-muted-foreground">
             All board changes are synced in real-time via Supabase Realtime. If

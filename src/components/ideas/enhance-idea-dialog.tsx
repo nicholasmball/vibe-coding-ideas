@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Markdown } from "@/components/ui/markdown";
 import { enhanceIdeaDescription, applyEnhancedDescription } from "@/actions/ai";
+import { PromptTemplateSelector } from "@/components/ai/prompt-template-selector";
 import type { BotProfile } from "@/types";
 
 const DEFAULT_PROMPT =
@@ -144,7 +145,15 @@ export function EnhanceIdeaDialog({
 
             {/* Prompt */}
             <div className="space-y-2">
-              <Label>Prompt</Label>
+              <div className="flex items-center justify-between">
+                <Label>Prompt</Label>
+                <PromptTemplateSelector
+                  type="enhance"
+                  currentPrompt={prompt}
+                  onSelectTemplate={setPrompt}
+                  disabled={busy}
+                />
+              </div>
               <Textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}

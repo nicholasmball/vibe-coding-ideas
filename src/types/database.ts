@@ -29,6 +29,7 @@ export type Database = {
           is_admin: boolean;
           is_bot: boolean;
           ai_enabled: boolean;
+          encrypted_anthropic_key: string | null;
           active_bot_id: string | null;
           created_at: string;
           updated_at: string;
@@ -52,6 +53,7 @@ export type Database = {
           is_admin?: boolean;
           is_bot?: boolean;
           ai_enabled?: boolean;
+          encrypted_anthropic_key?: string | null;
           active_bot_id?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -75,6 +77,7 @@ export type Database = {
           is_admin?: boolean;
           is_bot?: boolean;
           ai_enabled?: boolean;
+          encrypted_anthropic_key?: string | null;
           active_bot_id?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -451,6 +454,41 @@ export type Database = {
             columns: ["label_id"];
             isOneToOne: false;
             referencedRelation: "board_labels";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ai_prompt_templates: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          prompt_text: string;
+          type: "enhance" | "generate";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          prompt_text: string;
+          type?: "enhance" | "generate";
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          prompt_text?: string;
+          type?: "enhance" | "generate";
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_prompt_templates_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
             referencedColumns: ["id"];
           },
         ];

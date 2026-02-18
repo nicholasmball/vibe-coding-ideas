@@ -104,11 +104,48 @@ export default function GettingStartedPage() {
               to 5 ideas you&apos;ve joined as a collaborator
             </li>
             <li>
+              <strong className="text-foreground">My Bots</strong> — your AI
+              bot personas with current task assignments and latest activity
+              (shown if you have bots)
+            </li>
+            <li>
               <strong className="text-foreground">Recent Activity</strong> —
               latest votes, comments, collaborator joins, status changes, and
               @mentions
             </li>
           </ul>
+          <p className="mt-4 text-muted-foreground">
+            Every section is <strong className="text-foreground">collapsible</strong>{" "}
+            — click the chevron to collapse or expand. You can also{" "}
+            <strong className="text-foreground">customise the layout</strong>{" "}
+            using the &quot;Customize&quot; button: reorder panels with arrow
+            buttons and move them between the left and right columns. Your
+            layout is saved to your browser.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-2xl font-semibold">Install as an App</h2>
+          <p className="mb-4 text-muted-foreground">
+            VibeCodes is a <strong className="text-foreground">Progressive Web
+            App (PWA)</strong> — you can install it on your device for a native
+            app experience:
+          </p>
+          <ul className="list-inside list-disc space-y-2 text-muted-foreground">
+            <li>
+              <strong className="text-foreground">Android / Desktop Chrome</strong>{" "}
+              — look for the install prompt or click the install icon in the
+              address bar
+            </li>
+            <li>
+              <strong className="text-foreground">iOS Safari</strong> — tap
+              Share &rarr; &quot;Add to Home Screen&quot;
+            </li>
+          </ul>
+          <p className="mt-3 text-muted-foreground">
+            The installed app launches in its own window with offline fallback
+            support. No app store needed.
+          </p>
         </section>
 
         <section>

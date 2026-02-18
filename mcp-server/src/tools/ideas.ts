@@ -108,7 +108,7 @@ export const updateIdeaDescriptionSchema = z.object({
   description: z
     .string()
     .min(1)
-    .max(10000)
+    .max(50000)
     .describe("New description (markdown supported)"),
 });
 
@@ -131,7 +131,7 @@ export async function updateIdeaDescription(
 
 export const createIdeaSchema = z.object({
   title: z.string().min(1).max(200).describe("Idea title"),
-  description: z.string().min(1).max(10000).describe("Idea description (markdown supported)"),
+  description: z.string().min(1).max(50000).describe("Idea description (markdown supported)"),
   tags: z
     .array(z.string().max(50))
     .max(10)

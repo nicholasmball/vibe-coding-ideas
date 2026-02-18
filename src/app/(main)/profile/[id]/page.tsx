@@ -5,6 +5,7 @@ import { ProfileTabs } from "@/components/profile/profile-tabs";
 import { DeleteUserButton } from "@/components/profile/delete-user-button";
 import { EditProfileDialog } from "@/components/profile/edit-profile-dialog";
 import { NotificationSettings } from "@/components/profile/notification-settings";
+import { ApiKeySettings } from "@/components/profile/api-key-settings";
 import { BoardColumnSettings } from "@/components/profile/board-column-settings";
 import { BotManagement } from "@/components/profile/bot-management";
 import type { IdeaWithAuthor, BotProfile } from "@/types";
@@ -156,12 +157,15 @@ export default async function ProfilePage({ params }: PageProps) {
         commentCount={rawComments?.length ?? 0}
       />
       {(currentUser?.id === id || showDeleteButton) && (
-        <div className="mt-4 flex justify-end gap-2">
+        <div className="mt-4 flex flex-wrap justify-end gap-2">
           {currentUser?.id === id && (
             <>
-              <BoardColumnSettings columns={profileUser.default_board_columns} />
-              <NotificationSettings preferences={profileUser.notification_preferences} />
               <EditProfileDialog user={profileUser} />
+              <NotificationSettings preferences={profileUser.notification_preferences} />
+              <BoardColumnSettings columns={profileUser.default_board_columns} />
+              {profileUser.ai_enabled && (
+                <ApiKeySettings hasKey={!!profileUser.encrypted_anthropic_key} />
+              )}
             </>
           )}
           {showDeleteButton && (
@@ -180,6 +184,7 @@ export default async function ProfilePage({ params }: PageProps) {
         comments={comments as any}
         userVotes={userVotes}
         taskCounts={taskCounts}
+        isOwnProfile={currentUser?.id === id}
       />
     </div>
   );

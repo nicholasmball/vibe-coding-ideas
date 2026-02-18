@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Sparkles, Plus, LogOut, User as UserIcon, Menu, LayoutDashboard, BookOpen, Users } from "lucide-react";
+import { Sparkles, Plus, LogOut, User as UserIcon, Menu, LayoutDashboard, BookOpen, Users, Rss } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -62,7 +62,10 @@ export function Navbar() {
                   </Button>
                 </Link>
                 <Link href="/feed">
-                  <Button variant="ghost">Feed</Button>
+                  <Button variant="ghost" className="gap-2">
+                    <Rss className="h-4 w-4" />
+                    Feed
+                  </Button>
                 </Link>
                 <Link href="/members">
                   <Button variant="ghost" className="gap-2">
@@ -185,7 +188,8 @@ export function Navbar() {
                     href="/feed"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <Button variant="ghost" className="w-full justify-start">
+                    <Button variant="ghost" className="w-full justify-start gap-2">
+                      <Rss className="h-4 w-4" />
                       Feed
                     </Button>
                   </Link>

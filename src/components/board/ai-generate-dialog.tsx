@@ -49,6 +49,7 @@ import type {
   User,
   BotProfile,
 } from "@/types";
+import { PromptTemplateSelector } from "@/components/ai/prompt-template-selector";
 import { createClient } from "@/lib/supabase/client";
 
 const DEFAULT_PROMPT =
@@ -401,7 +402,15 @@ export function AiGenerateDialog({
             )}
 
             <div className="space-y-2">
-              <Label>Prompt</Label>
+              <div className="flex items-center justify-between">
+                <Label>Prompt</Label>
+                <PromptTemplateSelector
+                  type="generate"
+                  currentPrompt={prompt}
+                  onSelectTemplate={setPrompt}
+                  disabled={busy}
+                />
+              </div>
               <Textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}

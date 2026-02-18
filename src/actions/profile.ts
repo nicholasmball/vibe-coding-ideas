@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { validateBio, validateAvatarUrl } from "@/lib/validation";
+import { encrypt } from "@/lib/encryption";
 
 export async function updateProfile(formData: FormData) {
   const supabase = await createClient();
@@ -70,6 +71,52 @@ export async function updateDefaultBoardColumns(
   const { error } = await supabase
     .from("users")
     .update({ default_board_columns: columns })
+    .eq("id", user.id);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/profile/${user.id}`);
+}
+
+// ── API Key Management (BYOK) ──────────────────────────────────────────
+
+export async function saveApiKey(apiKey: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+
+  const trimmed = apiKey.trim();
+  if (!trimmed) throw new Error("API key cannot be empty");
+  if (!trimmed.startsWith("sk-ant-")) {
+    throw new Error("Invalid Anthropic API key format (should start with sk-ant-)");
+  }
+
+  const encrypted = encrypt(trimmed);
+
+  const { error } = await supabase
+    .from("users")
+    .update({ encrypted_anthropic_key: encrypted })
+    .eq("id", user.id);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/profile/${user.id}`);
+}
+
+export async function removeApiKey() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+
+  const { error } = await supabase
+    .from("users")
+    .update({ encrypted_anthropic_key: null })
     .eq("id", user.id);
 
   if (error) throw new Error(error.message);

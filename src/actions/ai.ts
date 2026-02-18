@@ -3,13 +3,23 @@
 import { createClient } from "@/lib/supabase/server";
 import { generateText, generateObject } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
+import { decrypt } from "@/lib/encryption";
 import { z } from "zod";
 
-const anthropic = createAnthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
-
 const AI_MODEL = "claude-sonnet-4-5-20250929";
+
+/** Create an Anthropic provider using the user's key if available, else platform key. */
+function getAnthropicProvider(encryptedKey: string | null) {
+  let apiKey = process.env.ANTHROPIC_API_KEY;
+  if (encryptedKey) {
+    try {
+      apiKey = decrypt(encryptedKey);
+    } catch {
+      // Fall back to platform key if decryption fails
+    }
+  }
+  return createAnthropic({ apiKey });
+}
 
 // ── Enhance Idea Description ───────────────────────────────────────────
 
@@ -25,16 +35,18 @@ export async function enhanceIdeaDescription(
 
   if (!user) throw new Error("Not authenticated");
 
-  // Check ai_enabled
+  // Check ai_enabled and get user's API key
   const { data: profile } = await supabase
     .from("users")
-    .select("ai_enabled")
+    .select("ai_enabled, encrypted_anthropic_key")
     .eq("id", user.id)
     .single();
 
   if (!profile?.ai_enabled) {
     throw new Error("AI features are not enabled for your account");
   }
+
+  const anthropic = getAnthropicProvider(profile.encrypted_anthropic_key);
 
   // Check ownership
   const { data: idea } = await supabase
@@ -111,16 +123,18 @@ export async function generateBoardTasks(
 
   if (!user) throw new Error("Not authenticated");
 
-  // Check ai_enabled
+  // Check ai_enabled and get user's API key
   const { data: profile } = await supabase
     .from("users")
-    .select("ai_enabled")
+    .select("ai_enabled, encrypted_anthropic_key")
     .eq("id", user.id)
     .single();
 
   if (!profile?.ai_enabled) {
     throw new Error("AI features are not enabled for your account");
   }
+
+  const anthropic = getAnthropicProvider(profile.encrypted_anthropic_key);
 
   // Check team membership (author or collaborator)
   const { data: idea } = await supabase

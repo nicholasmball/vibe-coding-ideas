@@ -379,6 +379,81 @@ export default function AiBotTeamsPage() {
         </section>
 
         <section>
+          <h2 className="mb-4 text-2xl font-semibold">
+            Bots as AI Personas
+          </h2>
+          <p className="mb-4 text-muted-foreground">
+            Your bot profiles double as{" "}
+            <strong className="text-foreground">AI personas</strong> for the
+            built-in AI features. When using{" "}
+            <strong className="text-foreground">Enhance with AI</strong>{" "}
+            (on ideas) or{" "}
+            <strong className="text-foreground">AI Generate</strong>{" "}
+            (on boards), you can select any active bot as a persona. The
+            bot&apos;s system prompt is injected into the AI call, guiding
+            Claude&apos;s style and focus.
+          </p>
+          <p className="text-muted-foreground">
+            For example, selecting a &quot;Business Analyst&quot; bot persona
+            when enhancing an idea will produce a more requirements-focused
+            description, while a &quot;Developer&quot; persona will emphasise
+            technical implementation details.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-2xl font-semibold">
+            Bring Your Own Key (BYOK)
+          </h2>
+          <p className="mb-4 text-muted-foreground">
+            If your account has AI enabled, you can optionally provide your own{" "}
+            <strong className="text-foreground">Anthropic API key</strong>{" "}
+            instead of using the platform&apos;s shared key. This is useful if
+            you want to control your own usage and costs.
+          </p>
+          <ul className="list-inside list-disc space-y-2 text-muted-foreground">
+            <li>
+              Go to your <strong className="text-foreground">profile
+              page</strong> and click{" "}
+              <strong className="text-foreground">AI API Key</strong>
+            </li>
+            <li>
+              Enter your Anthropic API key — it&apos;s{" "}
+              <strong className="text-foreground">encrypted at rest</strong>{" "}
+              and never exposed in the UI after saving
+            </li>
+            <li>
+              When your key is set, all AI features (enhance, generate) use
+              your key. Remove it to revert to the platform key.
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-2xl font-semibold">
+            Saved Prompt Templates
+          </h2>
+          <p className="mb-4 text-muted-foreground">
+            Instead of rewriting prompts every time, you can{" "}
+            <strong className="text-foreground">save prompt templates</strong>{" "}
+            that appear in the AI enhancement and generation dialogs.
+          </p>
+          <ul className="list-inside list-disc space-y-2 text-muted-foreground">
+            <li>
+              Templates are saved <strong className="text-foreground">per
+              user</strong> — accessible across all your ideas
+            </li>
+            <li>
+              Each template has a name and the prompt text
+            </li>
+            <li>
+              Select a saved template from the dropdown to pre-fill the prompt
+              field, then customise as needed
+            </li>
+          </ul>
+        </section>
+
+        <section>
           <h2 className="mb-4 text-2xl font-semibold">Managing Bots</h2>
           <p className="text-muted-foreground">
             On your profile page, you can:

@@ -114,6 +114,45 @@ export default function IdeasAndVotingPage() {
         </section>
 
         <section>
+          <h2 className="mb-4 text-2xl font-semibold">AI Enhancement</h2>
+          <p className="mb-4 text-muted-foreground">
+            If your account has <strong className="text-foreground">AI
+            enabled</strong>, you can use AI to improve your idea descriptions.
+            On the idea detail page, click the{" "}
+            <strong className="text-foreground">&quot;Enhance with AI&quot;</strong>{" "}
+            button to open the enhancement dialog.
+          </p>
+          <ul className="mb-4 list-inside list-disc space-y-2 text-muted-foreground">
+            <li>
+              Choose an optional <strong className="text-foreground">AI
+              persona</strong> — any of your active bot profiles can be used to
+              guide the AI&apos;s style and focus
+            </li>
+            <li>
+              Edit the <strong className="text-foreground">prompt</strong> to
+              tell the AI what to focus on (structure, technical detail,
+              audience, etc.)
+            </li>
+            <li>
+              Compare the <strong className="text-foreground">original vs
+              enhanced</strong> description side-by-side
+            </li>
+            <li>
+              <strong className="text-foreground">Apply</strong> the enhanced
+              version, <strong className="text-foreground">Try Again</strong>{" "}
+              with a different prompt, or cancel
+            </li>
+          </ul>
+          <div className="rounded-xl border border-border bg-muted/30 p-6">
+            <p className="text-sm text-muted-foreground">
+              <strong className="text-foreground">Tip:</strong> Only the idea
+              author can enhance descriptions. The AI uses Claude to rewrite
+              your description while preserving your core intent.
+            </p>
+          </div>
+        </section>
+
+        <section>
           <h2 className="mb-4 text-2xl font-semibold">Editing & Deleting</h2>
           <p className="text-muted-foreground">
             As the author, you can edit your idea at any time — update the

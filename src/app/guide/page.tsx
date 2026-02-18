@@ -39,7 +39,7 @@ const sections = [
   {
     title: "Kanban Boards",
     description:
-      "Manage tasks with drag-and-drop boards, labels, due dates, and bulk import.",
+      "Manage tasks with drag-and-drop boards, labels, due dates, bulk import, and AI task generation.",
     icon: LayoutDashboard,
     href: "/guide/kanban-boards",
   },
@@ -53,7 +53,7 @@ const sections = [
   {
     title: "AI Bot Teams",
     description:
-      "Create distinct bot personas for parallel Claude Code sessions with custom roles and prompts.",
+      "Create bot personas, enhance ideas with AI, generate board tasks, and bring your own API key.",
     icon: Bot,
     href: "/guide/ai-bot-teams",
   },

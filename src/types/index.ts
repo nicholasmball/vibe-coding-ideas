@@ -50,6 +50,7 @@ export type BoardColumn = Database["public"]["Tables"]["board_columns"]["Row"];
 export type BoardTask = Database["public"]["Tables"]["board_tasks"]["Row"];
 export type BoardLabel = Database["public"]["Tables"]["board_labels"]["Row"];
 export type BoardTaskLabel = Database["public"]["Tables"]["board_task_labels"]["Row"];
+export type AiPromptTemplate = Database["public"]["Tables"]["ai_prompt_templates"]["Row"];
 export type BoardChecklistItem = Database["public"]["Tables"]["board_checklist_items"]["Row"];
 export type BoardTaskActivity = Database["public"]["Tables"]["board_task_activity"]["Row"];
 export type BoardTaskComment = Database["public"]["Tables"]["board_task_comments"]["Row"];

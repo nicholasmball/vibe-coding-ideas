@@ -1,7 +1,7 @@
 // Server-side input validation for server actions
 
 export const MAX_TITLE_LENGTH = 200;
-export const MAX_DESCRIPTION_LENGTH = 10000;
+export const MAX_DESCRIPTION_LENGTH = 50000;
 export const MAX_COMMENT_LENGTH = 5000;
 export const MAX_BIO_LENGTH = 500;
 export const MAX_TAG_LENGTH = 50;
