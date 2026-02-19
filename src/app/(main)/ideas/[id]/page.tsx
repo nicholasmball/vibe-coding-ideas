@@ -224,6 +224,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
         {isAuthor && aiEnabled && (
           <EnhanceIdeaButton
             ideaId={idea.id}
+            ideaTitle={idea.title}
             currentDescription={idea.description}
             bots={userBots}
           />

@@ -8,12 +8,14 @@ import type { BotProfile } from "@/types";
 
 interface EnhanceIdeaButtonProps {
   ideaId: string;
+  ideaTitle: string;
   currentDescription: string;
   bots: BotProfile[];
 }
 
 export function EnhanceIdeaButton({
   ideaId,
+  ideaTitle,
   currentDescription,
   bots,
 }: EnhanceIdeaButtonProps) {
@@ -34,6 +36,7 @@ export function EnhanceIdeaButton({
         open={open}
         onOpenChange={setOpen}
         ideaId={ideaId}
+        ideaTitle={ideaTitle}
         currentDescription={currentDescription}
         bots={bots}
       />
