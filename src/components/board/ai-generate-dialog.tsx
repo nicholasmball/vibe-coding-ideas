@@ -50,6 +50,7 @@ import type {
   BotProfile,
 } from "@/types";
 import { PromptTemplateSelector } from "@/components/ai/prompt-template-selector";
+import { AiProgressSteps } from "@/components/ai/ai-progress-steps";
 import { createClient } from "@/lib/supabase/client";
 
 const DEFAULT_PROMPT =
@@ -119,36 +120,13 @@ export function AiGenerateDialog({
   const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const createdCountRef = useRef(0);
 
-  // Generating phase — elapsed time for progress messages
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    if (generating) {
-      setElapsedSeconds(0);
-      timerRef.current = setInterval(() => {
-        setElapsedSeconds((s) => s + 1);
-      }, 1000);
-    } else {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [generating]);
-
-  function getGeneratingMessage() {
-    if (elapsedSeconds < 10) return "Generating...";
-    if (elapsedSeconds < 30) return "Analyzing your idea...";
-    if (elapsedSeconds < 60) return "Building task structure...";
-    if (elapsedSeconds < 120) return "Creating detailed tasks — this can take a minute...";
-    return "Still working — large boards take longer...";
-  }
-
   const busy = generating || phase === "inserting" || phase === "loading-board";
+
+  const generateSteps = [
+    { title: "Analyzing idea description", description: "Reading your idea and prompt" },
+    { title: "Generating tasks & columns", description: "Building the board structure" },
+    { title: "Finalizing board", description: "Organizing labels and due dates" },
+  ];
   const activeBots = bots.filter((b) => b.is_active);
 
   // Auto-close when board refresh completes
@@ -408,109 +386,116 @@ export function AiGenerateDialog({
         {/* ── Configure Phase ─────────────────────────────────── */}
         {phase === "configure" && (
           <div className="space-y-4">
-            {activeBots.length > 0 && (
-              <div className="space-y-2">
-                <Label>AI Persona</Label>
-                <Select value={selectedBotId} onValueChange={setSelectedBotId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select persona" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default">
-                      Default (Project Manager)
-                    </SelectItem>
-                    {activeBots.map((bot) => (
-                      <SelectItem key={bot.id} value={bot.id}>
-                        {bot.name}
-                        {bot.role ? ` (${bot.role})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <div className="grid">
+              <div className={`col-start-1 row-start-1 ${generating ? "pointer-events-none opacity-40 blur-[1px]" : ""} transition-all`}>
+                {activeBots.length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    <Label>AI Persona</Label>
+                    <Select value={selectedBotId} onValueChange={setSelectedBotId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select persona" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="default">
+                          Default (Project Manager)
+                        </SelectItem>
+                        {activeBots.map((bot) => (
+                          <SelectItem key={bot.id} value={bot.id}>
+                            {bot.name}
+                            {bot.role ? ` (${bot.role})` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label>Prompt</Label>
-                <PromptTemplateSelector
-                  type="generate"
-                  currentPrompt={prompt}
-                  onSelectTemplate={setPrompt}
-                  disabled={busy}
-                />
-              </div>
-              <Textarea
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                rows={4}
-                placeholder="Tell the AI how to structure the task board..."
-                disabled={generating}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Mode</Label>
-              <RadioGroup
-                value={mode}
-                onValueChange={(v) => setMode(v as "add" | "replace")}
-                className="flex gap-4"
-              >
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="add" id="mode-add" />
-                  <Label htmlFor="mode-add" className="font-normal">
-                    Add to existing board
-                  </Label>
+                <div className="space-y-2 mb-4">
+                  <div className="flex items-center justify-between">
+                    <Label>Prompt</Label>
+                    <PromptTemplateSelector
+                      type="generate"
+                      currentPrompt={prompt}
+                      onSelectTemplate={setPrompt}
+                      disabled={busy}
+                    />
+                  </div>
+                  <Textarea
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    rows={4}
+                    placeholder="Tell the AI how to structure the task board..."
+                    disabled={generating}
+                  />
                 </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="replace" id="mode-replace" />
-                  <Label
-                    htmlFor="mode-replace"
-                    className="font-normal text-destructive"
+
+                <div className="space-y-2 mb-4">
+                  <Label>Mode</Label>
+                  <RadioGroup
+                    value={mode}
+                    onValueChange={(v) => setMode(v as "add" | "replace")}
+                    className="flex gap-4"
                   >
-                    Replace existing board
-                  </Label>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="add" id="mode-add" />
+                      <Label htmlFor="mode-add" className="font-normal">
+                        Add to existing board
+                      </Label>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RadioGroupItem value="replace" id="mode-replace" />
+                      <Label
+                        htmlFor="mode-replace"
+                        className="font-normal text-destructive"
+                      >
+                        Replace existing board
+                      </Label>
+                    </div>
+                  </RadioGroup>
                 </div>
-              </RadioGroup>
+
+                {mode === "replace" && (
+                  <div className="mb-4 flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>
+                      This will delete all existing tasks on the board before
+                      applying AI-generated tasks.
+                    </span>
+                  </div>
+                )}
+
+                {ideaDescription && (
+                  <div className="space-y-2">
+                    <Label className="text-muted-foreground">Idea Context</Label>
+                    <p className="line-clamp-3 rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+                      {ideaDescription.substring(0, 300)}
+                      {ideaDescription.length > 300 ? "..." : ""}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {generating && (
+                <div className="col-start-1 row-start-1 z-10 flex items-center justify-center">
+                  <AiProgressSteps
+                    steps={generateSteps}
+                    advanceAt={[10, 30]}
+                    active={generating}
+                  />
+                </div>
+              )}
             </div>
 
-            {mode === "replace" && (
-              <div className="flex items-start gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>
-                  This will delete all existing tasks on the board before
-                  applying AI-generated tasks.
-                </span>
-              </div>
+            {!generating && (
+              <Button
+                onClick={handleGenerate}
+                disabled={!prompt.trim()}
+                className="w-full gap-2"
+              >
+                <Sparkles className="h-4 w-4" />
+                Generate
+              </Button>
             )}
-
-            {ideaDescription && (
-              <div className="space-y-2">
-                <Label className="text-muted-foreground">Idea Context</Label>
-                <p className="line-clamp-3 rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-                  {ideaDescription.substring(0, 300)}
-                  {ideaDescription.length > 300 ? "..." : ""}
-                </p>
-              </div>
-            )}
-
-            <Button
-              onClick={handleGenerate}
-              disabled={generating || !prompt.trim()}
-              className="w-full gap-2"
-            >
-              {generating ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  {getGeneratingMessage()}
-                </>
-              ) : (
-                <>
-                  <Sparkles className="h-4 w-4" />
-                  Generate
-                </>
-              )}
-            </Button>
           </div>
         )}
 
