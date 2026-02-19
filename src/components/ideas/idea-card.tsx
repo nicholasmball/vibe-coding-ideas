@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MessageSquare, Users, LayoutDashboard, Github, Lock } from "lucide-react";
+import { MessageSquare, Users, LayoutDashboard, Github, Lock, ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -81,6 +81,14 @@ export function IdeaCard({ idea, hasVoted, taskCount }: IdeaCardProps) {
                 <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
               </Avatar>
               <span>{idea.author.full_name ?? "Anonymous"}</span>
+              {idea.author.is_admin && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <ShieldCheck className="h-3 w-3 text-primary" />
+                  </TooltipTrigger>
+                  <TooltipContent>Admin</TooltipContent>
+                </Tooltip>
+              )}
             </div>
             <span>{formatRelativeTime(idea.created_at)}</span>
           </div>

@@ -21,6 +21,8 @@ import { formatRelativeTime } from "@/lib/utils";
 import type { CommentWithAuthor, CollaboratorWithUser, BotProfile } from "@/types";
 import type { Metadata } from "next";
 
+export const maxDuration = 120;
+
 interface PageProps {
   params: Promise<{ id: string }>;
 }

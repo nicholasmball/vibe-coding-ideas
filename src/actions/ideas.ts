@@ -138,6 +138,21 @@ export async function deleteIdea(ideaId: string) {
 
   const isAdmin = profile?.is_admin ?? false;
 
+  // Best-effort cleanup: delete physical files from storage before DB cascade
+  try {
+    const { data: attachments } = await supabase
+      .from("board_task_attachments")
+      .select("storage_path")
+      .eq("idea_id", ideaId);
+
+    if (attachments && attachments.length > 0) {
+      const paths = attachments.map((a) => a.storage_path);
+      await supabase.storage.from("task-attachments").remove(paths);
+    }
+  } catch {
+    // Don't block deletion if storage cleanup fails
+  }
+
   let query = supabase.from("ideas").delete().eq("id", ideaId);
 
   // Non-admins can only delete their own ideas

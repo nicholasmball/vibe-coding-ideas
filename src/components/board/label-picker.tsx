@@ -187,7 +187,7 @@ export function LabelPicker({
       </div>
 
       {/* Existing labels */}
-      <div className="space-y-1">
+      <div className="max-h-[200px] space-y-1 overflow-y-auto">
         {boardLabels.map((label) => {
           if (editingId === label.id) {
             return (

@@ -431,6 +431,32 @@ export async function addLabelToTask(
   revalidatePath(`/ideas/${ideaId}/board`);
 }
 
+export async function addLabelsToTask(
+  taskId: string,
+  labelIds: string[],
+  ideaId: string
+) {
+  if (labelIds.length === 0) return;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+
+  const rows = labelIds.map((labelId) => ({
+    task_id: taskId,
+    label_id: labelId,
+  }));
+
+  const { error } = await supabase.from("board_task_labels").insert(rows);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/ideas/${ideaId}/board`);
+}
+
 export async function removeLabelFromTask(
   taskId: string,
   labelId: string,

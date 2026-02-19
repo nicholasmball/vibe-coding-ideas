@@ -22,7 +22,7 @@ import {
 import { toast } from "sonner";
 import { Bot, X, Image as ImageIcon } from "lucide-react";
 import { getLabelColorConfig } from "@/lib/utils";
-import { createBoardTask, addLabelToTask } from "@/actions/board";
+import { createBoardTask, addLabelsToTask } from "@/actions/board";
 import { createClient } from "@/lib/supabase/client";
 import { logTaskActivity } from "@/lib/activity";
 import type { User, BoardLabel } from "@/types";
@@ -192,9 +192,9 @@ export function TaskEditDialog({
         description.trim() || undefined,
         assigneeId || undefined
       );
-      // Assign selected labels
-      for (const labelId of selectedLabelIds) {
-        await addLabelToTask(taskId, labelId, ideaId);
+      // Assign selected labels (single batch insert)
+      if (selectedLabelIds.size > 0) {
+        await addLabelsToTask(taskId, Array.from(selectedLabelIds), ideaId);
       }
       logTaskActivity(taskId, ideaId, currentUserId, "created");
 
@@ -339,7 +339,7 @@ export function TaskEditDialog({
           {boardLabels.length > 0 && (
             <div className="space-y-2">
               <Label>Labels</Label>
-              <div className="flex flex-wrap gap-2">
+              <div className="max-h-[120px] flex flex-wrap gap-2 overflow-y-auto">
                 {boardLabels.map((label) => {
                   const config = getLabelColorConfig(label.color);
                   const isSelected = selectedLabelIds.has(label.id);

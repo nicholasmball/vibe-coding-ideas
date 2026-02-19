@@ -16,6 +16,8 @@ import type {
 } from "@/types";
 import type { Metadata } from "next";
 
+export const maxDuration = 120;
+
 interface PageProps {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ taskId?: string }>;
@@ -77,35 +79,78 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
   // Lazy-create default columns on first visit
   await initializeBoardColumns(id);
 
-  // Fetch columns ordered by position
-  const { data: rawColumns } = await supabase
-    .from("board_columns")
-    .select("*")
-    .eq("idea_id", id)
-    .order("position", { ascending: true });
+  // Phase 2: Parallel fetch of all board data
+  const [
+    { data: rawColumns },
+    { data: rawTasks },
+    { data: boardLabels },
+    { data: rawChecklistItems },
+    { data: collabs },
+    { data: author },
+    { data: rawUserBots },
+    { data: userProfile },
+  ] = await Promise.all([
+    supabase
+      .from("board_columns")
+      .select("*")
+      .eq("idea_id", id)
+      .order("position", { ascending: true }),
+    supabase
+      .from("board_tasks")
+      .select("*, assignee:users!board_tasks_assignee_id_fkey(*)")
+      .eq("idea_id", id)
+      .order("position", { ascending: true }),
+    supabase
+      .from("board_labels")
+      .select("*")
+      .eq("idea_id", id)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("board_checklist_items")
+      .select("*")
+      .eq("idea_id", id)
+      .order("position", { ascending: true }),
+    supabase
+      .from("collaborators")
+      .select("user:users!collaborators_user_id_fkey(*)")
+      .eq("idea_id", id),
+    supabase
+      .from("users")
+      .select("*")
+      .eq("id", idea.author_id)
+      .single(),
+    supabase
+      .from("bot_profiles")
+      .select("*")
+      .eq("owner_id", user.id)
+      .eq("is_active", true),
+    supabase
+      .from("users")
+      .select("ai_enabled")
+      .eq("id", user.id)
+      .single(),
+  ]);
 
-  // Fetch tasks with assignee
-  const { data: rawTasks } = await supabase
-    .from("board_tasks")
-    .select("*, assignee:users!board_tasks_assignee_id_fkey(*)")
-    .eq("idea_id", id)
-    .order("position", { ascending: true });
+  // Phase 3: Queries that depend on Phase 2 results
+  const taskIds = (rawTasks ?? []).map((t) => t.id);
+  const userBotProfiles = (rawUserBots ?? []) as BotProfile[];
+  const userBotIds = userBotProfiles.map((b) => b.id);
 
-  // Fetch board labels
-  const { data: boardLabels } = await supabase
-    .from("board_labels")
-    .select("*")
-    .eq("idea_id", id)
-    .order("created_at", { ascending: true });
-
-  // Fetch task-label assignments with label data
-  const { data: taskLabelRows } = await supabase
-    .from("board_task_labels")
-    .select("task_id, label:board_labels!board_task_labels_label_id_fkey(*)")
-    .in(
-      "task_id",
-      (rawTasks ?? []).map((t) => t.id)
-    );
+  const [{ data: taskLabelRows }, userBots] = await Promise.all([
+    taskIds.length > 0
+      ? supabase
+          .from("board_task_labels")
+          .select("task_id, label:board_labels!board_task_labels_label_id_fkey(*)")
+          .in("task_id", taskIds)
+      : Promise.resolve({ data: null }),
+    userBotIds.length > 0
+      ? supabase
+          .from("users")
+          .select("*")
+          .in("id", userBotIds)
+          .then(({ data }) => (data ?? []) as User[])
+      : Promise.resolve([] as User[]),
+  ]);
 
   // Build taskLabelsMap: Record<taskId, BoardLabel[]>
   const taskLabelsMap: Record<string, BoardLabel[]> = {};
@@ -120,13 +165,6 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
     }
   }
 
-  // Fetch checklist items
-  const { data: rawChecklistItems } = await supabase
-    .from("board_checklist_items")
-    .select("*")
-    .eq("idea_id", id)
-    .order("position", { ascending: true });
-
   // Build checklistItemsByTaskId
   const checklistItemsByTaskId: Record<string, BoardChecklistItem[]> = {};
   if (rawChecklistItems) {
@@ -138,18 +176,7 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
     }
   }
 
-  // Fetch team members (author + collaborators)
-  const { data: collabs } = await supabase
-    .from("collaborators")
-    .select("user:users!collaborators_user_id_fkey(*)")
-    .eq("idea_id", id);
-
-  const { data: author } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", idea.author_id)
-    .single();
-
+  // Build team members list
   const teamMembers: User[] = [];
   if (author) teamMembers.push(author as User);
   if (collabs) {
@@ -161,30 +188,6 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
     });
   }
 
-  // Fetch user's active bots for the assignee picker
-  const { data: rawUserBots } = await supabase
-    .from("bot_profiles")
-    .select("*")
-    .eq("owner_id", user.id)
-    .eq("is_active", true);
-
-  const userBotProfiles = (rawUserBots ?? []) as BotProfile[];
-  const userBotIds = userBotProfiles.map((b) => b.id);
-  let userBots: User[] = [];
-  if (userBotIds.length > 0) {
-    const { data: botUsers } = await supabase
-      .from("users")
-      .select("*")
-      .in("id", userBotIds);
-    userBots = (botUsers ?? []) as User[];
-  }
-
-  // Check if user has AI access
-  const { data: userProfile } = await supabase
-    .from("users")
-    .select("ai_enabled")
-    .eq("id", user.id)
-    .single();
   const aiEnabled = userProfile?.ai_enabled ?? false;
 
   // Assemble columns with tasks (including labels)

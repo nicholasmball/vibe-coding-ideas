@@ -21,9 +21,10 @@ export function TaskLabelBadges({ labels, maxVisible = 3 }: TaskLabelBadgesProps
         return (
           <span
             key={label.id}
-            className={`inline-flex items-center rounded-sm px-1.5 py-0.5 text-[10px] font-semibold ${config.badgeClass}`}
+            className={`inline-flex max-w-[120px] items-center rounded-sm px-1.5 py-0.5 text-[10px] font-semibold ${config.badgeClass}`}
+            title={label.name}
           >
-            {label.name}
+            <span className="truncate">{label.name}</span>
           </span>
         );
       })}

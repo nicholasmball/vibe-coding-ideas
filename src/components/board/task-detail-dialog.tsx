@@ -346,7 +346,7 @@ export function TaskDetailDialog({
                   </LabelPicker>
                 </div>
                 {task.labels.length > 0 && (
-                  <TaskLabelBadges labels={task.labels} maxVisible={10} />
+                  <TaskLabelBadges labels={task.labels} maxVisible={6} />
                 )}
               </div>
 
