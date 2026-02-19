@@ -33,6 +33,7 @@ import type {
   BoardChecklistItem,
   User,
   BotProfile,
+  AiCredits,
 } from "@/types";
 
 interface KanbanBoardProps {
@@ -47,6 +48,7 @@ interface KanbanBoardProps {
   userBots?: User[];
   aiEnabled?: boolean;
   botProfiles?: BotProfile[];
+  aiCredits?: AiCredits | null;
 }
 
 export function KanbanBoard({
@@ -61,6 +63,7 @@ export function KanbanBoard({
   userBots = [],
   aiEnabled = false,
   botProfiles = [],
+  aiCredits,
 }: KanbanBoardProps) {
   const [columns, setColumns] = useState(initialColumns);
   const columnsRef = useRef(columns);
@@ -458,6 +461,7 @@ export function KanbanBoard({
         currentUserId={currentUserId}
         aiEnabled={aiEnabled}
         botProfiles={botProfiles}
+        aiCredits={aiCredits}
       />
       <DndContext
         sensors={sensors}

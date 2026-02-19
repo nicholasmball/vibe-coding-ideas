@@ -91,5 +91,15 @@ export type DashboardBot = BotProfile & {
   isActiveMcpBot: boolean;
 };
 
+// AI usage types
+export type AiUsageLog = Database["public"]["Tables"]["ai_usage_log"]["Row"];
+
+export type AiCredits = {
+  used: number;
+  limit: number | null;
+  remaining: number | null;
+  isByok: boolean;
+};
+
 // Sort options
 export type SortOption = "newest" | "popular" | "discussed";

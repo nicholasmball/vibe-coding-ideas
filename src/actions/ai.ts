@@ -5,8 +5,15 @@ import { generateText, generateObject } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { decrypt } from "@/lib/encryption";
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database";
+import type { AiCredits } from "@/types";
 
 const AI_MODEL = "claude-sonnet-4-5-20250929";
+
+type ActionType = "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks";
+
+// ── Helpers ──────────────────────────────────────────────────────────────
 
 /** Create an Anthropic provider using the user's key if available, else platform key. */
 function getAnthropicProvider(encryptedKey: string | null) {
@@ -24,6 +31,108 @@ function getAnthropicProvider(encryptedKey: string | null) {
   return createAnthropic({ apiKey });
 }
 
+function getKeyType(encryptedKey: string | null): "platform" | "byok" {
+  if (!encryptedKey) return "platform";
+  try {
+    decrypt(encryptedKey);
+    return "byok";
+  } catch {
+    return "platform";
+  }
+}
+
+async function checkRateLimit(
+  supabase: SupabaseClient<Database>,
+  userId: string,
+  profile: { encrypted_anthropic_key: string | null; ai_daily_limit: number }
+): Promise<{ allowed: boolean; used: number; limit: number | null }> {
+  const keyType = getKeyType(profile.encrypted_anthropic_key);
+
+  // BYOK users are exempt from rate limits
+  if (keyType === "byok") {
+    return { allowed: true, used: 0, limit: null };
+  }
+
+  const limit = profile.ai_daily_limit;
+
+  // Count today's platform usage
+  const todayUTC = new Date();
+  todayUTC.setUTCHours(0, 0, 0, 0);
+
+  const { count } = await supabase
+    .from("ai_usage_log")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("key_type", "platform")
+    .gte("created_at", todayUTC.toISOString());
+
+  const used = count ?? 0;
+  return { allowed: used < limit, used, limit };
+}
+
+async function logAiUsage(
+  supabase: SupabaseClient<Database>,
+  params: {
+    userId: string;
+    actionType: ActionType;
+    inputTokens: number;
+    outputTokens: number;
+    model: string;
+    keyType: "platform" | "byok";
+    ideaId: string | null;
+  }
+) {
+  await supabase.from("ai_usage_log").insert({
+    user_id: params.userId,
+    action_type: params.actionType,
+    input_tokens: params.inputTokens,
+    output_tokens: params.outputTokens,
+    model: params.model,
+    key_type: params.keyType,
+    idea_id: params.ideaId,
+  });
+}
+
+// ── Get Remaining Credits ────────────────────────────────────────────────
+
+export async function getAiRemainingCredits(): Promise<AiCredits> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return { used: 0, limit: null, remaining: null, isByok: false };
+
+  const { data: profile } = await supabase
+    .from("users")
+    .select("encrypted_anthropic_key, ai_daily_limit")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile) return { used: 0, limit: null, remaining: null, isByok: false };
+
+  const isByok = getKeyType(profile.encrypted_anthropic_key) === "byok";
+
+  if (isByok) {
+    return { used: 0, limit: null, remaining: null, isByok: true };
+  }
+
+  const limit = profile.ai_daily_limit;
+
+  const todayUTC = new Date();
+  todayUTC.setUTCHours(0, 0, 0, 0);
+
+  const { count } = await supabase
+    .from("ai_usage_log")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("key_type", "platform")
+    .gte("created_at", todayUTC.toISOString());
+
+  const used = count ?? 0;
+  return { used, limit, remaining: Math.max(0, limit - used), isByok: false };
+}
+
 // ── Enhance Idea Description ───────────────────────────────────────────
 
 export async function enhanceIdeaDescription(
@@ -38,10 +147,9 @@ export async function enhanceIdeaDescription(
 
   if (!user) throw new Error("Not authenticated");
 
-  // Check ai_enabled and get user's API key
   const { data: profile } = await supabase
     .from("users")
-    .select("ai_enabled, encrypted_anthropic_key")
+    .select("ai_enabled, encrypted_anthropic_key, ai_daily_limit")
     .eq("id", user.id)
     .single();
 
@@ -49,9 +157,14 @@ export async function enhanceIdeaDescription(
     throw new Error("AI features are not enabled for your account");
   }
 
+  const keyType = getKeyType(profile.encrypted_anthropic_key);
+  const rateCheck = await checkRateLimit(supabase, user.id, profile);
+  if (!rateCheck.allowed) {
+    throw new Error(`Daily AI limit reached (${rateCheck.used}/${rateCheck.limit}). Try again tomorrow.`);
+  }
+
   const anthropic = getAnthropicProvider(profile.encrypted_anthropic_key);
 
-  // Check ownership
   const { data: idea } = await supabase
     .from("ideas")
     .select("id, title, description, author_id")
@@ -67,11 +180,21 @@ export async function enhanceIdeaDescription(
     ? `${personaPrompt}\n\nYou are helping to enhance an idea description on a project management platform.`
     : "You are an expert product manager and technical writer helping to enhance idea descriptions on a project management platform.";
 
-  const { text } = await generateText({
+  const { text, usage } = await generateText({
     model: anthropic(AI_MODEL),
     system: systemPrompt,
     prompt: `${prompt}\n\n---\n\n**Idea Title:** ${idea.title}\n\n**Current Description:**\n${idea.description}`,
     maxOutputTokens: 4000,
+  });
+
+  await logAiUsage(supabase, {
+    userId: user.id,
+    actionType: "enhance_description",
+    inputTokens: usage.inputTokens ?? 0,
+    outputTokens: usage.outputTokens ?? 0,
+    model: AI_MODEL,
+    keyType,
+    ideaId,
   });
 
   return { enhanced: text, original: idea.description };
@@ -105,12 +228,18 @@ export async function generateClarifyingQuestions(
 
   const { data: profile } = await supabase
     .from("users")
-    .select("ai_enabled, encrypted_anthropic_key")
+    .select("ai_enabled, encrypted_anthropic_key, ai_daily_limit")
     .eq("id", user.id)
     .single();
 
   if (!profile?.ai_enabled) {
     throw new Error("AI features are not enabled for your account");
+  }
+
+  const keyType = getKeyType(profile.encrypted_anthropic_key);
+  const rateCheck = await checkRateLimit(supabase, user.id, profile);
+  if (!rateCheck.allowed) {
+    throw new Error(`Daily AI limit reached (${rateCheck.used}/${rateCheck.limit}). Try again tomorrow.`);
   }
 
   const anthropic = getAnthropicProvider(profile.encrypted_anthropic_key);
@@ -130,7 +259,7 @@ export async function generateClarifyingQuestions(
     ? `${personaPrompt}\n\nYou are helping to enhance an idea description. Before enhancing, you need to ask 2-4 focused clarifying questions to produce a better result.`
     : "You are an expert product manager helping to enhance an idea description. Before enhancing, you need to ask 2-4 focused clarifying questions to produce a better result.";
 
-  const { object } = await generateObject({
+  const { object, usage } = await generateObject({
     model: anthropic(AI_MODEL),
     system: systemPrompt,
     prompt: `The user wants to enhance the following idea. Read the idea and the user's enhancement prompt, then generate 2-4 targeted clarifying questions that would help you produce a much better enhancement. Focus on questions about target users, technical scope, project goals, success criteria, or any gaps in the current description.
@@ -145,6 +274,16 @@ export async function generateClarifyingQuestions(
 ${idea.description}`,
     schema: ClarifyingQuestionsSchema,
     maxOutputTokens: 1000,
+  });
+
+  await logAiUsage(supabase, {
+    userId: user.id,
+    actionType: "generate_questions",
+    inputTokens: usage.inputTokens ?? 0,
+    outputTokens: usage.outputTokens ?? 0,
+    model: AI_MODEL,
+    keyType,
+    ideaId,
   });
 
   return { questions: object.questions };
@@ -171,12 +310,18 @@ export async function enhanceIdeaWithContext(
 
   const { data: profile } = await supabase
     .from("users")
-    .select("ai_enabled, encrypted_anthropic_key")
+    .select("ai_enabled, encrypted_anthropic_key, ai_daily_limit")
     .eq("id", user.id)
     .single();
 
   if (!profile?.ai_enabled) {
     throw new Error("AI features are not enabled for your account");
+  }
+
+  const keyType = getKeyType(profile.encrypted_anthropic_key);
+  const rateCheck = await checkRateLimit(supabase, user.id, profile);
+  if (!rateCheck.allowed) {
+    throw new Error(`Daily AI limit reached (${rateCheck.used}/${rateCheck.limit}). Try again tomorrow.`);
   }
 
   const anthropic = getAnthropicProvider(profile.encrypted_anthropic_key);
@@ -202,7 +347,6 @@ export async function enhanceIdeaWithContext(
   let userPrompt: string;
 
   if (isRefinement) {
-    // Refinement path: revise previous enhancement based on feedback
     userPrompt = `You previously enhanced an idea description. The user has feedback for revision.
 
 **Original Description:**
@@ -216,7 +360,6 @@ ${options!.refinementFeedback}
 
 Revise the enhanced description based on this feedback. Keep changes targeted to what was requested.`;
   } else if (options?.answers && Object.keys(options.answers).length > 0) {
-    // Answers path: enhance with Q&A context
     const qaSection = Object.values(options.answers)
       .map((a, i) => `${i + 1}. Q: ${a.question}\n   A: ${a.answer}`)
       .join("\n\n");
@@ -234,15 +377,24 @@ ${qaSection}
 
 Use the answers above to inform your enhanced description. Make the enhancement specific and tailored based on what you learned.`;
   } else {
-    // Skip path: same as legacy one-shot
     userPrompt = `${prompt}\n\n---\n\n**Idea Title:** ${idea.title}\n\n**Current Description:**\n${idea.description}`;
   }
 
-  const { text } = await generateText({
+  const { text, usage } = await generateText({
     model: anthropic(AI_MODEL),
     system: systemPrompt,
     prompt: userPrompt,
     maxOutputTokens: 4000,
+  });
+
+  await logAiUsage(supabase, {
+    userId: user.id,
+    actionType: "enhance_with_context",
+    inputTokens: usage.inputTokens ?? 0,
+    outputTokens: usage.outputTokens ?? 0,
+    model: AI_MODEL,
+    keyType,
+    ideaId,
   });
 
   return { enhanced: text, original: idea.description };
@@ -296,10 +448,9 @@ export async function generateBoardTasks(
 
   if (!user) throw new Error("Not authenticated");
 
-  // Check ai_enabled and get user's API key
   const { data: profile } = await supabase
     .from("users")
-    .select("ai_enabled, encrypted_anthropic_key")
+    .select("ai_enabled, encrypted_anthropic_key, ai_daily_limit")
     .eq("id", user.id)
     .single();
 
@@ -307,9 +458,14 @@ export async function generateBoardTasks(
     throw new Error("AI features are not enabled for your account");
   }
 
+  const keyType = getKeyType(profile.encrypted_anthropic_key);
+  const rateCheck = await checkRateLimit(supabase, user.id, profile);
+  if (!rateCheck.allowed) {
+    throw new Error(`Daily AI limit reached (${rateCheck.used}/${rateCheck.limit}). Try again tomorrow.`);
+  }
+
   const anthropic = getAnthropicProvider(profile.encrypted_anthropic_key);
 
-  // Check team membership (author or collaborator)
   const { data: idea } = await supabase
     .from("ideas")
     .select("id, title, description, author_id")
@@ -359,12 +515,22 @@ export async function generateBoardTasks(
     );
   }
 
-  const { object } = await generateObject({
+  const { object, usage } = await generateObject({
     model: anthropic(AI_MODEL),
     system: systemPrompt,
     prompt: contextParts.join("\n\n"),
     schema: GeneratedBoardSchema,
     maxOutputTokens: 8000,
+  });
+
+  await logAiUsage(supabase, {
+    userId: user.id,
+    actionType: "generate_board_tasks",
+    inputTokens: usage.inputTokens ?? 0,
+    outputTokens: usage.outputTokens ?? 0,
+    model: AI_MODEL,
+    keyType,
+    ideaId,
   });
 
   // Cap at 50 tasks (Anthropic API doesn't support maxItems in schema)

@@ -31,6 +31,7 @@ export type Database = {
           ai_enabled: boolean;
           encrypted_anthropic_key: string | null;
           active_bot_id: string | null;
+          ai_daily_limit: number;
           created_at: string;
           updated_at: string;
         };
@@ -55,6 +56,7 @@ export type Database = {
           ai_enabled?: boolean;
           encrypted_anthropic_key?: string | null;
           active_bot_id?: string | null;
+          ai_daily_limit?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -79,6 +81,7 @@ export type Database = {
           ai_enabled?: boolean;
           encrypted_anthropic_key?: string | null;
           active_bot_id?: string | null;
+          ai_daily_limit?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -886,6 +889,57 @@ export type Database = {
             columns: ["owner_id"];
             isOneToOne: false;
             referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ai_usage_log: {
+        Row: {
+          id: string;
+          user_id: string;
+          action_type: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks";
+          input_tokens: number;
+          output_tokens: number;
+          model: string;
+          key_type: "platform" | "byok";
+          idea_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          action_type: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks";
+          input_tokens?: number;
+          output_tokens?: number;
+          model: string;
+          key_type: "platform" | "byok";
+          idea_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          action_type?: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks";
+          input_tokens?: number;
+          output_tokens?: number;
+          model?: string;
+          key_type?: "platform" | "byok";
+          idea_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_log_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ai_usage_log_idea_id_fkey";
+            columns: ["idea_id"];
+            isOneToOne: false;
+            referencedRelation: "ideas";
             referencedColumns: ["id"];
           },
         ];

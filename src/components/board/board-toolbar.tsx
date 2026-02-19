@@ -20,7 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { getLabelColorConfig } from "@/lib/utils";
 import { ImportDialog } from "./import-dialog";
 import { AiGenerateDialog } from "./ai-generate-dialog";
-import type { BoardColumnWithTasks, BoardLabel, User, BotProfile } from "@/types";
+import type { BoardColumnWithTasks, BoardLabel, User, BotProfile, AiCredits } from "@/types";
 
 interface BoardToolbarProps {
   searchQuery: string;
@@ -42,6 +42,7 @@ interface BoardToolbarProps {
   currentUserId: string;
   aiEnabled?: boolean;
   botProfiles?: BotProfile[];
+  aiCredits?: AiCredits | null;
 }
 
 export function BoardToolbar({
@@ -64,6 +65,7 @@ export function BoardToolbar({
   currentUserId,
   aiEnabled = false,
   botProfiles = [],
+  aiCredits,
 }: BoardToolbarProps) {
   const [importOpen, setImportOpen] = useState(false);
   const [aiGenerateOpen, setAiGenerateOpen] = useState(false);
@@ -199,9 +201,16 @@ export function BoardToolbar({
             size="sm"
             className="h-8 gap-1.5 text-xs"
             onClick={() => setAiGenerateOpen(true)}
+            disabled={!aiCredits?.isByok && aiCredits?.remaining === 0}
+            title={!aiCredits?.isByok && aiCredits?.remaining === 0 ? "Daily limit reached" : undefined}
           >
             <Sparkles className="h-3.5 w-3.5" />
             AI Generate
+            {aiCredits && !aiCredits.isByok && aiCredits.remaining !== null && (
+              <span className="ml-1 text-[10px] text-muted-foreground">
+                {aiCredits.remaining}/{aiCredits.limit}
+              </span>
+            )}
           </Button>
         )}
         <Button
@@ -236,6 +245,7 @@ export function BoardToolbar({
           boardLabels={boardLabels}
           teamMembers={teamMembers}
           bots={botProfiles}
+          aiCredits={aiCredits}
         />
       )}
     </div>

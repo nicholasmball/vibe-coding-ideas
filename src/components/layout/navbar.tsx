@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Sparkles, Plus, LogOut, User as UserIcon, Menu, LayoutDashboard, BookOpen, Users, Rss } from "lucide-react";
+import { Sparkles, Plus, LogOut, User as UserIcon, Menu, LayoutDashboard, BookOpen, Users, Rss, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -21,12 +21,24 @@ import { ThemeToggle } from "./theme-toggle";
 import { NotificationBell } from "./notification-bell";
 import { useUser } from "@/hooks/use-user";
 import { createClient } from "@/lib/supabase/client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function Navbar() {
   const { user, loading } = useUser();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return; }
+    const supabase = createClient();
+    supabase
+      .from("users")
+      .select("is_admin")
+      .eq("id", user.id)
+      .single()
+      .then(({ data }) => setIsAdmin(data?.is_admin ?? false));
+  }, [user]);
 
   const handleSignOut = async () => {
     const supabase = createClient();
@@ -79,6 +91,14 @@ export function Navbar() {
                     New Idea
                   </Button>
                 </Link>
+                {isAdmin && (
+                  <Link href="/admin">
+                    <Button variant="ghost" className="gap-2">
+                      <Shield className="h-4 w-4" />
+                      Admin
+                    </Button>
+                  </Link>
+                )}
               </>
             )}
             <Link href="/guide">
@@ -211,6 +231,17 @@ export function Navbar() {
                       New Idea
                     </Button>
                   </Link>
+                  {isAdmin && (
+                    <Link
+                      href="/admin"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <Button variant="ghost" className="w-full justify-start gap-2">
+                        <Shield className="h-4 w-4" />
+                        Admin
+                      </Button>
+                    </Link>
+                  )}
                   <Link
                     href={`/profile/${user.id}`}
                     onClick={() => setMobileMenuOpen(false)}

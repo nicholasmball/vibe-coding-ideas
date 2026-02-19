@@ -18,7 +18,7 @@ import { AddCollaboratorPopover } from "@/components/ideas/add-collaborator-popo
 import { RemoveCollaboratorButton } from "@/components/ideas/remove-collaborator-button";
 import { Markdown } from "@/components/ui/markdown";
 import { formatRelativeTime } from "@/lib/utils";
-import type { CommentWithAuthor, CollaboratorWithUser, BotProfile } from "@/types";
+import type { CommentWithAuthor, CollaboratorWithUser, BotProfile, AiCredits } from "@/types";
 import type { Metadata } from "next";
 
 export const maxDuration = 120;
@@ -121,14 +121,34 @@ export default async function IdeaDetailPage({ params }: PageProps) {
   // Check if user is admin and has AI access
   let isAdmin = false;
   let aiEnabled = false;
+  let aiCredits: AiCredits | null = null;
   if (user) {
     const { data: profile } = await supabase
       .from("users")
-      .select("is_admin, ai_enabled")
+      .select("is_admin, ai_enabled, ai_daily_limit, encrypted_anthropic_key")
       .eq("id", user.id)
       .single();
     isAdmin = profile?.is_admin ?? false;
     aiEnabled = profile?.ai_enabled ?? false;
+
+    if (aiEnabled && profile) {
+      const isByok = !!profile.encrypted_anthropic_key;
+      if (isByok) {
+        aiCredits = { used: 0, limit: null, remaining: null, isByok: true };
+      } else {
+        const todayUTC = new Date();
+        todayUTC.setUTCHours(0, 0, 0, 0);
+        const { count } = await supabase
+          .from("ai_usage_log")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("key_type", "platform")
+          .gte("created_at", todayUTC.toISOString());
+        const used = count ?? 0;
+        const limit = profile.ai_daily_limit;
+        aiCredits = { used, limit, remaining: Math.max(0, limit - used), isByok: false };
+      }
+    }
   }
 
   const isAuthor = user?.id === idea.author_id;
@@ -229,6 +249,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
             ideaTitle={idea.title}
             currentDescription={idea.description}
             bots={userBots}
+            aiCredits={aiCredits}
           />
         )}
         {canDelete && (
