@@ -65,6 +65,7 @@ src/
 │       ├── ideas/[id]      # Idea detail (votes, comments, collaborators)
 │       ├── ideas/[id]/board # Kanban task board (author + collaborators only)
 │       ├── ideas/[id]/edit # Edit idea (author only)
+│       ├── admin/          # Admin: AI usage analytics + user management (admin only)
 │       ├── members/        # User directory with search/sort/pagination
 │       └── profile/[id]    # User profile with tabs
 ├── actions/                # Server Actions (all use server-side validation)
@@ -77,13 +78,15 @@ src/
 │   ├── notifications.ts    # markRead, markAllRead, updateNotificationPreferences
 │   ├── profile.ts          # updateProfile (including avatar_url)
 │   ├── users.ts            # deleteUser (admin only)
-│   └── ai.ts               # enhanceIdeaDescription, applyEnhancedDescription, generateBoardTasks
+│   ├── ai.ts               # enhanceIdeaDescription, applyEnhancedDescription, generateBoardTasks, getAiRemainingCredits + rate limiting + usage logging
+│   └── admin.ts            # toggleAiEnabled, setUserAiDailyLimit (admin only)
 ├── components/
 │   ├── ui/                 # shadcn/ui (don't edit manually, except markdown.tsx)
 │   ├── layout/             # navbar, theme-toggle, notification-bell
 │   ├── auth/               # oauth-buttons
 │   ├── ideas/              # card, feed, form, edit-form, vote-button, collaborator-button, add-collaborator-popover, remove-collaborator-button, enhance-idea-button, enhance-idea-dialog
 │   ├── board/              # kanban-board, board-column, board-task-card, board-toolbar, task-edit-dialog, task-detail-dialog, column-edit-dialog, add-column-button, board-realtime, label-picker, due-date-picker, due-date-badge, task-label-badges, checklist-section, activity-timeline, task-comments-section, task-attachments-section, mention-autocomplete, import-dialog, import-csv-tab, import-json-tab, import-bulk-text-tab, import-column-mapper, import-preview-table, ai-generate-dialog
+│   ├── admin/              # ai-usage-dashboard, ai-user-management-row
 │   ├── dashboard/          # collapsible-section, dashboard-grid, stats-cards, active-boards, my-bots, bot-activity-dialog, my-tasks-list, activity-feed
 │   ├── members/            # member-directory, member-card
 │   ├── comments/           # thread, item, form, type-badge
@@ -120,7 +123,7 @@ public/
 ├── apple-touch-icon.png    # Apple touch icon (180x180)
 └── icons/                  # PWA icons (192, 512, maskable-512)
 scripts/generate-icons.mjs  # One-time icon generation script (requires sharp)
-supabase/migrations/        # 40 SQL migration files (run in order)
+supabase/migrations/        # 44 SQL migration files (run in order)
 mcp-server/                 # MCP server for Claude Code integration
 ├── package.json            # ESM, separate deps
 ├── tsconfig.json           # noEmit, includes ../src/types
@@ -163,7 +166,7 @@ mcp-server/                 # MCP server for Claude Code integration
 - All client-side catch blocks that call server actions should show `toast.error()` — never fail silently
 
 ### Auth Flow
-- Middleware protects `/dashboard`, `/feed`, `/ideas`, `/profile` routes (redirects to `/login`)
+- Middleware protects `/dashboard`, `/feed`, `/ideas`, `/profile`, `/admin` routes (redirects to `/login`)
 - Middleware redirects logged-in users away from `/login`, `/signup`
 - OAuth callback at `/callback` exchanges code for session
 - Email/password with forgot/reset password flow
@@ -171,7 +174,7 @@ mcp-server/                 # MCP server for Claude Code integration
 - Profile picture upload: edit-profile-dialog uploads to `avatars` bucket client-side, saves public URL (with cache-bust `?t=`) to `users.avatar_url` via `updateProfile` server action; supports upload, replace, and remove
 
 ### Database
-- 17 tables: users, ideas, comments, collaborators, votes, notifications, board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items, board_task_activity, board_task_comments, board_task_attachments, mcp_oauth_clients, mcp_oauth_codes, bot_profiles
+- 18 tables: users, ideas, comments, collaborators, votes, notifications, board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items, board_task_activity, board_task_comments, board_task_attachments, mcp_oauth_clients, mcp_oauth_codes, bot_profiles, ai_usage_log
 - Denormalized counts on ideas (upvotes, comment_count, collaborator_count) maintained by triggers
 - Users auto-created from auth.users via trigger
 - Notifications auto-created via triggers on comments/votes/collaborators (respect user preferences)
@@ -181,6 +184,8 @@ mcp-server/                 # MCP server for Claude Code integration
 - RLS: visibility-aware read, authenticated write, owner-only update/delete; collaborators INSERT/DELETE allows idea author
 - Authors can add/remove collaborators directly (solves private idea chicken-and-egg problem)
 - Collaborator notifications are bidirectional: author-adds-user notifies user, self-join notifies author
+- `users.ai_daily_limit` (integer, default 10) — per-user daily AI call cap; BYOK users exempt
+- `ai_usage_log` tracks all AI calls: user_id, action_type, input/output tokens, model, key_type (platform/byok), idea_id; RLS: users read own, admins read all
 - Admin role: `users.is_admin` — admins can delete any idea or non-admin user
 - `admin_delete_user` RPC (security definer) deletes from auth.users, cascading all data
 - `notifications.idea_id` is nullable (ON DELETE SET NULL) so notifications persist after user deletion
@@ -244,18 +249,26 @@ mcp-server/                 # MCP server for Claude Code integration
 ### AI Features (Idea Enhancement & Board Generation)
 - **Dependencies**: `ai` (Vercel AI SDK) + `@ai-sdk/anthropic` (Claude provider)
 - **Access control**: `users.ai_enabled` boolean (default false), admin-toggled — AI buttons hidden entirely when false
+- **Rate limiting**: Per-user daily caps via `users.ai_daily_limit` (default 10). BYOK users (with `encrypted_anthropic_key`) exempt from limits. Rate checks count today's `ai_usage_log` rows where `key_type = 'platform'`
+- **Usage logging**: All AI calls logged to `ai_usage_log` table with input/output token counts, model, key type, action type, and idea reference
+- **Credits display**: `AiCredits` type (`{ used, limit, remaining, isByok }`) passed from server pages to AI components. Shows "X/Y" badge on AI buttons, "Daily limit reached" tooltip when exhausted, credit info bar in dialogs
 - **API key**: Platform `ANTHROPIC_API_KEY` stored as Vercel env var, server-side only
 - **Model**: Claude Sonnet 4.5 (`claude-sonnet-4-5-20250929`)
 - **Server actions** in `src/actions/ai.ts`:
   - `enhanceIdeaDescription(ideaId, prompt, personaPrompt?)` — calls `generateText()`, returns original + enhanced
   - `applyEnhancedDescription(ideaId, description)` — updates idea description (author-only)
   - `generateBoardTasks(ideaId, prompt, personaPrompt?)` — calls `generateObject()` with Zod schema, returns `ImportTask[]`
+  - `getAiRemainingCredits()` — returns `AiCredits` for current user
+- **Admin actions** in `src/actions/admin.ts`:
+  - `toggleAiEnabled(userId, enabled)` — toggle AI access for a user
+  - `setUserAiDailyLimit(userId, limit)` — set per-user daily cap (null = unlimited)
+- **Admin page** at `/admin` — AI usage analytics dashboard with stats cards (total calls, tokens, est. cost, platform vs BYOK), filter bar (date range, action type), user management table (toggle ai_enabled, edit daily limit), recent activity log
 - **Enhance flow**: Idea detail page → "Enhance with AI" button (author + ai_enabled) → dialog with persona selector, editable prompt, original vs enhanced comparison → Apply/Try Again/Cancel
 - **Generate flow**: Board toolbar → "AI Generate" button (team member + ai_enabled) → dialog with persona selector, prompt, add/replace mode → preview table → Apply All
 - **Persona selector**: Uses user's active bot profiles as AI personas (system_prompt injected into AI call)
 - **Board generation**: Structured output via `generateObject()` with Zod schema → parsed into `ImportTask[]` → fed into existing `executeBulkImport()` pipeline
 - **Replace mode**: Deletes all existing tasks before applying AI-generated ones (with destructive warning)
-- **Components**: `enhance-idea-button.tsx`, `enhance-idea-dialog.tsx` (ideas), `ai-generate-dialog.tsx` (board)
+- **Components**: `enhance-idea-button.tsx`, `enhance-idea-dialog.tsx` (ideas), `ai-generate-dialog.tsx` (board), `ai-usage-dashboard.tsx`, `ai-user-management-row.tsx` (admin)
 
 ### PWA (Progressive Web App)
 - **Installable** from browser on Android, iOS, and desktop ("Add to Home Screen")
@@ -402,5 +415,5 @@ Both modes share the same 38 tools via `mcp-server/src/register-tools.ts` with d
 - **Authorization**: Per-request Supabase client with user's JWT → existing RLS policies enforced
 - **OAuth routes**: `/api/oauth/register` (DCR), `/api/oauth/authorize`, `/api/oauth/token`, `/api/oauth/code`
 - **Discovery**: `/.well-known/oauth-authorization-server` (RFC 8414), `/.well-known/oauth-protected-resource` (RFC 9728)
-- **DB tables**: `mcp_oauth_clients` (DCR), `mcp_oauth_codes` (auth codes, 10-min TTL), `bot_profiles` (multi-bot support)
+- **DB tables**: `mcp_oauth_clients` (DCR), `mcp_oauth_codes` (auth codes, 10-min TTL), `bot_profiles` (multi-bot support), `ai_usage_log` (AI usage tracking)
 - **Env vars** (Vercel): `NEXT_PUBLIC_APP_URL`, `SUPABASE_SERVICE_ROLE_KEY`
