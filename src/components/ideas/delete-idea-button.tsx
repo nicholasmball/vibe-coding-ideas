@@ -53,7 +53,8 @@ export function DeleteIdeaButton({ ideaId }: DeleteIdeaButtonProps) {
           <AlertDialogTitle>Delete this idea?</AlertDialogTitle>
           <AlertDialogDescription>
             This action cannot be undone. This will permanently delete the idea
-            and all associated comments, votes, and collaborators.
+            and all associated comments, votes, collaborators, board columns,
+            tasks, and attachments.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
