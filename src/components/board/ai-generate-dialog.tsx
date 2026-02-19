@@ -119,6 +119,35 @@ export function AiGenerateDialog({
   const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const createdCountRef = useRef(0);
 
+  // Generating phase — elapsed time for progress messages
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (generating) {
+      setElapsedSeconds(0);
+      timerRef.current = setInterval(() => {
+        setElapsedSeconds((s) => s + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [generating]);
+
+  function getGeneratingMessage() {
+    if (elapsedSeconds < 10) return "Generating...";
+    if (elapsedSeconds < 30) return "Analyzing your idea...";
+    if (elapsedSeconds < 60) return "Building task structure...";
+    if (elapsedSeconds < 120) return "Creating detailed tasks — this can take a minute...";
+    return "Still working — large boards take longer...";
+  }
+
   const busy = generating || phase === "inserting" || phase === "loading-board";
   const activeBots = bots.filter((b) => b.is_active);
 
@@ -473,7 +502,7 @@ export function AiGenerateDialog({
               {generating ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Generating...
+                  {getGeneratingMessage()}
                 </>
               ) : (
                 <>

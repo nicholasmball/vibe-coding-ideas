@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Loader2,
@@ -83,6 +83,43 @@ export function EnhanceIdeaDialog({
 
   // Refine phase
   const [refinementInput, setRefinementInput] = useState("");
+
+  // Elapsed timer for progress messages during AI calls
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isAiWorking = loading || generatingQuestions;
+
+  useEffect(() => {
+    if (isAiWorking) {
+      setElapsedSeconds(0);
+      timerRef.current = setInterval(() => {
+        setElapsedSeconds((s) => s + 1);
+      }, 1000);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isAiWorking]);
+
+  function getQuestionsMessage() {
+    if (elapsedSeconds < 10) return "Generating questions...";
+    if (elapsedSeconds < 30) return "Reading your idea...";
+    if (elapsedSeconds < 60) return "Crafting targeted questions...";
+    return "Still working — almost there...";
+  }
+
+  function getEnhancingMessage() {
+    if (elapsedSeconds < 10) return "Enhancing...";
+    if (elapsedSeconds < 30) return "Analyzing your description...";
+    if (elapsedSeconds < 60) return "Writing enhanced version...";
+    if (elapsedSeconds < 120) return "Polishing the details — this can take a minute...";
+    return "Still working — almost there...";
+  }
 
   const busy = loading || applying || generatingQuestions;
   const activeBots = bots.filter((b) => b.is_active);
@@ -357,8 +394,8 @@ export function EnhanceIdeaDialog({
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   {generatingQuestions
-                    ? "Generating questions..."
-                    : "Enhancing..."}
+                    ? getQuestionsMessage()
+                    : getEnhancingMessage()}
                 </>
               ) : askQuestions ? (
                 <>
@@ -409,7 +446,7 @@ export function EnhanceIdeaDialog({
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Enhancing...
+                    {getEnhancingMessage()}
                   </>
                 ) : (
                   <>
@@ -541,7 +578,7 @@ export function EnhanceIdeaDialog({
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Refining...
+                    {getEnhancingMessage()}
                   </>
                 ) : (
                   <>
