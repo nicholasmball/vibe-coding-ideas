@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -21,9 +20,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Bot } from "lucide-react";
+import { Bot, X, Image as ImageIcon } from "lucide-react";
 import { getLabelColorConfig } from "@/lib/utils";
 import { createBoardTask, addLabelToTask } from "@/actions/board";
+import { createClient } from "@/lib/supabase/client";
 import { logTaskActivity } from "@/lib/activity";
 import type { User, BoardLabel } from "@/types";
 
@@ -53,6 +53,119 @@ export function TaskEditDialog({
   const [assigneeId, setAssigneeId] = useState("");
   const [selectedLabelIds, setSelectedLabelIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [pendingImages, setPendingImages] = useState<{ file: File; previewUrl: string }[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounterRef = useRef(0);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Scoped paste handler — only active when this dialog is open
+  useEffect(() => {
+    if (!open) return;
+
+    function handlePaste(e: ClipboardEvent) {
+      // Only handle if the paste target is within our dialog
+      const dialog = dialogRef.current;
+      if (!dialog || !dialog.contains(e.target as Node)) return;
+
+      const items = e.clipboardData?.items;
+      if (!items) return;
+
+      const imageFiles: File[] = [];
+      for (const item of items) {
+        if (item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) imageFiles.push(file);
+        }
+      }
+
+      if (imageFiles.length > 0) {
+        e.preventDefault();
+        addImages(imageFiles);
+      }
+    }
+
+    document.addEventListener("paste", handlePaste);
+    return () => document.removeEventListener("paste", handlePaste);
+  }, [open]);
+
+  function handleDragEnter(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+    if (e.dataTransfer.types.includes("Files")) {
+      setIsDragging(true);
+    }
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
+      setIsDragging(false);
+    }
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounterRef.current = 0;
+
+    const files = e.dataTransfer.files;
+    if (!files?.length) return;
+
+    const imageFiles: File[] = [];
+    for (const file of files) {
+      if (file.type.startsWith("image/")) {
+        imageFiles.push(file);
+      }
+    }
+
+    if (imageFiles.length > 0) {
+      addImages(imageFiles);
+    }
+  }
+
+  function addImages(files: File[]) {
+    const entries = files.map((file) => ({
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+    setPendingImages((prev) => [...prev, ...entries]);
+  }
+
+  function removeImage(index: number) {
+    setPendingImages((prev) => {
+      const removed = prev[index];
+      if (removed) URL.revokeObjectURL(removed.previewUrl);
+      return prev.filter((_, i) => i !== index);
+    });
+  }
+
+  function resetState() {
+    // Revoke all preview URLs
+    pendingImages.forEach((entry) => URL.revokeObjectURL(entry.previewUrl));
+    setTitle("");
+    setDescription("");
+    setAssigneeId("");
+    setSelectedLabelIds(new Set());
+    setPendingImages([]);
+    setIsDragging(false);
+    dragCounterRef.current = 0;
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      resetState();
+    }
+    onOpenChange(nextOpen);
+  }
 
   function toggleLabel(labelId: string) {
     setSelectedLabelIds((prev) => {
@@ -84,11 +197,15 @@ export function TaskEditDialog({
         await addLabelToTask(taskId, labelId, ideaId);
       }
       logTaskActivity(taskId, ideaId, currentUserId, "created");
-      onOpenChange(false);
-      setTitle("");
-      setDescription("");
-      setAssigneeId("");
-      setSelectedLabelIds(new Set());
+
+      // Capture files before closing resets state
+      const filesToUpload = pendingImages.map((entry) => entry.file);
+      handleOpenChange(false);
+
+      // Upload pending images after task creation (best-effort)
+      if (filesToUpload.length > 0) {
+        await uploadImages(taskId, filesToUpload);
+      }
     } catch {
       toast.error("Failed to create task");
     } finally {
@@ -96,9 +213,72 @@ export function TaskEditDialog({
     }
   }
 
+  async function uploadImages(taskId: string, images: File[]) {
+    const supabase = createClient();
+    let isFirstImage = true;
+
+    for (const file of images) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error(`${file.name} exceeds 10MB limit`);
+        continue;
+      }
+
+      try {
+        const ext = file.name.split(".").pop() ?? "png";
+        const uniqueName = `${crypto.randomUUID()}.${ext}`;
+        const storagePath = `${ideaId}/${taskId}/${uniqueName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from("task-attachments")
+          .upload(storagePath, file);
+
+        if (uploadError) {
+          console.error("Upload failed:", uploadError.message);
+          toast.error(`Failed to upload ${file.name}`);
+          continue;
+        }
+
+        const { error: dbError } = await supabase
+          .from("board_task_attachments")
+          .insert({
+            task_id: taskId,
+            idea_id: ideaId,
+            uploaded_by: currentUserId,
+            file_name: file.name || `pasted-image.${ext}`,
+            file_size: file.size,
+            content_type: file.type,
+            storage_path: storagePath,
+          });
+
+        if (!dbError) {
+          logTaskActivity(taskId, ideaId, currentUserId, "attachment_added", {
+            file_name: file.name || `pasted-image.${ext}`,
+          });
+
+          if (isFirstImage) {
+            await supabase
+              .from("board_tasks")
+              .update({ cover_image_path: storagePath })
+              .eq("id", taskId);
+            isFirstImage = false;
+          }
+        }
+      } catch {
+        toast.error(`Failed to upload ${file.name}`);
+      }
+    }
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent
+        ref={dialogRef}
+        className={`sm:max-w-md ${isDragging ? "ring-2 ring-primary ring-offset-2" : ""}`}
+        onDragEnter={handleDragEnter}
+        onDragLeave={handleDragLeave}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+      >
         <DialogHeader>
           <DialogTitle>New Task</DialogTitle>
         </DialogHeader>
@@ -182,11 +362,55 @@ export function TaskEditDialog({
               </div>
             </div>
           )}
+
+          {/* Pending image previews */}
+          {pendingImages.length > 0 && (
+            <div className="space-y-2">
+              <Label>Images ({pendingImages.length})</Label>
+              <div className="flex flex-wrap gap-2">
+                {pendingImages.map(({ file, previewUrl }, index) => (
+                  <div
+                    key={`${file.name}-${file.size}-${index}`}
+                    className="group relative h-16 w-16 shrink-0 overflow-hidden rounded-md border border-border"
+                  >
+                    <img
+                      src={previewUrl}
+                      alt={file.name}
+                      className="h-full w-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-sm transition-opacity"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Drop zone hint */}
+          {isDragging && (
+            <div className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-primary bg-primary/5 p-4">
+              <ImageIcon className="h-4 w-4 text-primary" />
+              <p className="text-sm text-primary">Drop images here</p>
+            </div>
+          )}
+
+          {/* Paste hint when no images yet */}
+          {pendingImages.length === 0 && !isDragging && (
+            <p className="text-[10px] text-muted-foreground">
+              Paste or drop images to attach them
+            </p>
+          )}
+
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => handleOpenChange(false)}
             >
               Cancel
             </Button>
