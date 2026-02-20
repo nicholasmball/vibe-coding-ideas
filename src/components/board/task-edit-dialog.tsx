@@ -23,9 +23,11 @@ import { toast } from "sonner";
 import { Bot, X, Image as ImageIcon } from "lucide-react";
 import { getLabelColorConfig } from "@/lib/utils";
 import { createBoardTask, addLabelsToTask } from "@/actions/board";
+import { useBoardOps } from "./board-context";
 import { createClient } from "@/lib/supabase/client";
 import { logTaskActivity } from "@/lib/activity";
-import type { User, BoardLabel } from "@/types";
+import { POSITION_GAP } from "@/lib/constants";
+import type { User, BoardLabel, BoardTaskWithAssignee } from "@/types";
 
 interface TaskEditDialogProps {
   open: boolean;
@@ -57,6 +59,7 @@ export function TaskEditDialog({
   const [isDragging, setIsDragging] = useState(false);
   const dragCounterRef = useRef(0);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const ops = useBoardOps();
 
   // Scoped paste handler — only active when this dialog is open
   useEffect(() => {
@@ -183,7 +186,40 @@ export function TaskEditDialog({
     e.preventDefault();
     if (!title.trim()) return;
 
-    setLoading(true);
+    // Build optimistic task
+    const tempId = `temp-${crypto.randomUUID()}`;
+    const assignee = assigneeId
+      ? [...teamMembers, ...userBots].find((m) => m.id === assigneeId) ?? null
+      : null;
+    const selectedLabels = boardLabels.filter((l) => selectedLabelIds.has(l.id));
+    const tempTask: BoardTaskWithAssignee = {
+      id: tempId,
+      idea_id: ideaId,
+      column_id: columnId,
+      title: title.trim(),
+      description: description.trim() || null,
+      assignee_id: assigneeId || null,
+      assignee,
+      labels: selectedLabels,
+      position: Date.now(), // high value to sort at end
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      due_date: null,
+      archived: false,
+      checklist_total: 0,
+      checklist_done: 0,
+      attachment_count: 0,
+      cover_image_path: null,
+      comment_count: 0,
+    };
+
+    // Optimistically insert & close immediately
+    const rollback = ops.createTask(columnId, tempTask);
+    ops.incrementPendingOps();
+    const filesToUpload = pendingImages.map((entry) => entry.file);
+    handleOpenChange(false);
+
+    // Background: server call
     try {
       const taskId = await createBoardTask(
         ideaId,
@@ -192,24 +228,19 @@ export function TaskEditDialog({
         description.trim() || undefined,
         assigneeId || undefined
       );
-      // Assign selected labels (single batch insert)
       if (selectedLabelIds.size > 0) {
         await addLabelsToTask(taskId, Array.from(selectedLabelIds), ideaId);
       }
       logTaskActivity(taskId, ideaId, currentUserId, "created");
 
-      // Capture files before closing resets state
-      const filesToUpload = pendingImages.map((entry) => entry.file);
-      handleOpenChange(false);
-
-      // Upload pending images after task creation (best-effort)
       if (filesToUpload.length > 0) {
         await uploadImages(taskId, filesToUpload);
       }
     } catch {
+      rollback();
       toast.error("Failed to create task");
     } finally {
-      setLoading(false);
+      ops.decrementPendingOps();
     }
   }
 

@@ -84,8 +84,8 @@ src/
 │   ├── ui/                 # shadcn/ui (don't edit manually, except markdown.tsx)
 │   ├── layout/             # navbar, theme-toggle, notification-bell
 │   ├── auth/               # oauth-buttons
-│   ├── ideas/              # card, feed, form, edit-form, vote-button, collaborator-button, add-collaborator-popover, remove-collaborator-button, enhance-idea-button, enhance-idea-dialog
-│   ├── board/              # kanban-board, board-column, board-task-card, board-toolbar, task-edit-dialog, task-detail-dialog, column-edit-dialog, add-column-button, board-realtime, label-picker, due-date-picker, due-date-badge, task-label-badges, checklist-section, activity-timeline, task-comments-section, task-attachments-section, mention-autocomplete, import-dialog, import-csv-tab, import-json-tab, import-bulk-text-tab, import-column-mapper, import-preview-table, ai-generate-dialog
+│   ├── ideas/              # card, feed, form, edit-form, vote-button, collaborator-button, add-collaborator-popover, remove-collaborator-button, enhance-idea-button, enhance-idea-dialog, inline-idea-header, inline-idea-body, inline-idea-tags
+│   ├── board/              # kanban-board, board-context, board-column, board-task-card, board-toolbar, task-edit-dialog, task-detail-dialog, column-edit-dialog, add-column-button, board-realtime, label-picker, due-date-picker, due-date-badge, task-label-badges, checklist-section, activity-timeline, task-comments-section, task-attachments-section, mention-autocomplete, import-dialog, import-csv-tab, import-json-tab, import-bulk-text-tab, import-column-mapper, import-preview-table, ai-generate-dialog
 │   ├── admin/              # ai-usage-dashboard, ai-user-management-row
 │   ├── dashboard/          # collapsible-section, dashboard-grid, stats-cards, active-boards, my-bots, bot-activity-dialog, my-tasks-list, activity-feed
 │   ├── members/            # member-directory, member-card
@@ -206,6 +206,9 @@ mcp-server/                 # MCP server for Claude Code integration
 - Dashboard "My Bots" section (conditionally rendered if user has bots): shows each bot's name, role badge, MCP Active badge (if `users.active_bot_id` matches), current task assignment (most recent non-done, non-archived task), last activity action + relative time; inactive bots dimmed; clicking a bot opens bot activity dialog
 - Bot activity dialog: assigned tasks, merged activity+comments feed grouped by session (30-min gap), activity details rendered from JSONB (e.g. "moved to In Progress", "added a label "Bug""), comment previews with markdown rendering
 - Idea card board icon (`LayoutDashboard`) is a `<Link>` to `/ideas/[id]/board` (shown when `taskCount > 0`)
+- Idea detail page uses inline editing for authors: title (borderless input, save on blur), description (click-to-edit markdown, save on blur), tags (TagInput with 300ms debounce auto-save), GitHub URL (click-to-edit), visibility (badge toggle). Non-authors see read-only. Edit page kept as fallback.
+- `updateIdeaFields` server action in `src/actions/ideas.ts` — partial updates (any subset of title/description/tags/github_url/visibility), author-only, no redirect
+- Board uses `BoardOpsContext` (`board-context.tsx`) for optimistic UI across all mutations — provides `createTask`, `deleteTask`, `createColumn`, `deleteColumn`, `updateColumn`, `archiveColumnTasks` + `incrementPendingOps`/`decrementPendingOps`. Each returns a rollback function for error recovery.
 - Board uses @dnd-kit for drag-and-drop with optimistic UI updates
   - `MouseSensor` (distance: 8) for desktop, `TouchSensor` (delay: 200ms) for mobile, `KeyboardSensor` for a11y
   - Drag handles use `touch-none` CSS to prevent browser scroll interference

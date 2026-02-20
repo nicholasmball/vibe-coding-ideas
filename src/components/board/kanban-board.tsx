@@ -22,6 +22,7 @@ import {
 import { BoardColumn } from "./board-column";
 import { AddColumnButton } from "./add-column-button";
 import { BoardToolbar } from "./board-toolbar";
+import { BoardOpsContext, type BoardOptimisticOps } from "./board-context";
 import { toast } from "sonner";
 import { moveBoardTask, reorderBoardColumns } from "@/actions/board";
 import { POSITION_GAP } from "@/lib/constants";
@@ -29,6 +30,7 @@ import { getDueDateStatus } from "@/lib/utils";
 import type {
   BoardColumnWithTasks,
   BoardTaskWithAssignee,
+  BoardColumn as BoardColumnType,
   BoardLabel,
   BoardChecklistItem,
   User,
@@ -76,7 +78,7 @@ export function KanbanBoard({
   const dragSourceColumnRef = useRef<string | null>(null);
 
   // Track in-flight move operations to prevent server data from reverting optimistic updates
-  const [pendingMoves, setPendingMoves] = useState(0);
+  const [pendingOps, setPendingOps] = useState(0);
   // Cooldown after last move to let Realtime catch up before syncing
   const lastMoveTimeRef = useRef(0);
   const MOVE_COOLDOWN_MS = 1500;
@@ -119,13 +121,13 @@ export function KanbanBoard({
 
   // Fast-path sync when no recent moves
   const withinCooldown = Date.now() - lastMoveTimeRef.current < MOVE_COOLDOWN_MS;
-  if (serverKey !== lastServerKey && !activeTask && !activeColumn && pendingMoves === 0 && !withinCooldown) {
+  if (serverKey !== lastServerKey && !activeTask && !activeColumn && pendingOps === 0 && !withinCooldown) {
     setColumns(initialColumns);
     setLastServerKey(serverKey);
   }
 
   // Deferred sync: wait for cooldown to expire after rapid moves
-  const needsDeferredSync = serverKey !== lastServerKey && !activeTask && !activeColumn && pendingMoves === 0 && withinCooldown;
+  const needsDeferredSync = serverKey !== lastServerKey && !activeTask && !activeColumn && pendingOps === 0 && withinCooldown;
   useEffect(() => {
     if (!needsDeferredSync) return;
     const remaining = MOVE_COOLDOWN_MS - (Date.now() - lastMoveTimeRef.current);
@@ -151,6 +153,157 @@ export function KanbanBoard({
         0
       ),
     [columns]
+  );
+
+  // ────────────────────────────────────────────────────
+  // Optimistic operation callbacks (exposed via context)
+  // ────────────────────────────────────────────────────
+
+  const optimisticCreateTask = useCallback(
+    (columnId: string, tempTask: BoardTaskWithAssignee) => {
+      const prev = columnsRef.current;
+      setColumns((cols) => {
+        const next = cols.map((col) =>
+          col.id === columnId
+            ? { ...col, tasks: [...col.tasks, tempTask] }
+            : col
+        );
+        columnsRef.current = next;
+        return next;
+      });
+      return () => {
+        setColumns(prev);
+        columnsRef.current = prev;
+      };
+    },
+    []
+  );
+
+  const optimisticDeleteTask = useCallback(
+    (taskId: string, columnId: string) => {
+      const prev = columnsRef.current;
+      setColumns((cols) => {
+        const next = cols.map((col) =>
+          col.id === columnId
+            ? { ...col, tasks: col.tasks.filter((t) => t.id !== taskId) }
+            : col
+        );
+        columnsRef.current = next;
+        return next;
+      });
+      return () => {
+        setColumns(prev);
+        columnsRef.current = prev;
+      };
+    },
+    []
+  );
+
+  const optimisticCreateColumn = useCallback(
+    (tempColumn: BoardColumnWithTasks) => {
+      const prev = columnsRef.current;
+      setColumns((cols) => {
+        const next = [...cols, tempColumn];
+        columnsRef.current = next;
+        return next;
+      });
+      return () => {
+        setColumns(prev);
+        columnsRef.current = prev;
+      };
+    },
+    []
+  );
+
+  const optimisticDeleteColumn = useCallback(
+    (columnId: string) => {
+      const prev = columnsRef.current;
+      setColumns((cols) => {
+        const next = cols.filter((c) => c.id !== columnId);
+        columnsRef.current = next;
+        return next;
+      });
+      return () => {
+        setColumns(prev);
+        columnsRef.current = prev;
+      };
+    },
+    []
+  );
+
+  const optimisticUpdateColumn = useCallback(
+    (columnId: string, updates: Partial<BoardColumnType>) => {
+      const prev = columnsRef.current;
+      setColumns((cols) => {
+        const next = cols.map((col) =>
+          col.id === columnId ? { ...col, ...updates } : col
+        );
+        columnsRef.current = next;
+        return next;
+      });
+      return () => {
+        setColumns(prev);
+        columnsRef.current = prev;
+      };
+    },
+    []
+  );
+
+  const optimisticArchiveColumnTasks = useCallback(
+    (columnId: string) => {
+      const prev = columnsRef.current;
+      setColumns((cols) => {
+        const next = cols.map((col) =>
+          col.id === columnId
+            ? {
+                ...col,
+                tasks: col.tasks.map((t) =>
+                  t.archived ? t : { ...t, archived: true }
+                ),
+              }
+            : col
+        );
+        columnsRef.current = next;
+        return next;
+      });
+      return () => {
+        setColumns(prev);
+        columnsRef.current = prev;
+      };
+    },
+    []
+  );
+
+  const incrementPendingOps = useCallback(() => {
+    setPendingOps((n) => n + 1);
+  }, []);
+
+  const decrementPendingOps = useCallback(() => {
+    setPendingOps((n) => n - 1);
+    lastMoveTimeRef.current = Date.now();
+  }, []);
+
+  const boardOps = useMemo<BoardOptimisticOps>(
+    () => ({
+      createTask: optimisticCreateTask,
+      deleteTask: optimisticDeleteTask,
+      createColumn: optimisticCreateColumn,
+      deleteColumn: optimisticDeleteColumn,
+      updateColumn: optimisticUpdateColumn,
+      archiveColumnTasks: optimisticArchiveColumnTasks,
+      incrementPendingOps,
+      decrementPendingOps,
+    }),
+    [
+      optimisticCreateTask,
+      optimisticDeleteTask,
+      optimisticCreateColumn,
+      optimisticDeleteColumn,
+      optimisticUpdateColumn,
+      optimisticArchiveColumnTasks,
+      incrementPendingOps,
+      decrementPendingOps,
+    ]
   );
 
   // Derive filtered columns
@@ -333,7 +486,7 @@ export function KanbanBoard({
         columnsRef.current = newColumns;
         setColumns(newColumns);
 
-        setPendingMoves((n) => n + 1);
+        setPendingOps((n) => n + 1);
         try {
           await reorderBoardColumns(
             ideaId,
@@ -341,9 +494,9 @@ export function KanbanBoard({
           );
         } catch {
           toast.error("Failed to reorder columns");
-          setLastServerKey(""); // force re-sync when pendingMoves reaches 0
+          setLastServerKey(""); // force re-sync when pendingOps reaches 0
         } finally {
-          setPendingMoves((n) => n - 1);
+          setPendingOps((n) => n - 1);
           lastMoveTimeRef.current = Date.now();
         }
         return;
@@ -418,7 +571,7 @@ export function KanbanBoard({
         );
       }
 
-      setPendingMoves((n) => n + 1);
+      setPendingOps((n) => n + 1);
       try {
         await moveBoardTask(
           String(active.id),
@@ -428,9 +581,9 @@ export function KanbanBoard({
         );
       } catch {
         toast.error("Failed to move task");
-        setLastServerKey(""); // force re-sync when pendingMoves reaches 0
+        setLastServerKey(""); // force re-sync when pendingOps reaches 0
       } finally {
-        setPendingMoves((n) => n - 1);
+        setPendingOps((n) => n - 1);
         lastMoveTimeRef.current = Date.now();
       }
     },
@@ -440,6 +593,7 @@ export function KanbanBoard({
   const columnIds = columns.map((c) => c.id);
 
   return (
+    <BoardOpsContext.Provider value={boardOps}>
     <div className="flex min-h-0 flex-1 flex-col">
       <BoardToolbar
         searchQuery={searchQuery}
@@ -513,5 +667,6 @@ export function KanbanBoard({
         </DragOverlay>
       </DndContext>
     </div>
+    </BoardOpsContext.Provider>
   );
 }

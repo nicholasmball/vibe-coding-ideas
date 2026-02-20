@@ -12,7 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "sonner";
 import { updateBoardColumn } from "@/actions/board";
+import { useBoardOps } from "./board-context";
 
 interface ColumnEditDialogProps {
   open: boolean;
@@ -33,20 +35,30 @@ export function ColumnEditDialog({
 }: ColumnEditDialogProps) {
   const [title, setTitle] = useState(currentTitle);
   const [isDoneColumn, setIsDoneColumn] = useState(currentIsDoneColumn);
-  const [loading, setLoading] = useState(false);
+  const ops = useBoardOps();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
 
-    setLoading(true);
+    const trimmedTitle = title.trim();
+    const updates: { title: string; is_done_column: boolean } = {
+      title: trimmedTitle,
+      is_done_column: isDoneColumn,
+    };
+
+    // Optimistic update & close immediately
+    const rollback = ops.updateColumn(columnId, updates);
+    ops.incrementPendingOps();
+    onOpenChange(false);
+
     try {
-      await updateBoardColumn(columnId, ideaId, title.trim(), isDoneColumn);
-      onOpenChange(false);
+      await updateBoardColumn(columnId, ideaId, trimmedTitle, isDoneColumn);
     } catch {
-      // RLS will block unauthorized access
+      rollback();
+      toast.error("Failed to update column");
     } finally {
-      setLoading(false);
+      ops.decrementPendingOps();
     }
   }
 
@@ -88,8 +100,8 @@ export function ColumnEditDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !title.trim()}>
-              {loading ? "Saving..." : "Save"}
+            <Button type="submit" disabled={!title.trim()}>
+              Save
             </Button>
           </DialogFooter>
         </form>

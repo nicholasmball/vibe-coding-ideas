@@ -4,7 +4,10 @@ import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { createBoardColumn } from "@/actions/board";
+import { useBoardOps } from "./board-context";
+import type { BoardColumnWithTasks } from "@/types";
 
 interface AddColumnButtonProps {
   ideaId: string;
@@ -13,21 +16,39 @@ interface AddColumnButtonProps {
 export function AddColumnButton({ ideaId }: AddColumnButtonProps) {
   const [isAdding, setIsAdding] = useState(false);
   const [title, setTitle] = useState("");
-  const [loading, setLoading] = useState(false);
+  const ops = useBoardOps();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
 
-    setLoading(true);
+    const trimmedTitle = title.trim();
+
+    // Build optimistic column
+    const tempColumn: BoardColumnWithTasks = {
+      id: `temp-${crypto.randomUUID()}`,
+      idea_id: ideaId,
+      title: trimmedTitle,
+      position: Date.now(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      is_done_column: false,
+      tasks: [],
+    };
+
+    // Optimistically insert & reset form
+    const rollback = ops.createColumn(tempColumn);
+    ops.incrementPendingOps();
+    setTitle("");
+    setIsAdding(false);
+
     try {
-      await createBoardColumn(ideaId, title.trim());
-      setTitle("");
-      setIsAdding(false);
+      await createBoardColumn(ideaId, trimmedTitle);
     } catch {
-      // RLS will block unauthorized access
+      rollback();
+      toast.error("Failed to create column");
     } finally {
-      setLoading(false);
+      ops.decrementPendingOps();
     }
   }
 
@@ -54,8 +75,8 @@ export function AddColumnButton({ ideaId }: AddColumnButtonProps) {
           autoFocus
         />
         <div className="flex gap-2">
-          <Button type="submit" size="sm" disabled={loading || !title.trim()}>
-            {loading ? "Adding..." : "Add"}
+          <Button type="submit" size="sm" disabled={!title.trim()}>
+            Add
           </Button>
           <Button
             type="button"

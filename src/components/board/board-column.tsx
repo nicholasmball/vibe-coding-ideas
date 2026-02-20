@@ -24,6 +24,7 @@ import {
 import { BoardTaskCard } from "./board-task-card";
 import { TaskEditDialog } from "./task-edit-dialog";
 import { ColumnEditDialog } from "./column-edit-dialog";
+import { useBoardOps } from "./board-context";
 import { deleteBoardColumn, archiveColumnTasks } from "@/actions/board";
 import type {
   BoardColumnWithTasks,
@@ -59,8 +60,7 @@ export function BoardColumn({
 }: BoardColumnProps) {
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [archiving, setArchiving] = useState(false);
+  const ops = useBoardOps();
 
   const {
     attributes,
@@ -83,25 +83,31 @@ export function BoardColumn({
   const taskIds = column.tasks.map((t) => t.id);
 
   async function handleDelete() {
-    setDeleting(true);
+    const rollback = ops.deleteColumn(column.id);
+    ops.incrementPendingOps();
     try {
       await deleteBoardColumn(column.id, ideaId);
     } catch {
-      setDeleting(false);
+      rollback();
+      toast.error("Failed to delete column");
+    } finally {
+      ops.decrementPendingOps();
     }
   }
 
   async function handleArchiveAll() {
-    setArchiving(true);
+    const count = column.tasks.filter((t) => !t.archived).length;
+    if (count === 0) return;
+    const rollback = ops.archiveColumnTasks(column.id);
+    ops.incrementPendingOps();
     try {
-      const count = await archiveColumnTasks(column.id, ideaId);
-      if (count > 0) {
-        toast.success(`Archived ${count} task${count !== 1 ? "s" : ""}`);
-      }
+      await archiveColumnTasks(column.id, ideaId);
+      toast.success(`Archived ${count} task${count !== 1 ? "s" : ""}`);
     } catch {
+      rollback();
       toast.error("Failed to archive tasks");
     } finally {
-      setArchiving(false);
+      ops.decrementPendingOps();
     }
   }
 
@@ -149,17 +155,13 @@ export function BoardColumn({
                 Edit
               </DropdownMenuItem>
               {column.is_done_column && column.tasks.length > 0 && (
-                <DropdownMenuItem
-                  onClick={handleArchiveAll}
-                  disabled={archiving}
-                >
+                <DropdownMenuItem onClick={handleArchiveAll}>
                   <Archive className="mr-2 h-4 w-4" />
                   Archive all
                 </DropdownMenuItem>
               )}
               <DropdownMenuItem
                 onClick={handleDelete}
-                disabled={deleting}
                 className="text-destructive"
               >
                 <Trash2 className="mr-2 h-4 w-4" />

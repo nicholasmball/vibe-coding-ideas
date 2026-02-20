@@ -119,6 +119,58 @@ export async function updateIdeaStatus(ideaId: string, status: IdeaStatus) {
   revalidatePath(`/ideas/${ideaId}`);
 }
 
+export async function updateIdeaFields(
+  ideaId: string,
+  updates: {
+    title?: string;
+    description?: string;
+    tags?: string[];
+    github_url?: string | null;
+    visibility?: "public" | "private";
+  }
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not authenticated");
+  }
+
+  // Validate each provided field
+  const dbUpdates: Record<string, unknown> = {};
+  if (updates.title !== undefined) {
+    dbUpdates.title = validateTitle(updates.title);
+  }
+  if (updates.description !== undefined) {
+    dbUpdates.description = validateDescription(updates.description);
+  }
+  if (updates.tags !== undefined) {
+    dbUpdates.tags = updates.tags.map((t) => t.toLowerCase().trim()).filter(Boolean);
+  }
+  if (updates.github_url !== undefined) {
+    dbUpdates.github_url = validateGithubUrl(updates.github_url);
+  }
+  if (updates.visibility !== undefined) {
+    dbUpdates.visibility = updates.visibility;
+  }
+
+  if (Object.keys(dbUpdates).length === 0) return;
+
+  const { error } = await supabase
+    .from("ideas")
+    .update(dbUpdates)
+    .eq("id", ideaId)
+    .eq("author_id", user.id);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`/ideas/${ideaId}`);
+}
+
 export async function deleteIdea(ideaId: string) {
   const supabase = await createClient();
   const {

@@ -61,15 +61,21 @@ export async function createBoardColumn(ideaId: string, title: string) {
 
   const maxPos = cols && cols.length > 0 ? cols[0].position : -POSITION_GAP;
 
-  const { error } = await supabase.from("board_columns").insert({
-    idea_id: ideaId,
-    title,
-    position: maxPos + POSITION_GAP,
-  });
+  const { data, error } = await supabase
+    .from("board_columns")
+    .insert({
+      idea_id: ideaId,
+      title,
+      position: maxPos + POSITION_GAP,
+    })
+    .select("*")
+    .single();
 
   if (error) throw new Error(error.message);
 
   revalidatePath(`/ideas/${ideaId}/board`);
+
+  return data;
 }
 
 export async function updateBoardColumn(

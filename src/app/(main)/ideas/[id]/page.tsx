@@ -1,9 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ExternalLink, Github, Users, Pencil, LayoutDashboard, Lock } from "lucide-react";
+import { Users, Pencil, LayoutDashboard } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { IdeaStatusBadge } from "@/components/ideas/idea-status-badge";
@@ -16,7 +15,9 @@ import { DeleteIdeaButton } from "@/components/ideas/delete-idea-button";
 import { EnhanceIdeaButton } from "@/components/ideas/enhance-idea-button";
 import { AddCollaboratorPopover } from "@/components/ideas/add-collaborator-popover";
 import { RemoveCollaboratorButton } from "@/components/ideas/remove-collaborator-button";
-import { Markdown } from "@/components/ui/markdown";
+import { InlineIdeaHeader } from "@/components/ideas/inline-idea-header";
+import { InlineIdeaBody } from "@/components/ideas/inline-idea-body";
+import { InlineIdeaTags } from "@/components/ideas/inline-idea-tags";
 import { formatRelativeTime } from "@/lib/utils";
 import type { CommentWithAuthor, CollaboratorWithUser, BotProfile, AiCredits } from "@/types";
 import type { Metadata } from "next";
@@ -184,15 +185,12 @@ export default async function IdeaDetailPage({ params }: PageProps) {
           hasVoted={hasVoted}
         />
         <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-3xl font-bold tracking-tight">{idea.title}</h1>
-            {idea.visibility === "private" && (
-              <Badge variant="outline" className="gap-1">
-                <Lock className="h-3 w-3" />
-                Private
-              </Badge>
-            )}
-          </div>
+          <InlineIdeaHeader
+            ideaId={idea.id}
+            title={idea.title}
+            visibility={idea.visibility}
+            isAuthor={isAuthor}
+          />
           <div className="mt-3 flex items-center gap-3">
             <Link
               href={`/profile/${idea.author_id}`}
@@ -258,29 +256,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
       </div>
 
       {/* Tags */}
-      {idea.tags.length > 0 && (
-        <div className="mt-5 flex flex-wrap gap-2">
-          {idea.tags.map((tag: string) => (
-            <Badge key={tag} variant="secondary">
-              {tag}
-            </Badge>
-          ))}
-        </div>
-      )}
-
-      {/* GitHub Link */}
-      {idea.github_url && (
-        <a
-          href={idea.github_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:border-primary hover:text-foreground"
-        >
-          <Github className="h-4 w-4" />
-          View Repository
-          <ExternalLink className="h-3 w-3" />
-        </a>
-      )}
+      <InlineIdeaTags ideaId={idea.id} tags={idea.tags} isAuthor={isAuthor} />
 
       {/* Collaborators */}
       {(isAuthor || (collaborators as unknown as CollaboratorWithUser[])?.length > 0) && (
@@ -334,11 +310,14 @@ export default async function IdeaDetailPage({ params }: PageProps) {
         </div>
       )}
 
-      {/* Description */}
+      {/* Description + GitHub URL */}
       <Separator className="mt-8 mb-6" />
-      <div className="text-foreground/90 leading-relaxed">
-        <Markdown>{idea.description}</Markdown>
-      </div>
+      <InlineIdeaBody
+        ideaId={idea.id}
+        description={idea.description}
+        githubUrl={idea.github_url}
+        isAuthor={isAuthor}
+      />
 
       {/* Comments */}
       <Separator className="my-6" />

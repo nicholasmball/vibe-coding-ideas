@@ -31,6 +31,7 @@ import { TaskCommentsSection } from "./task-comments-section";
 import { TaskAttachmentsSection } from "./task-attachments-section";
 import { Markdown } from "@/components/ui/markdown";
 import { updateBoardTask, deleteBoardTask } from "@/actions/board";
+import { useBoardOps } from "./board-context";
 import { createClient } from "@/lib/supabase/client";
 import { logTaskActivity } from "@/lib/activity";
 import type {
@@ -65,6 +66,7 @@ export function TaskDetailDialog({
   initialTab,
   userBots = [],
 }: TaskDetailDialogProps) {
+  const ops = useBoardOps();
   const [activeTab, setActiveTab] = useState("details");
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
@@ -213,12 +215,19 @@ export function TaskDetailDialog({
       return;
     }
     if (confirmTimer.current) clearTimeout(confirmTimer.current);
-    setDeleting(true);
+
+    // Optimistic delete & close immediately
+    const rollback = ops.deleteTask(task.id, task.column_id);
+    ops.incrementPendingOps();
+    onOpenChange(false);
+
     deleteBoardTask(task.id, ideaId)
-      .then(() => onOpenChange(false))
       .catch(() => {
-        setDeleting(false);
-        setConfirmDelete(false);
+        rollback();
+        toast.error("Failed to delete task");
+      })
+      .finally(() => {
+        ops.decrementPendingOps();
       });
   }
 
