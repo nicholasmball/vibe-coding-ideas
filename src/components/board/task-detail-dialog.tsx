@@ -244,7 +244,7 @@ export function TaskDetailDialog({
           if (userId === currentUserId) continue;
           const member = teamMembers.find((m) => m.id === userId);
           if (!member) continue;
-          if (!member.notification_preferences?.task_mentions) continue;
+          if (member.notification_preferences?.task_mentions === false) continue;
           supabase
             .from("notifications")
             .insert({
