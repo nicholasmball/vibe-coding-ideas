@@ -149,7 +149,7 @@ export default async function DashboardPage() {
   const allUserIdeaIds = [...new Set([...myIdeaIds, ...collabIdeaIds])];
 
   // Phase 2: Dependent queries
-  const [collabIdeasResult, taskLabelsResult, boardColumnsResult, boardTasksResult, botTasksResult, botActivityResult] = await Promise.all([
+  const [collabIdeasResult, taskLabelsResult, boardColumnsResult, boardTasksResult, botTasksResult, botActivityResult, displayedTaskCountsResult] = await Promise.all([
     // Collaboration idea details
     collabIdeaIds.length > 0
       ? supabase
@@ -204,6 +204,13 @@ export default async function DashboardPage() {
           .in("actor_id", botUserIds)
           .order("created_at", { ascending: false })
           .limit(botUserIds.length * 3)
+      : Promise.resolve({ data: [] }),
+    // Task counts for all user ideas (for IdeaCard badge) — covers displayed ideas
+    allUserIdeaIds.length > 0
+      ? supabase
+          .from("board_tasks")
+          .select("idea_id")
+          .in("idea_id", allUserIdeaIds)
       : Promise.resolve({ data: [] }),
   ]);
 
@@ -320,20 +327,11 @@ export default async function DashboardPage() {
   activeBoards.sort((a, b) => b.lastActivity.localeCompare(a.lastActivity));
   const topActiveBoards = activeBoards.slice(0, 5);
 
-  // Fetch task counts for all displayed ideas
-  const allDisplayedIdeaIds = [
-    ...myIdeas.map((i) => i.id),
-    ...collabIdeas.map((i) => i.id),
-  ];
+  // Build task counts from Phase 2 result (no extra sequential query needed)
   const taskCounts: Record<string, number> = {};
-  if (allDisplayedIdeaIds.length > 0) {
-    const { data: taskRows } = await supabase
-      .from("board_tasks")
-      .select("idea_id")
-      .in("idea_id", allDisplayedIdeaIds);
-    for (const row of taskRows ?? []) {
-      taskCounts[row.idea_id] = (taskCounts[row.idea_id] ?? 0) + 1;
-    }
+  for (const row of displayedTaskCountsResult.data ?? []) {
+    const r = row as { idea_id: string };
+    taskCounts[r.idea_id] = (taskCounts[r.idea_id] ?? 0) + 1;
   }
 
   // Build labels map

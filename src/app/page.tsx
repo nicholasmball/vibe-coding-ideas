@@ -138,7 +138,7 @@ export default async function LandingPage() {
       </section>
 
       {/* Stats Section — hidden until numbers are meaningful */}
-      {(ideaCount ?? 0) >= 50 && (
+      {(ideaCount ?? 0) >= 10 && (
         <section className="border-t border-border py-12">
           <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-3 gap-8 text-center">

@@ -33,6 +33,11 @@ export function Navbar() {
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
 
+  // Close mobile menu on route change (e.g. browser back/forward)
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
   useEffect(() => {
     if (!user) { setIsAdmin(false); return; }
     const supabase = createClient();
@@ -42,7 +47,7 @@ export function Navbar() {
       .eq("id", user.id)
       .single()
       .then(({ data }) => setIsAdmin(data?.is_admin ?? false));
-  }, [user]);
+  }, [user?.id]);
 
   const handleSignOut = async () => {
     const supabase = createClient();

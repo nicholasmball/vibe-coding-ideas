@@ -72,7 +72,7 @@ export function NotificationBell() {
   const messageMap = {
     comment: "commented on",
     vote: "voted on",
-    collaborator: "wants to build",
+    collaborator: "joined as collaborator on",
     user_deleted: "removed an idea you were collaborating on",
     status_change: "updated the status of",
     task_mention: "mentioned you in a task on",
