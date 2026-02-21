@@ -86,6 +86,7 @@ export function EnhanceIdeaDialog({
 
   // Refine phase
   const [refinementInput, setRefinementInput] = useState("");
+  const [truncated, setTruncated] = useState(false);
 
   // Credit tracking
   const [localRemaining, setLocalRemaining] = useState<number | null>(
@@ -162,6 +163,7 @@ export function EnhanceIdeaDialog({
         setLocalRemaining((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
       }
       setEnhancedText(result.enhanced);
+      setTruncated(result.truncated ?? false);
       setPhase("result");
     } catch (err) {
       toast.error(
@@ -193,6 +195,7 @@ export function EnhanceIdeaDialog({
         setLocalRemaining((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
       }
       setEnhancedText(result.enhanced);
+      setTruncated(result.truncated ?? false);
       setPhase("result");
     } catch (err) {
       toast.error(
@@ -213,6 +216,7 @@ export function EnhanceIdeaDialog({
         setLocalRemaining((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
       }
       setEnhancedText(result.enhanced);
+      setTruncated(result.truncated ?? false);
       setPhase("result");
     } catch (err) {
       toast.error(
@@ -258,6 +262,7 @@ export function EnhanceIdeaDialog({
         setLocalRemaining((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
       }
       setEnhancedText(result.enhanced);
+      setTruncated(result.truncated ?? false);
       setRefinementInput("");
       setPhase("result");
     } catch (err) {
@@ -279,6 +284,7 @@ export function EnhanceIdeaDialog({
     setQuestions([]);
     setAnswers({});
     setEnhancedText(null);
+    setTruncated(false);
     setRefinementInput("");
     setLocalRemaining(aiCredits?.remaining ?? null);
   }
@@ -510,6 +516,11 @@ export function EnhanceIdeaDialog({
         {/* ── Result Phase ───────────────────────────────────────────── */}
         {phase === "result" && enhancedText && (
           <div className="space-y-4">
+            {truncated && (
+              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
+                The output was truncated due to length limits. Use Refine to ask the AI to complete the remaining sections.
+              </div>
+            )}
             {/* Side-by-side comparison */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="min-w-0 space-y-2">

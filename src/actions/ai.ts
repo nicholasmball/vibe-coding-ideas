@@ -180,11 +180,11 @@ export async function enhanceIdeaDescription(
     ? `${personaPrompt}\n\nYou are helping to enhance an idea description on a project management platform.`
     : "You are an expert product manager and technical writer helping to enhance idea descriptions on a project management platform.";
 
-  const { text, usage } = await generateText({
+  const { text, usage, finishReason } = await generateText({
     model: anthropic(AI_MODEL),
     system: systemPrompt,
     prompt: `${prompt}\n\n---\n\n**Idea Title:** ${idea.title}\n\n**Current Description:**\n${idea.description}`,
-    maxOutputTokens: 4000,
+    maxOutputTokens: 8000,
   });
 
   await logAiUsage(supabase, {
@@ -197,7 +197,7 @@ export async function enhanceIdeaDescription(
     ideaId,
   });
 
-  return { enhanced: text, original: idea.description };
+  return { enhanced: text, original: idea.description, truncated: finishReason === "length" };
 }
 
 // ── Generate Clarifying Questions ───────────────────────────────────────
@@ -380,11 +380,11 @@ Use the answers above to inform your enhanced description. Make the enhancement 
     userPrompt = `${prompt}\n\n---\n\n**Idea Title:** ${idea.title}\n\n**Current Description:**\n${idea.description}`;
   }
 
-  const { text, usage } = await generateText({
+  const { text, usage, finishReason } = await generateText({
     model: anthropic(AI_MODEL),
     system: systemPrompt,
     prompt: userPrompt,
-    maxOutputTokens: 4000,
+    maxOutputTokens: 8000,
   });
 
   await logAiUsage(supabase, {
@@ -397,7 +397,7 @@ Use the answers above to inform your enhanced description. Make the enhancement 
     ideaId,
   });
 
-  return { enhanced: text, original: idea.description };
+  return { enhanced: text, original: idea.description, truncated: finishReason === "length" };
 }
 
 // ── Apply Enhanced Description ──────────────────────────────────────────
