@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { IdeaCard } from "./idea-card";
@@ -55,8 +55,9 @@ export function IdeaFeed({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchInput, setSearchInput] = useState(currentSearch);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  const updateParams = (updates: Record<string, string>) => {
+  const updateParams = useCallback((updates: Record<string, string>) => {
     const params = new URLSearchParams(searchParams.toString());
     Object.entries(updates).forEach(([key, value]) => {
       if (value) {
@@ -70,14 +71,26 @@ export function IdeaFeed({
       params.delete("page");
     }
     router.push(`/feed?${params.toString()}`);
-  };
+  }, [searchParams, router]);
+
+  // Debounced search on keystroke
+  useEffect(() => {
+    // Don't trigger on initial render or when input matches current search
+    if (searchInput === currentSearch) return;
+    debounceRef.current = setTimeout(() => {
+      updateParams({ q: searchInput });
+    }, 300);
+    return () => clearTimeout(debounceRef.current);
+  }, [searchInput, currentSearch, updateParams]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
+    clearTimeout(debounceRef.current);
     updateParams({ q: searchInput });
   };
 
   const clearSearch = () => {
+    clearTimeout(debounceRef.current);
     setSearchInput("");
     updateParams({ q: "" });
   };
@@ -141,8 +154,8 @@ export function IdeaFeed({
       </div>
 
       {/* Search bar */}
-      <form onSubmit={handleSearch} className="mb-4 flex gap-2">
-        <div className="relative flex-1">
+      <form onSubmit={handleSearch} className="mb-4">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={searchInput}
@@ -160,9 +173,6 @@ export function IdeaFeed({
             </button>
           )}
         </div>
-        <Button type="submit" variant="secondary">
-          Search
-        </Button>
       </form>
 
       {/* Tag filter */}

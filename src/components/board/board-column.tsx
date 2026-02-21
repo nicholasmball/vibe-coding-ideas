@@ -177,6 +177,13 @@ export function BoardColumn({
             items={taskIds}
             strategy={verticalListSortingStrategy}
           >
+            {column.tasks.length === 0 && (
+              <div className="flex items-center justify-center rounded-md border border-dashed border-border py-8 text-center">
+                <p className="text-xs text-muted-foreground">
+                  No tasks yet — drag here or click + to add
+                </p>
+              </div>
+            )}
             {column.tasks.map((task) => (
               <BoardTaskCard
                 key={task.id}

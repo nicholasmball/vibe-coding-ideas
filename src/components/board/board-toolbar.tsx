@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, X, Upload, Sparkles, Archive } from "lucide-react";
+import { Search, X, Upload, Sparkles, Archive, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -17,6 +17,13 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { getLabelColorConfig } from "@/lib/utils";
 import { ImportDialog } from "./import-dialog";
 import { AiGenerateDialog } from "./ai-generate-dialog";
@@ -69,6 +76,7 @@ export function BoardToolbar({
 }: BoardToolbarProps) {
   const [importOpen, setImportOpen] = useState(false);
   const [aiGenerateOpen, setAiGenerateOpen] = useState(false);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
 
   function handleLabelToggle(labelId: string) {
     if (labelFilter.includes(labelId)) {
@@ -81,22 +89,16 @@ export function BoardToolbar({
   const hasFilters =
     searchQuery || assigneeFilter !== "all" || labelFilter.length > 0 || dueDateFilter !== "all";
 
-  return (
-    <div className="mb-4 flex flex-wrap items-center gap-2">
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Search tasks..."
-          className="h-8 w-48 pl-8 text-xs"
-        />
-      </div>
+  const activeFilterCount =
+    (assigneeFilter !== "all" ? 1 : 0) +
+    labelFilter.length +
+    (dueDateFilter !== "all" ? 1 : 0);
 
+  const filterControls = (
+    <>
       {/* Assignee filter */}
       <Select value={assigneeFilter} onValueChange={onAssigneeChange}>
-        <SelectTrigger className="h-8 w-36 text-xs">
+        <SelectTrigger className="h-8 w-full md:w-36 text-xs">
           <SelectValue placeholder="Assignee" />
         </SelectTrigger>
         <SelectContent>
@@ -114,7 +116,7 @@ export function BoardToolbar({
       {boardLabels.length > 0 && (
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 text-xs">
+            <Button variant="outline" size="sm" className="h-8 w-full md:w-auto text-xs">
               Labels
               {labelFilter.length > 0 && (
                 <span className="ml-1 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">
@@ -153,7 +155,7 @@ export function BoardToolbar({
 
       {/* Due date filter */}
       <Select value={dueDateFilter} onValueChange={onDueDateChange}>
-        <SelectTrigger className="h-8 w-32 text-xs">
+        <SelectTrigger className="h-8 w-full md:w-32 text-xs">
           <SelectValue placeholder="Due date" />
         </SelectTrigger>
         <SelectContent>
@@ -168,7 +170,7 @@ export function BoardToolbar({
         <Button
           variant={showArchived ? "secondary" : "ghost"}
           size="sm"
-          className="h-8 gap-1.5 text-xs"
+          className="h-8 w-full md:w-auto gap-1.5 text-xs"
           onClick={() => onShowArchivedChange(!showArchived)}
         >
           <Archive className="h-3.5 w-3.5" />
@@ -181,7 +183,7 @@ export function BoardToolbar({
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 gap-1 text-xs text-muted-foreground"
+          className="h-8 w-full md:w-auto gap-1 text-xs text-muted-foreground"
           onClick={() => {
             onSearchChange("");
             onAssigneeChange("all");
@@ -190,9 +192,52 @@ export function BoardToolbar({
           }}
         >
           <X className="h-3 w-3" />
-          Clear
+          Clear filters
         </Button>
       )}
+    </>
+  );
+
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-2">
+      {/* Search — always visible */}
+      <div className="relative w-full md:w-auto">
+        <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          placeholder="Search tasks..."
+          className="h-8 w-full md:w-48 pl-8 text-xs"
+        />
+      </div>
+
+      {/* Mobile: Filters sheet trigger */}
+      <Sheet open={filterSheetOpen} onOpenChange={setFilterSheetOpen}>
+        <SheetTrigger asChild>
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs md:hidden">
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            Filters
+            {activeFilterCount > 0 && (
+              <span className="ml-1 rounded-full bg-primary px-1.5 text-[10px] text-primary-foreground">
+                {activeFilterCount}
+              </span>
+            )}
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="bottom" className="max-h-[80vh]">
+          <SheetHeader>
+            <SheetTitle>Filters</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 flex flex-col gap-3">
+            {filterControls}
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Desktop: inline filters */}
+      <div className="hidden md:contents">
+        {filterControls}
+      </div>
 
       <div className="ml-auto flex gap-2">
         {aiEnabled && (
@@ -205,7 +250,7 @@ export function BoardToolbar({
             title={!aiCredits?.isByok && aiCredits?.remaining === 0 ? "Daily limit reached" : undefined}
           >
             <Sparkles className="h-3.5 w-3.5" />
-            AI Generate
+            <span className="hidden sm:inline">AI Generate</span>
             {aiCredits && !aiCredits.isByok && aiCredits.remaining !== null && (
               <span className="ml-1 text-[10px] text-muted-foreground">
                 {aiCredits.remaining}/{aiCredits.limit}
@@ -220,7 +265,7 @@ export function BoardToolbar({
           onClick={() => setImportOpen(true)}
         >
           <Upload className="h-3.5 w-3.5" />
-          Import
+          <span className="hidden sm:inline">Import</span>
         </Button>
       </div>
 

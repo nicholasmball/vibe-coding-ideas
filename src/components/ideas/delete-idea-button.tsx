@@ -20,9 +20,10 @@ import { deleteIdea } from "@/actions/ideas";
 
 interface DeleteIdeaButtonProps {
   ideaId: string;
+  variant?: "button" | "dropdown";
 }
 
-export function DeleteIdeaButton({ ideaId }: DeleteIdeaButtonProps) {
+export function DeleteIdeaButton({ ideaId, variant = "button" }: DeleteIdeaButtonProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
 
@@ -43,10 +44,17 @@ export function DeleteIdeaButton({ ideaId }: DeleteIdeaButtonProps) {
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2 text-destructive hover:text-destructive">
-          <Trash2 className="h-4 w-4" />
-          Delete
-        </Button>
+        {variant === "dropdown" ? (
+          <button className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-accent cursor-default">
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </button>
+        ) : (
+          <Button variant="outline" size="sm" className="gap-2 text-destructive hover:text-destructive">
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </Button>
+        )}
       </AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>

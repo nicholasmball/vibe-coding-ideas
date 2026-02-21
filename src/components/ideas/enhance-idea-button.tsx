@@ -17,6 +17,7 @@ interface EnhanceIdeaButtonProps {
   currentDescription: string;
   bots: BotProfile[];
   aiCredits?: AiCredits | null;
+  variant?: "button" | "dropdown";
 }
 
 export function EnhanceIdeaButton({
@@ -25,12 +26,27 @@ export function EnhanceIdeaButton({
   currentDescription,
   bots,
   aiCredits,
+  variant = "button",
 }: EnhanceIdeaButtonProps) {
   const [open, setOpen] = useState(false);
 
   const exhausted = !aiCredits?.isByok && aiCredits?.remaining === 0;
 
-  const button = (
+  const button = variant === "dropdown" ? (
+    <button
+      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent cursor-default disabled:opacity-50"
+      onClick={() => setOpen(true)}
+      disabled={exhausted}
+    >
+      <Sparkles className="h-4 w-4" />
+      Enhance with AI
+      {aiCredits && !aiCredits.isByok && aiCredits.remaining !== null && (
+        <span className="text-[10px] text-muted-foreground">
+          {aiCredits.remaining}/{aiCredits.limit}
+        </span>
+      )}
+    </button>
+  ) : (
     <Button
       variant="outline"
       size="sm"

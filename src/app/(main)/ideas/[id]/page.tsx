@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Users, Pencil, LayoutDashboard } from "lucide-react";
+import { Users, Pencil, LayoutDashboard, MoreHorizontal, Trash2, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,12 @@ import { CommentThread } from "@/components/comments/comment-thread";
 import { IdeaDetailRealtime } from "@/components/ideas/idea-detail-realtime";
 import { DeleteIdeaButton } from "@/components/ideas/delete-idea-button";
 import { EnhanceIdeaButton } from "@/components/ideas/enhance-idea-button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { AddCollaboratorPopover } from "@/components/ideas/add-collaborator-popover";
 import { RemoveCollaboratorButton } from "@/components/ideas/remove-collaborator-button";
 import { InlineIdeaHeader } from "@/components/ideas/inline-idea-header";
@@ -233,8 +239,9 @@ export default async function IdeaDetailPage({ params }: PageProps) {
             </Button>
           </Link>
         )}
+        {/* Desktop: show Edit, Enhance, Delete inline */}
         {isAuthor && (
-          <Link href={`/ideas/${idea.id}/edit`}>
+          <Link href={`/ideas/${idea.id}/edit`} className="hidden sm:inline-flex">
             <Button variant="outline" size="sm" className="gap-2">
               <Pencil className="h-4 w-4" />
               Edit
@@ -242,16 +249,58 @@ export default async function IdeaDetailPage({ params }: PageProps) {
           </Link>
         )}
         {isAuthor && aiEnabled && (
-          <EnhanceIdeaButton
-            ideaId={idea.id}
-            ideaTitle={idea.title}
-            currentDescription={idea.description}
-            bots={userBots}
-            aiCredits={aiCredits}
-          />
+          <span className="hidden sm:inline-flex">
+            <EnhanceIdeaButton
+              ideaId={idea.id}
+              ideaTitle={idea.title}
+              currentDescription={idea.description}
+              bots={userBots}
+              aiCredits={aiCredits}
+            />
+          </span>
         )}
         {canDelete && (
-          <DeleteIdeaButton ideaId={idea.id} />
+          <span className="hidden sm:inline-flex">
+            <DeleteIdeaButton ideaId={idea.id} />
+          </span>
+        )}
+        {/* Mobile: "More" dropdown for Edit, Enhance, Delete */}
+        {(isAuthor || canDelete) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2 sm:hidden">
+                <MoreHorizontal className="h-4 w-4" />
+                More
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              {isAuthor && (
+                <DropdownMenuItem asChild>
+                  <Link href={`/ideas/${idea.id}/edit`} className="flex items-center gap-2">
+                    <Pencil className="h-4 w-4" />
+                    Edit
+                  </Link>
+                </DropdownMenuItem>
+              )}
+              {isAuthor && aiEnabled && (
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="p-0">
+                  <EnhanceIdeaButton
+                    ideaId={idea.id}
+                    ideaTitle={idea.title}
+                    currentDescription={idea.description}
+                    bots={userBots}
+                    aiCredits={aiCredits}
+                    variant="dropdown"
+                  />
+                </DropdownMenuItem>
+              )}
+              {canDelete && (
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="p-0">
+                  <DeleteIdeaButton ideaId={idea.id} variant="dropdown" />
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
       </div>
 
