@@ -193,7 +193,13 @@ export function Navbar() {
         {mobileMenuOpen && (
           <div className="border-t border-border py-4 md:hidden">
             <div className="flex flex-col gap-2">
-              {user ? (
+              {loading ? (
+                <div className="flex flex-col gap-2 py-2">
+                  <div className="h-9 animate-pulse rounded-md bg-muted" />
+                  <div className="h-9 animate-pulse rounded-md bg-muted" />
+                  <div className="h-9 animate-pulse rounded-md bg-muted" />
+                </div>
+              ) : user ? (
                 <>
                   <Link
                     href="/dashboard"

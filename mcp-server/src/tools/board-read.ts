@@ -25,6 +25,16 @@ export async function getBoard(ctx: McpContext, params: z.infer<typeof getBoardS
   if (colError) throw new Error(`Failed to get board: ${colError.message}`);
 
   if (!columns || columns.length === 0) {
+    // Before initializing, verify the idea exists and user has access
+    const { data: idea, error: ideaError } = await ctx.supabase
+      .from("ideas")
+      .select("id")
+      .eq("id", params.idea_id)
+      .maybeSingle();
+
+    if (ideaError) throw new Error(`Failed to check idea access: ${ideaError.message}`);
+    if (!idea) throw new Error(`Idea not found or access denied: ${params.idea_id}`);
+
     // Check user's custom default columns
     const { data: userProfile } = await ctx.supabase
       .from("users")

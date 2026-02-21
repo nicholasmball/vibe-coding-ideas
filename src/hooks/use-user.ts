@@ -18,9 +18,12 @@ export function useUser() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      // Skip INITIAL_SESSION — getUser() handles initial state authoritatively
+      // to avoid a race where this fires with null before getUser() resolves,
+      // causing the navbar to briefly flash "Log In / Sign Up".
+      if (event === "INITIAL_SESSION") return;
       setUser(session?.user ?? null);
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();

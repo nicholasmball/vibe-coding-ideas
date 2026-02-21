@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { Tag, Trash2, Archive, ArchiveRestore, Pencil, X, Bot } from "lucide-react";
 import {
@@ -30,6 +30,7 @@ import { ActivityTimeline } from "./activity-timeline";
 import { TaskCommentsSection } from "./task-comments-section";
 import { TaskAttachmentsSection } from "./task-attachments-section";
 import { Markdown } from "@/components/ui/markdown";
+import { MentionAutocomplete } from "./mention-autocomplete";
 import { updateBoardTask, deleteBoardTask } from "@/actions/board";
 import { useBoardOps } from "./board-context";
 import { createClient } from "@/lib/supabase/client";
@@ -76,6 +77,18 @@ export function TaskDetailDialog({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // @mention state for description
+  const [descMentionQuery, setDescMentionQuery] = useState<string | null>(null);
+  const [descMentionIndex, setDescMentionIndex] = useState(0);
+  const [descMentionedUserIds, setDescMentionedUserIds] = useState<Set<string>>(new Set());
+
+  const filteredDescMembers = useMemo(() => {
+    if (descMentionQuery === null) return [];
+    return teamMembers.filter((m) =>
+      m.full_name?.toLowerCase().includes(descMentionQuery.toLowerCase())
+    );
+  }, [teamMembers, descMentionQuery]);
 
   const [isArchived, setIsArchived] = useState(task.archived);
 
@@ -150,14 +163,102 @@ export function TaskDetailDialog({
     }
   }
 
+  function detectDescMention(value: string, cursorPos: number) {
+    const textBeforeCursor = value.slice(0, cursorPos);
+    const match = textBeforeCursor.match(/(?:^|[\s])@([^@]*)$/);
+    if (match) {
+      setDescMentionQuery(match[1]);
+      setDescMentionIndex(0);
+    } else {
+      setDescMentionQuery(null);
+    }
+  }
+
+  function handleDescInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const value = e.target.value;
+    setDescription(value);
+    detectDescMention(value, e.target.selectionStart);
+  }
+
+  function handleDescMentionSelect(user: User) {
+    const textarea = descriptionTextareaRef.current;
+    if (!textarea) return;
+
+    const cursorPos = textarea.selectionStart;
+    const textBeforeCursor = description.slice(0, cursorPos);
+    const textAfterCursor = description.slice(cursorPos);
+
+    const atIndex = textBeforeCursor.lastIndexOf("@");
+    if (atIndex === -1) return;
+
+    const name = user.full_name ?? user.email;
+    const newText = textBeforeCursor.slice(0, atIndex) + `@${name} ` + textAfterCursor;
+    setDescription(newText);
+    setDescMentionQuery(null);
+    setDescMentionedUserIds((prev) => new Set(prev).add(user.id));
+
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const newCursorPos = atIndex + name.length + 2;
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    });
+  }
+
+  function handleDescKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (descMentionQuery === null || filteredDescMembers.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setDescMentionIndex((prev) =>
+        prev < filteredDescMembers.length - 1 ? prev + 1 : 0
+      );
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setDescMentionIndex((prev) =>
+        prev > 0 ? prev - 1 : filteredDescMembers.length - 1
+      );
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      handleDescMentionSelect(filteredDescMembers[descMentionIndex]);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setDescMentionQuery(null);
+    }
+  }
+
   async function handleDescriptionBlur() {
     setEditingDescription(false);
+    setDescMentionQuery(null);
     const newDesc = description.trim() || null;
     if (newDesc === (task.description ?? null)) return;
+    const savedMentionedUserIds = new Set(descMentionedUserIds);
+    setDescMentionedUserIds(new Set());
     setSavingDesc(true);
     try {
       await updateBoardTask(task.id, ideaId, { description: newDesc });
       logTaskActivity(task.id, ideaId, currentUserId, "description_changed");
+      // Send mention notifications (fire-and-forget)
+      if (savedMentionedUserIds.size > 0) {
+        const supabase = createClient();
+        for (const userId of savedMentionedUserIds) {
+          if (userId === currentUserId) continue;
+          const member = teamMembers.find((m) => m.id === userId);
+          if (!member) continue;
+          if (!member.notification_preferences?.task_mentions) continue;
+          supabase
+            .from("notifications")
+            .insert({
+              user_id: userId,
+              actor_id: currentUserId,
+              type: "task_mention" as const,
+              idea_id: ideaId,
+            })
+            .then(({ error }) => {
+              if (error)
+                console.error("Failed to send mention notification:", error.message);
+            });
+        }
+      }
     } catch {
       toast.error("Failed to update description");
       setDescription(task.description ?? "");
@@ -450,17 +551,27 @@ export function TaskDetailDialog({
                   )}
                 </div>
                 {editingDescription ? (
-                  <Textarea
-                    ref={descriptionTextareaRef}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    onBlur={handleDescriptionBlur}
-                    placeholder="Add a description... (supports markdown)"
-                    rows={6}
-                    className="text-sm"
-                    disabled={savingDesc}
-                    autoFocus
-                  />
+                  <div className="relative">
+                    {descMentionQuery !== null && (
+                      <MentionAutocomplete
+                        filteredMembers={filteredDescMembers}
+                        selectedIndex={descMentionIndex}
+                        onSelect={handleDescMentionSelect}
+                      />
+                    )}
+                    <Textarea
+                      ref={descriptionTextareaRef}
+                      value={description}
+                      onChange={handleDescInputChange}
+                      onKeyDown={handleDescKeyDown}
+                      onBlur={handleDescriptionBlur}
+                      placeholder="Add a description... (@ to mention, supports markdown)"
+                      rows={6}
+                      className="text-sm"
+                      disabled={savingDesc}
+                      autoFocus
+                    />
+                  </div>
                 ) : description ? (
                   <div
                     className="cursor-pointer rounded-md border border-transparent px-3 py-2 text-sm transition-colors hover:border-border hover:bg-muted/50"
