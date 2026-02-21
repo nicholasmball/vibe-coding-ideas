@@ -711,6 +711,7 @@ export type Database = {
           type: "comment" | "vote" | "collaborator" | "user_deleted" | "status_change" | "task_mention";
           idea_id: string | null;
           comment_id: string | null;
+          task_id: string | null;
           read: boolean;
           created_at: string;
         };
@@ -721,6 +722,7 @@ export type Database = {
           type: "comment" | "vote" | "collaborator" | "user_deleted" | "status_change" | "task_mention";
           idea_id?: string | null;
           comment_id?: string | null;
+          task_id?: string | null;
           read?: boolean;
           created_at?: string;
         };
@@ -731,6 +733,7 @@ export type Database = {
           type?: "comment" | "vote" | "collaborator" | "user_deleted" | "status_change" | "task_mention";
           idea_id?: string | null;
           comment_id?: string | null;
+          task_id?: string | null;
           read?: boolean;
           created_at?: string;
         };
@@ -761,6 +764,13 @@ export type Database = {
             columns: ["comment_id"];
             isOneToOne: false;
             referencedRelation: "comments";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: false;
+            referencedRelation: "board_tasks";
             referencedColumns: ["id"];
           },
         ];

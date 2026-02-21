@@ -150,7 +150,7 @@ export function NotificationBell() {
               if (notification.idea_id) {
                 const href =
                   notification.type === "task_mention"
-                    ? `/ideas/${notification.idea_id}/board`
+                    ? `/ideas/${notification.idea_id}/board${notification.task_id ? `?taskId=${notification.task_id}` : ""}`
                     : `/ideas/${notification.idea_id}`;
                 return (
                   <Link

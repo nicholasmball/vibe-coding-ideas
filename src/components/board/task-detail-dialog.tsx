@@ -165,7 +165,7 @@ export function TaskDetailDialog({
 
   function detectDescMention(value: string, cursorPos: number) {
     const textBeforeCursor = value.slice(0, cursorPos);
-    const match = textBeforeCursor.match(/(?:^|[\s])@([^@]*)$/);
+    const match = textBeforeCursor.match(/(?:^|[\s])@(\S*)$/);
     if (match) {
       setDescMentionQuery(match[1]);
       setDescMentionIndex(0);
@@ -252,6 +252,7 @@ export function TaskDetailDialog({
               actor_id: currentUserId,
               type: "task_mention" as const,
               idea_id: ideaId,
+              task_id: task.id,
             })
             .then(({ error }) => {
               if (error)

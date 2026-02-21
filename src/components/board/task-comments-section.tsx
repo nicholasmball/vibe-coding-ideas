@@ -132,8 +132,8 @@ export function TaskCommentsSection({
 
   function detectMention(value: string, cursorPos: number) {
     const textBeforeCursor = value.slice(0, cursorPos);
-    // Match @ at start of text or after whitespace, followed by any characters (names can have spaces)
-    const match = textBeforeCursor.match(/(?:^|[\s])@([^@]*)$/);
+    // Match @ at start of text or after whitespace, followed by non-space chars (names selected from dropdown)
+    const match = textBeforeCursor.match(/(?:^|[\s])@(\S*)$/);
     if (match) {
       setMentionQuery(match[1]);
       setMentionIndex(0);
@@ -240,6 +240,7 @@ export function TaskCommentsSection({
               actor_id: currentUserId,
               type: "task_mention" as const,
               idea_id: ideaId,
+              task_id: taskId,
             })
             .then(({ error }) => {
               if (error)
