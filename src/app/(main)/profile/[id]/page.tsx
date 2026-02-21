@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ProfileHeader } from "@/components/profile/profile-header";
 import { ProfileTabs } from "@/components/profile/profile-tabs";
+import { ProfileSettingsMenu } from "@/components/profile/profile-settings-menu";
 import { DeleteUserButton } from "@/components/profile/delete-user-button";
 import { EditProfileDialog } from "@/components/profile/edit-profile-dialog";
 import { NotificationSettings } from "@/components/profile/notification-settings";
@@ -160,12 +161,25 @@ export default async function ProfilePage({ params }: PageProps) {
         <div className="mt-4 flex flex-wrap justify-end gap-2">
           {currentUser?.id === id && (
             <>
-              <EditProfileDialog user={profileUser} />
-              <NotificationSettings preferences={profileUser.notification_preferences} />
-              <BoardColumnSettings columns={profileUser.default_board_columns} />
-              {profileUser.ai_enabled && (
-                <ApiKeySettings hasKey={!!profileUser.encrypted_anthropic_key} />
-              )}
+              {/* Desktop: all buttons visible */}
+              <div className="hidden sm:contents">
+                <EditProfileDialog user={profileUser} />
+                <NotificationSettings preferences={profileUser.notification_preferences} />
+                <BoardColumnSettings columns={profileUser.default_board_columns} />
+                {profileUser.ai_enabled && (
+                  <ApiKeySettings hasKey={!!profileUser.encrypted_anthropic_key} />
+                )}
+              </div>
+              {/* Mobile: Edit Profile visible + rest in dropdown */}
+              <div className="contents sm:hidden">
+                <EditProfileDialog user={profileUser} />
+                <ProfileSettingsMenu
+                  preferences={profileUser.notification_preferences}
+                  columns={profileUser.default_board_columns}
+                  aiEnabled={profileUser.ai_enabled}
+                  hasApiKey={!!profileUser.encrypted_anthropic_key}
+                />
+              </div>
             </>
           )}
           {showDeleteButton && (

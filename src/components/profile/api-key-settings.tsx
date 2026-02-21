@@ -18,10 +18,15 @@ import { saveApiKey, removeApiKey } from "@/actions/profile";
 
 interface ApiKeySettingsProps {
   hasKey: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function ApiKeySettings({ hasKey }: ApiKeySettingsProps) {
-  const [open, setOpen] = useState(false);
+export function ApiKeySettings({ hasKey, open: controlledOpen, onOpenChange: controlledOnOpenChange }: ApiKeySettingsProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? (v: boolean) => { controlledOnOpenChange!(v); if (!v) { setApiKey(""); setShowKey(false); } } : (v: boolean) => { setInternalOpen(v); if (!v) { setApiKey(""); setShowKey(false); } };
   const [apiKey, setApiKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -53,13 +58,15 @@ export function ApiKeySettings({ hasKey }: ApiKeySettingsProps) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setApiKey(""); setShowKey(false); } }}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Key className="h-4 w-4" />
-          AI API Key
-        </Button>
-      </DialogTrigger>
+    <Dialog open={open} onOpenChange={setOpen}>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm" className="gap-2">
+            <Key className="h-4 w-4" />
+            AI API Key
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

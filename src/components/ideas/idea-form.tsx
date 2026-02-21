@@ -14,12 +14,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Lock } from "lucide-react";
+import { Github, Lock } from "lucide-react";
+import Link from "next/link";
 import { TagInput } from "./tag-input";
 import { createIdea } from "@/actions/ideas";
 
 interface IdeaFormProps {
   githubUsername?: string | null;
+  userId?: string;
 }
 
 function SubmitButton() {
@@ -31,7 +33,7 @@ function SubmitButton() {
   );
 }
 
-export function IdeaForm({ githubUsername }: IdeaFormProps) {
+export function IdeaForm({ githubUsername, userId }: IdeaFormProps) {
   const router = useRouter();
   const [tags, setTags] = useState<string[]>([]);
   const [isPrivate, setIsPrivate] = useState(false);
@@ -88,6 +90,15 @@ export function IdeaForm({ githubUsername }: IdeaFormProps) {
               type="url"
               placeholder={githubUsername ? `https://github.com/${githubUsername}/repo` : "https://github.com/username/repo"}
             />
+            {!githubUsername && (
+              <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Github className="h-3 w-3" />
+                <Link href={userId ? `/profile/${userId}` : "/profile"} className="text-primary hover:underline">
+                  Connect your GitHub
+                </Link>{" "}
+                to auto-fill repository URLs
+              </p>
+            )}
           </div>
 
           <div className="flex items-center justify-between rounded-lg border border-border p-4">

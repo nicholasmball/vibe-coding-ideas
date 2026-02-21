@@ -391,7 +391,7 @@ export default async function DashboardPage() {
         headerRight={
           myIdeas.length > 0 ? (
             <Link
-              href={`/profile/${user.id}`}
+              href="/feed?view=mine"
               className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               View all
@@ -435,7 +435,7 @@ export default async function DashboardPage() {
         headerRight={
           collabIdeas.length > 0 ? (
             <Link
-              href={`/profile/${user.id}`}
+              href="/feed?view=collaborating"
               className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               View all

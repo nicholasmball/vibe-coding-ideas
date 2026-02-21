@@ -118,7 +118,7 @@ export function BoardColumn({
       <div
         ref={setNodeRef}
         style={style}
-        className={`flex max-h-full min-w-[280px] max-w-[320px] shrink-0 flex-col rounded-lg border border-border bg-muted/50 ${
+        className={`flex max-h-full min-w-[280px] max-w-[320px] shrink-0 snap-start flex-col rounded-lg border border-border bg-muted/50 ${
           isOver ? "ring-2 ring-primary/50" : ""
         } ${isDragging ? "opacity-50" : ""}`}
       >

@@ -25,10 +25,15 @@ interface ColumnDef {
 
 interface BoardColumnSettingsProps {
   columns: ColumnDef[] | null;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function BoardColumnSettings({ columns }: BoardColumnSettingsProps) {
-  const [open, setOpen] = useState(false);
+export function BoardColumnSettings({ columns, open: controlledOpen, onOpenChange: controlledOnOpenChange }: BoardColumnSettingsProps) {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen;
   const [isPending, startTransition] = useTransition();
   const [localColumns, setLocalColumns] = useState<ColumnDef[]>(
     columns ?? DEFAULT_BOARD_COLUMNS.map((c) => ({ title: c.title, is_done_column: c.is_done_column }))
@@ -112,12 +117,14 @@ export function BoardColumnSettings({ columns }: BoardColumnSettingsProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-1.5">
-          <Columns3 className="h-4 w-4" />
-          Board Defaults
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm" className="gap-1.5">
+            <Columns3 className="h-4 w-4" />
+            Board Defaults
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Default Board Columns</DialogTitle>

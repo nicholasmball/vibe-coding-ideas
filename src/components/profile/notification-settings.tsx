@@ -19,6 +19,8 @@ import type { NotificationPreferences } from "@/types";
 
 interface NotificationSettingsProps {
   preferences: NotificationPreferences;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const labels: Record<keyof NotificationPreferences, string> = {
@@ -31,8 +33,13 @@ const labels: Record<keyof NotificationPreferences, string> = {
 
 export function NotificationSettings({
   preferences,
+  open: controlledOpen,
+  onOpenChange: controlledOnOpenChange,
 }: NotificationSettingsProps) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? controlledOnOpenChange! : setInternalOpen;
   const [prefs, setPrefs] = useState<NotificationPreferences>(preferences);
   const [isPending, startTransition] = useTransition();
 
@@ -54,12 +61,14 @@ export function NotificationSettings({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Settings className="h-4 w-4" />
-          Notifications
-        </Button>
-      </DialogTrigger>
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm" className="gap-2">
+            <Settings className="h-4 w-4" />
+            Notifications
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

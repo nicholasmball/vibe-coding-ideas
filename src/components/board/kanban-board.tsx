@@ -92,6 +92,20 @@ export function KanbanBoard({
   const [dueDateFilter, setDueDateFilter] = useState("all");
   const [showArchived, setShowArchived] = useState(false);
 
+  // Scroll indicator state (mobile)
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const handleScrollCheck = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 10);
+  }, []);
+  useEffect(() => {
+    handleScrollCheck();
+    window.addEventListener("resize", handleScrollCheck);
+    return () => window.removeEventListener("resize", handleScrollCheck);
+  }, [handleScrollCheck, columns]);
+
   // Update columns when server data changes (via realtime refresh)
   const serverKey = JSON.stringify(
     initialColumns.map((c) => [
@@ -626,32 +640,42 @@ export function KanbanBoard({
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex min-h-0 flex-1 items-start gap-4 overflow-x-auto pb-4">
-          <SortableContext
-            items={columnIds}
-            strategy={horizontalListSortingStrategy}
+        <div className="relative min-h-0 flex-1">
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleScrollCheck}
+            className="flex h-full items-start gap-4 overflow-x-auto pb-4 snap-x snap-mandatory sm:snap-none"
           >
-            {filteredColumns.map((filteredCol) => {
-              const fullCol = columns.find((c) => c.id === filteredCol.id)!;
-              return (
-                <BoardColumn
-                  key={filteredCol.id}
-                  column={filteredCol}
-                  totalTaskCount={fullCol.tasks.filter((t) => !t.archived).length}
-                  ideaId={ideaId}
-                  teamMembers={teamMembers}
-                  boardLabels={boardLabels}
-                  checklistItemsByTaskId={checklistItemsByTaskId}
-                  highlightQuery={searchQuery}
-                  currentUserId={currentUserId}
-                  initialTaskId={initialTaskId}
-                  userBots={userBots}
-                  coverImageUrls={coverImageUrls}
-                />
-              );
-            })}
-          </SortableContext>
-          <AddColumnButton ideaId={ideaId} />
+            <SortableContext
+              items={columnIds}
+              strategy={horizontalListSortingStrategy}
+            >
+              {filteredColumns.map((filteredCol) => {
+                const fullCol = columns.find((c) => c.id === filteredCol.id)!;
+                return (
+                  <BoardColumn
+                    key={filteredCol.id}
+                    column={filteredCol}
+                    totalTaskCount={fullCol.tasks.filter((t) => !t.archived).length}
+                    ideaId={ideaId}
+                    teamMembers={teamMembers}
+                    boardLabels={boardLabels}
+                    checklistItemsByTaskId={checklistItemsByTaskId}
+                    highlightQuery={searchQuery}
+                    currentUserId={currentUserId}
+                    initialTaskId={initialTaskId}
+                    userBots={userBots}
+                    coverImageUrls={coverImageUrls}
+                  />
+                );
+              })}
+            </SortableContext>
+            <AddColumnButton ideaId={ideaId} />
+          </div>
+          {/* Right-edge fade gradient — visible on mobile when more columns exist off-screen */}
+          {canScrollRight && (
+            <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-background to-transparent sm:hidden" />
+          )}
         </div>
         <DragOverlay>
           {activeTask && (
