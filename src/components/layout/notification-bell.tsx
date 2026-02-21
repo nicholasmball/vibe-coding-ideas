@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { createClient } from "@/lib/supabase/client";
-import { markAllNotificationsRead } from "@/actions/notifications";
+import { markAllNotificationsRead, markNotificationsRead } from "@/actions/notifications";
 import { formatRelativeTime } from "@/lib/utils";
 import type { NotificationWithDetails } from "@/types";
 
@@ -156,7 +156,20 @@ export function NotificationBell() {
                   <Link
                     key={notification.id}
                     href={href}
-                    onClick={() => setOpen(false)}
+                    onClick={() => {
+                      setOpen(false);
+                      if (!notification.read) {
+                        // Optimistic update
+                        setNotifications((prev) =>
+                          prev.map((n) =>
+                            n.id === notification.id ? { ...n, read: true } : n
+                          )
+                        );
+                        setUnreadCount((prev) => Math.max(0, prev - 1));
+                        // Fire-and-forget server action
+                        markNotificationsRead([notification.id]);
+                      }
+                    }}
                     className={className}
                   >
                     {content}

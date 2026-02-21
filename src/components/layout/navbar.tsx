@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Sparkles, Plus, LogOut, User as UserIcon, Menu, LayoutDashboard, BookOpen, Users, Rss, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,8 +26,12 @@ import { useState, useEffect } from "react";
 export function Navbar() {
   const { user, loading } = useUser();
   const router = useRouter();
+  const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+
+  const isActive = (href: string) =>
+    pathname === href || pathname.startsWith(href + "/");
 
   useEffect(() => {
     if (!user) { setIsAdmin(false); return; }
@@ -68,32 +72,32 @@ export function Navbar() {
             {user && (
               <>
                 <Link href="/dashboard">
-                  <Button variant="ghost" className="gap-2">
+                  <Button variant={isActive("/dashboard") ? "secondary" : "ghost"} className="gap-2">
                     <LayoutDashboard className="h-4 w-4" />
                     Dashboard
                   </Button>
                 </Link>
                 <Link href="/feed">
-                  <Button variant="ghost" className="gap-2">
+                  <Button variant={isActive("/feed") ? "secondary" : "ghost"} className="gap-2">
                     <Rss className="h-4 w-4" />
                     Feed
                   </Button>
                 </Link>
                 <Link href="/members">
-                  <Button variant="ghost" className="gap-2">
+                  <Button variant={isActive("/members") ? "secondary" : "ghost"} className="gap-2">
                     <Users className="h-4 w-4" />
                     Members
                   </Button>
                 </Link>
                 <Link href="/ideas/new">
-                  <Button variant="ghost" className="gap-2">
+                  <Button variant={isActive("/ideas/new") ? "secondary" : "ghost"} className="gap-2">
                     <Plus className="h-4 w-4" />
                     New Idea
                   </Button>
                 </Link>
                 {isAdmin && (
                   <Link href="/admin">
-                    <Button variant="ghost" className="gap-2">
+                    <Button variant={isActive("/admin") ? "secondary" : "ghost"} className="gap-2">
                       <Shield className="h-4 w-4" />
                       Admin
                     </Button>
@@ -102,7 +106,7 @@ export function Navbar() {
               </>
             )}
             <Link href="/guide">
-              <Button variant="ghost" className="gap-2">
+              <Button variant={isActive("/guide") ? "secondary" : "ghost"} className="gap-2">
                 <BookOpen className="h-4 w-4" />
                 Guide
               </Button>
@@ -179,6 +183,7 @@ export function Navbar() {
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label="Open navigation menu"
                   onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 >
                   <Menu className="h-5 w-5" />
@@ -205,7 +210,7 @@ export function Navbar() {
                     href="/dashboard"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <Button variant="ghost" className="w-full justify-start gap-2">
+                    <Button variant={isActive("/dashboard") ? "secondary" : "ghost"} className="w-full justify-start gap-2">
                       <LayoutDashboard className="h-4 w-4" />
                       Dashboard
                     </Button>
@@ -214,7 +219,7 @@ export function Navbar() {
                     href="/feed"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <Button variant="ghost" className="w-full justify-start gap-2">
+                    <Button variant={isActive("/feed") ? "secondary" : "ghost"} className="w-full justify-start gap-2">
                       <Rss className="h-4 w-4" />
                       Feed
                     </Button>
@@ -223,7 +228,7 @@ export function Navbar() {
                     href="/members"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <Button variant="ghost" className="w-full justify-start gap-2">
+                    <Button variant={isActive("/members") ? "secondary" : "ghost"} className="w-full justify-start gap-2">
                       <Users className="h-4 w-4" />
                       Members
                     </Button>
@@ -232,7 +237,7 @@ export function Navbar() {
                     href="/ideas/new"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <Button variant="ghost" className="w-full justify-start gap-2">
+                    <Button variant={isActive("/ideas/new") ? "secondary" : "ghost"} className="w-full justify-start gap-2">
                       <Plus className="h-4 w-4" />
                       New Idea
                     </Button>
@@ -242,7 +247,7 @@ export function Navbar() {
                       href="/admin"
                       onClick={() => setMobileMenuOpen(false)}
                     >
-                      <Button variant="ghost" className="w-full justify-start gap-2">
+                      <Button variant={isActive("/admin") ? "secondary" : "ghost"} className="w-full justify-start gap-2">
                         <Shield className="h-4 w-4" />
                         Admin
                       </Button>
@@ -252,7 +257,7 @@ export function Navbar() {
                     href={`/profile/${user.id}`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <Button variant="ghost" className="w-full justify-start gap-2">
+                    <Button variant={isActive(`/profile/${user.id}`) ? "secondary" : "ghost"} className="w-full justify-start gap-2">
                       <UserIcon className="h-4 w-4" />
                       Profile
                     </Button>
@@ -261,7 +266,7 @@ export function Navbar() {
                     href="/guide"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <Button variant="ghost" className="w-full justify-start gap-2">
+                    <Button variant={isActive("/guide") ? "secondary" : "ghost"} className="w-full justify-start gap-2">
                       <BookOpen className="h-4 w-4" />
                       Guide
                     </Button>

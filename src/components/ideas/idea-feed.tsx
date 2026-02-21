@@ -84,14 +84,14 @@ export function IdeaFeed({
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">Idea Feed</h1>
         <div className="flex items-center gap-2">
           <Select
             value={currentStatus || "all"}
             onValueChange={(v) => updateParams({ status: v === "all" ? "" : v })}
           >
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-full sm:w-[150px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -109,7 +109,7 @@ export function IdeaFeed({
             value={currentSort}
             onValueChange={(v) => updateParams({ sort: v })}
           >
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
