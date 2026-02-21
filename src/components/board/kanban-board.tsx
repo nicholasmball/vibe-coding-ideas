@@ -635,7 +635,7 @@ export function KanbanBoard({
                 <BoardColumn
                   key={filteredCol.id}
                   column={filteredCol}
-                  totalTaskCount={fullCol.tasks.length}
+                  totalTaskCount={fullCol.tasks.filter((t) => !t.archived).length}
                   ideaId={ideaId}
                   teamMembers={teamMembers}
                   boardLabels={boardLabels}
@@ -660,7 +660,7 @@ export function KanbanBoard({
             <div className="w-[280px] rounded-lg border border-primary bg-muted/50 p-3 shadow-lg opacity-80">
               <p className="text-sm font-semibold">{activeColumn.title}</p>
               <p className="text-xs text-muted-foreground">
-                {activeColumn.tasks.length} tasks
+                {activeColumn.tasks.filter((t) => !t.archived).length} tasks
               </p>
             </div>
           )}
