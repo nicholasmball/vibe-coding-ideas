@@ -10,6 +10,8 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 const DISMISSED_KEY = "pwa-install-dismissed";
+const VISIT_COUNT_KEY = "pwa-visit-count";
+const MIN_VISITS = 3;
 
 export function InstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] =
@@ -23,6 +25,11 @@ export function InstallPrompt() {
 
     // Don't show if previously dismissed
     if (localStorage.getItem(DISMISSED_KEY)) return;
+
+    // Track visit count — only show after MIN_VISITS
+    const visitCount = Number(localStorage.getItem(VISIT_COUNT_KEY) || "0") + 1;
+    localStorage.setItem(VISIT_COUNT_KEY, String(visitCount));
+    if (visitCount < MIN_VISITS) return;
 
     setDismissed(false);
 

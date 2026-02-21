@@ -212,6 +212,24 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
     }
   }
 
+  // Batch-create signed URLs for cover images (single API call instead of N)
+  const coverPaths = (rawTasks ?? [])
+    .map((t) => t.cover_image_path)
+    .filter((p): p is string => !!p);
+  const coverImageUrls: Record<string, string> = {};
+  if (coverPaths.length > 0) {
+    const { data: signedUrls } = await supabase.storage
+      .from("task-attachments")
+      .createSignedUrls(coverPaths, 3600);
+    if (signedUrls) {
+      for (const entry of signedUrls) {
+        if (entry.signedUrl && entry.path) {
+          coverImageUrls[entry.path] = entry.signedUrl;
+        }
+      }
+    }
+  }
+
   // Assemble columns with tasks (including labels)
   const columns: BoardColumnWithTasks[] = (rawColumns ?? []).map((col) => ({
     ...col,
@@ -253,6 +271,7 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
         aiEnabled={aiEnabled}
         botProfiles={userBotProfiles}
         aiCredits={aiCredits}
+        coverImageUrls={coverImageUrls}
       />
     </div>
   );

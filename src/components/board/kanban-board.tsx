@@ -51,6 +51,7 @@ interface KanbanBoardProps {
   aiEnabled?: boolean;
   botProfiles?: BotProfile[];
   aiCredits?: AiCredits | null;
+  coverImageUrls?: Record<string, string>;
 }
 
 export function KanbanBoard({
@@ -66,6 +67,7 @@ export function KanbanBoard({
   aiEnabled = false,
   botProfiles = [],
   aiCredits,
+  coverImageUrls = {},
 }: KanbanBoardProps) {
   const [columns, setColumns] = useState(initialColumns);
   const columnsRef = useRef(columns);
@@ -644,6 +646,7 @@ export function KanbanBoard({
                   currentUserId={currentUserId}
                   initialTaskId={initialTaskId}
                   userBots={userBots}
+                  coverImageUrls={coverImageUrls}
                 />
               );
             })}

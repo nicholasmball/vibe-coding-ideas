@@ -44,6 +44,7 @@ interface BoardColumnProps {
   currentUserId: string;
   initialTaskId?: string;
   userBots?: User[];
+  coverImageUrls?: Record<string, string>;
 }
 
 export function BoardColumn({
@@ -57,6 +58,7 @@ export function BoardColumn({
   currentUserId,
   initialTaskId,
   userBots = [],
+  coverImageUrls = {},
 }: BoardColumnProps) {
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -197,6 +199,7 @@ export function BoardColumn({
                 currentUserId={currentUserId}
                 autoOpen={task.id === initialTaskId}
                 userBots={userBots}
+                initialCoverUrl={task.cover_image_path ? coverImageUrls[task.cover_image_path] : undefined}
               />
             ))}
           </SortableContext>

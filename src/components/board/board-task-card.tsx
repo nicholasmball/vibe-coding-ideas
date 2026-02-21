@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, CheckSquare, Paperclip, MessageSquare, Archive, X, Bot } from "lucide-react";
@@ -34,6 +34,7 @@ interface BoardTaskCardProps {
   currentUserId: string;
   autoOpen?: boolean;
   userBots?: User[];
+  initialCoverUrl?: string;
 }
 
 function HighlightedText({
@@ -74,10 +75,11 @@ export function BoardTaskCard({
   currentUserId,
   autoOpen = false,
   userBots = [],
+  initialCoverUrl,
 }: BoardTaskCardProps) {
   const [detailOpen, setDetailOpen] = useState(autoOpen);
   const [initialTab, setInitialTab] = useState<string | undefined>(undefined);
-  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [coverUrl, setCoverUrl] = useState<string | null>(initialCoverUrl ?? null);
   const [coverPreviewOpen, setCoverPreviewOpen] = useState(false);
 
   const isArchived = task.archived;
@@ -96,8 +98,14 @@ export function BoardTaskCard({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [coverPreviewOpen, closeLightbox]);
 
-  // Fetch signed URL for cover image
+  // Fetch signed URL for cover image only when path changes after mount
+  // (initial URL is provided server-side via batch creation)
+  const prevCoverPathRef = useRef(coverImagePath);
   useEffect(() => {
+    // Skip if path hasn't changed (initial render uses server-provided URL)
+    if (coverImagePath === prevCoverPathRef.current && coverUrl) return;
+    prevCoverPathRef.current = coverImagePath;
+
     if (!coverImagePath) {
       setCoverUrl(null);
       return;
@@ -111,7 +119,7 @@ export function BoardTaskCard({
         if (!cancelled && data?.signedUrl) setCoverUrl(data.signedUrl);
       });
     return () => { cancelled = true; };
-  }, [coverImagePath]);
+  }, [coverImagePath]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const {
     attributes,
