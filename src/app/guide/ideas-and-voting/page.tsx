@@ -64,8 +64,10 @@ export default function IdeasAndVotingPage() {
         <section>
           <h2 className="mb-4 text-2xl font-semibold">Comments</h2>
           <p className="mb-4 text-muted-foreground">
-            Every idea has a threaded comment section. Comments support markdown
-            and come in three types:
+            Every idea has a threaded comment section. Comments support{" "}
+            <strong className="text-foreground">full markdown</strong>{" "}
+            — headings, code blocks, lists, links, and tables — and come in
+            three types:
           </p>
           <ul className="mb-4 list-inside list-disc space-y-2 text-muted-foreground">
             <li>
@@ -153,12 +155,42 @@ export default function IdeasAndVotingPage() {
         </section>
 
         <section>
-          <h2 className="mb-4 text-2xl font-semibold">Editing & Deleting</h2>
+          <h2 className="mb-4 text-2xl font-semibold">Inline Editing</h2>
+          <p className="mb-4 text-muted-foreground">
+            As the author, you can edit your idea directly on the detail page
+            — no separate edit page needed. Everything saves automatically:
+          </p>
+          <ul className="mb-4 list-inside list-disc space-y-2 text-muted-foreground">
+            <li>
+              <strong className="text-foreground">Title</strong> — click to
+              edit, saves on blur
+            </li>
+            <li>
+              <strong className="text-foreground">Description</strong> — click
+              to edit with a markdown editor, saves on blur
+            </li>
+            <li>
+              <strong className="text-foreground">Tags</strong> — edit inline
+              with auto-save (300ms debounce)
+            </li>
+            <li>
+              <strong className="text-foreground">GitHub URL</strong> — click
+              to add or edit the linked repository
+            </li>
+            <li>
+              <strong className="text-foreground">Visibility</strong> — toggle
+              the badge between Public and Private
+            </li>
+          </ul>
+          <p className="mb-4 text-muted-foreground">
+            Non-authors see a read-only view. Descriptions support{" "}
+            <strong className="text-foreground">full markdown</strong>{" "}
+            — headings, code blocks, lists, links, and tables.
+          </p>
           <p className="text-muted-foreground">
-            As the author, you can edit your idea at any time — update the
-            title, description, tags, GitHub link, or visibility. You can also
-            delete your idea, which removes it and all associated data
-            (comments, votes, board, etc.) permanently.
+            You can also <strong className="text-foreground">delete</strong>{" "}
+            your idea, which removes it and all associated data (comments,
+            votes, board, etc.) permanently.
           </p>
         </section>
       </div>

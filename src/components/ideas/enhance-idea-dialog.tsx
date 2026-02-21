@@ -301,7 +301,7 @@ export function EnhanceIdeaDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
-        className="max-h-[90vh] overflow-y-auto sm:max-w-2xl"
+        className="max-h-[90vh] overflow-y-auto overflow-x-hidden p-4 sm:max-w-2xl sm:p-6"
         onInteractOutside={(e) => busy && e.preventDefault()}
         onEscapeKeyDown={(e) => busy && e.preventDefault()}
       >
@@ -393,11 +393,11 @@ export function EnhanceIdeaDialog({
                 </div>
 
                 {/* Current description preview */}
-                <div className="space-y-2">
+                <div className="min-w-0 space-y-2">
                   <Label className="text-muted-foreground">
                     Current Description
                   </Label>
-                  <div className="max-h-40 overflow-y-auto rounded-md border border-border bg-muted/30 p-3 text-sm">
+                  <div className="max-h-40 overflow-y-auto overflow-x-hidden rounded-md border border-border bg-muted/30 p-3 text-sm break-words">
                     <Markdown>{currentDescription}</Markdown>
                   </div>
                 </div>
@@ -476,11 +476,11 @@ export function EnhanceIdeaDialog({
             </div>
 
             {!loading && (
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <Button
                   onClick={handleEnhanceWithAnswers}
                   disabled={busy}
-                  className="flex-1 gap-2"
+                  className="min-w-[140px] flex-1 gap-2"
                 >
                   <Sparkles className="h-4 w-4" />
                   Enhance with Answers
@@ -512,26 +512,26 @@ export function EnhanceIdeaDialog({
           <div className="space-y-4">
             {/* Side-by-side comparison */}
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
+              <div className="min-w-0 space-y-2">
                 <Label className="text-muted-foreground">Original</Label>
-                <div className="max-h-60 overflow-y-auto rounded-md border border-border bg-muted/30 p-3 text-sm">
+                <div className="max-h-60 overflow-y-auto overflow-x-hidden rounded-md border border-border bg-muted/30 p-3 text-sm break-words">
                   <Markdown>{currentDescription}</Markdown>
                 </div>
               </div>
-              <div className="space-y-2">
+              <div className="min-w-0 space-y-2">
                 <Label className="text-primary">Enhanced</Label>
-                <div className="max-h-60 overflow-y-auto rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
+                <div className="max-h-60 overflow-y-auto overflow-x-hidden rounded-md border border-primary/30 bg-primary/5 p-3 text-sm break-words">
                   <Markdown>{enhancedText}</Markdown>
                 </div>
               </div>
             </div>
 
             {/* Action buttons */}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <Button
                 onClick={handleApply}
                 disabled={busy}
-                className="flex-1 gap-2"
+                className="min-w-[120px] flex-1 gap-2"
               >
                 {applying ? (
                   <>
@@ -554,6 +554,8 @@ export function EnhanceIdeaDialog({
                 <PenLine className="h-4 w-4" />
                 Refine
               </Button>
+            </div>
+            <div className="flex gap-2">
               <Button
                 variant="ghost"
                 onClick={() => {
@@ -561,6 +563,7 @@ export function EnhanceIdeaDialog({
                   setPhase("configure");
                 }}
                 disabled={busy}
+                size="sm"
               >
                 Start Over
               </Button>
@@ -568,6 +571,7 @@ export function EnhanceIdeaDialog({
                 variant="ghost"
                 onClick={() => handleOpenChange(false)}
                 disabled={busy}
+                size="sm"
               >
                 Cancel
               </Button>
@@ -581,11 +585,11 @@ export function EnhanceIdeaDialog({
             <div className="grid">
               <div className={`col-start-1 row-start-1 ${loading ? "pointer-events-none opacity-40 blur-[1px]" : ""} transition-all`}>
                 {/* Current enhanced preview */}
-                <div className="space-y-2">
+                <div className="min-w-0 space-y-2">
                   <Label className="text-muted-foreground">
                     Current Enhancement
                   </Label>
-                  <div className="max-h-48 overflow-y-auto rounded-md border border-border bg-muted/30 p-3 text-sm">
+                  <div className="max-h-48 overflow-y-auto overflow-x-hidden rounded-md border border-border bg-muted/30 p-3 text-sm break-words">
                     <Markdown>{enhancedText}</Markdown>
                   </div>
                 </div>

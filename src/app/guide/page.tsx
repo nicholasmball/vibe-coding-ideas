@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Terminal,
   Bot,
+  Shield,
 } from "lucide-react";
 import {
   Card,
@@ -39,7 +40,7 @@ const sections = [
   {
     title: "Kanban Boards",
     description:
-      "Manage tasks with drag-and-drop boards, labels, due dates, bulk import, and AI task generation.",
+      "Manage tasks with drag-and-drop boards, labels, due dates, checklists, file attachments, and AI task generation.",
     icon: LayoutDashboard,
     href: "/guide/kanban-boards",
   },
@@ -53,9 +54,16 @@ const sections = [
   {
     title: "AI Bot Teams",
     description:
-      "Create bot personas, enhance ideas with AI, generate board tasks, and bring your own API key.",
+      "Create bot personas, enhance ideas with AI, generate board tasks, manage usage credits, and bring your own API key.",
     icon: Bot,
     href: "/guide/ai-bot-teams",
+  },
+  {
+    title: "Admin",
+    description:
+      "AI usage analytics, per-user rate limits, user management, and content moderation.",
+    icon: Shield,
+    href: "/guide/admin",
   },
 ];
 

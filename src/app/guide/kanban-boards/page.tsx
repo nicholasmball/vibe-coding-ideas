@@ -42,20 +42,24 @@ export default function KanbanBoardsPage() {
         <section>
           <h2 className="mb-4 text-2xl font-semibold">Tasks</h2>
           <p className="mb-4 text-muted-foreground">
-            Tasks are the building blocks of your board. Each task supports:
+            Tasks are the building blocks of your board. Click any task card to
+            open the <strong className="text-foreground">detail dialog</strong>{" "}
+            where you can edit all properties. Each task supports:
           </p>
           <ul className="list-inside list-disc space-y-2 text-muted-foreground">
             <li>
               <strong className="text-foreground">Title & Description</strong>{" "}
-              — markdown-supported description for detailed specs
+              — markdown-supported description for detailed specs. Type{" "}
+              <strong className="text-foreground">@</strong> in descriptions to
+              mention team members, just like in comments.
             </li>
             <li>
               <strong className="text-foreground">Assignee</strong> — assign to
-              any team member (author + collaborators)
+              any team member (author + collaborators) or your AI bots
             </li>
             <li>
               <strong className="text-foreground">Labels</strong> — colored
-              labels for categorization (per-idea, 10 colors)
+              labels for categorization (per-idea, 12 colors)
             </li>
             <li>
               <strong className="text-foreground">Due Date</strong> — track
@@ -67,11 +71,15 @@ export default function KanbanBoardsPage() {
             </li>
             <li>
               <strong className="text-foreground">Comments</strong> — discuss
-              tasks with your team, with @mention support
+              tasks with your team, with @mention support for notifications
             </li>
             <li>
               <strong className="text-foreground">File Attachments</strong>{" "}
               — upload images, documents, and other files (up to 10MB each)
+            </li>
+            <li>
+              <strong className="text-foreground">Cover Image</strong> — set
+              any attached image as the task&apos;s cover, shown on the card
             </li>
             <li>
               <strong className="text-foreground">Activity Log</strong> — full
@@ -114,7 +122,11 @@ export default function KanbanBoardsPage() {
               <strong className="text-foreground">Done column</strong> — tasks
               in done columns are excluded from dashboard task counts
             </li>
-            <li>Delete columns (tasks in the column are also deleted)</li>
+            <li>
+              <strong className="text-foreground">Archive all tasks</strong>{" "}
+              in a column from the column menu
+            </li>
+            <li>Delete empty columns (move or archive tasks first)</li>
           </ul>
         </section>
 
@@ -206,10 +218,17 @@ export default function KanbanBoardsPage() {
 
         <section>
           <h2 className="mb-4 text-2xl font-semibold">Real-time Sync</h2>
-          <p className="text-muted-foreground">
+          <p className="mb-4 text-muted-foreground">
             All board changes are synced in real-time via Supabase Realtime. If
             a collaborator moves a task or adds a comment, you&apos;ll see the
             update immediately without refreshing.
+          </p>
+          <p className="text-muted-foreground">
+            All board actions — creating tasks, moving between columns, adding
+            labels, archiving — use{" "}
+            <strong className="text-foreground">optimistic updates</strong>.
+            Changes appear instantly in your browser with automatic rollback if
+            something goes wrong.
           </p>
         </section>
       </div>

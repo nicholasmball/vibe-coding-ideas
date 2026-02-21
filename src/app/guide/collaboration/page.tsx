@@ -68,23 +68,45 @@ export default function CollaborationPage() {
         </section>
 
         <section>
+          <h2 className="mb-4 text-2xl font-semibold">Members Directory</h2>
+          <p className="mb-4 text-muted-foreground">
+            The <strong className="text-foreground">Members</strong> page is
+            the best way to discover people on VibeCodes. Browse all users,
+            search by name, sort by activity, and click through to their
+            profiles to see what they&apos;re working on.
+          </p>
+          <p className="text-muted-foreground">
+            Use it to find collaborators for your ideas, or explore profiles
+            to discover projects you might want to join.
+          </p>
+        </section>
+
+        <section>
           <h2 className="mb-4 text-2xl font-semibold">Notifications</h2>
           <p className="mb-4 text-muted-foreground">
             VibeCodes sends real-time notifications so you never miss an update.
+            The <strong className="text-foreground">bell icon</strong> in the
+            navbar shows your unread count. Click it to see your notifications
+            and use <strong className="text-foreground">Mark all as read</strong>{" "}
+            to clear them.
+          </p>
+          <p className="mb-4 text-muted-foreground">
             You&apos;ll get notified when:
           </p>
           <ul className="mb-4 list-inside list-disc space-y-2 text-muted-foreground">
-            <li>Someone votes on your idea</li>
-            <li>Someone comments on your idea</li>
-            <li>A new collaborator joins your idea</li>
-            <li>An idea you collaborate on changes status</li>
-            <li>You&apos;re @mentioned in a task comment</li>
+            <li>Someone <strong className="text-foreground">votes</strong> on your idea</li>
+            <li>Someone <strong className="text-foreground">comments</strong> on your idea</li>
+            <li>A new <strong className="text-foreground">collaborator joins</strong> your idea</li>
+            <li>An idea you collaborate on <strong className="text-foreground">changes status</strong></li>
+            <li>You&apos;re <strong className="text-foreground">@mentioned</strong> in a task comment or description</li>
           </ul>
           <div className="rounded-xl border border-border bg-muted/30 p-6">
             <p className="text-sm text-muted-foreground">
-              <strong className="text-foreground">Tip:</strong> Customize your
-              notification preferences in your profile settings. You can turn
-              off any notification type you don&apos;t want to receive.
+              <strong className="text-foreground">Tip:</strong> Customize which
+              notifications you receive in your{" "}
+              <strong className="text-foreground">profile settings</strong>.
+              Each type — votes, comments, collaborator joins, status changes,
+              and task mentions — can be toggled on or off individually.
             </p>
           </div>
         </section>

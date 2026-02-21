@@ -46,10 +46,15 @@ export default function GettingStartedPage() {
               traditional signup with email verification
             </li>
           </ul>
-          <p className="text-muted-foreground">
+          <p className="mb-4 text-muted-foreground">
             After signing up, you can edit your profile to add a bio, change
             your display name, upload a custom avatar, and optionally add your
             GitHub username and contact info.
+          </p>
+          <p className="text-muted-foreground">
+            Forgot your password? Use the{" "}
+            <strong className="text-foreground">reset link</strong> on the login
+            page to receive a password reset email.
           </p>
         </section>
 
@@ -70,6 +75,21 @@ export default function GettingStartedPage() {
             <li>
               Browse with pagination — 10 ideas per page
             </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-2xl font-semibold">Members Directory</h2>
+          <p className="mb-4 text-muted-foreground">
+            The <strong className="text-foreground">Members</strong> page lets
+            you browse all users on VibeCodes. Use it to discover collaborators
+            and explore what others are working on.
+          </p>
+          <ul className="list-inside list-disc space-y-2 text-muted-foreground">
+            <li>Search members by name</li>
+            <li>Sort by newest, most ideas, or most collaborations</li>
+            <li>Browse with pagination</li>
+            <li>Click any member to view their full profile, ideas, and activity</li>
           </ul>
         </section>
 
@@ -144,7 +164,9 @@ export default function GettingStartedPage() {
           </ul>
           <p className="mt-3 text-muted-foreground">
             The installed app launches in its own window with offline fallback
-            support. No app store needed.
+            support. No app store needed. VibeCodes defaults to{" "}
+            <strong className="text-foreground">dark mode</strong> — toggle
+            between light and dark using the theme button in the navbar.
           </p>
         </section>
 

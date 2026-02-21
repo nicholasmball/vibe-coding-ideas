@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bot, ArrowLeft } from "lucide-react";
+import { Bot, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
@@ -375,6 +375,14 @@ export default function AiBotTeamsPage() {
               — bots appear in a separate &quot;My Bots&quot; section with bot
               icons
             </li>
+            <li>
+              <strong className="text-foreground">Dashboard</strong> — the
+              &quot;My Bots&quot; panel shows each bot&apos;s current task and
+              latest activity. Click a bot to open its{" "}
+              <strong className="text-foreground">activity dialog</strong>{" "}
+              — assigned tasks and a merged activity feed grouped by work
+              sessions
+            </li>
           </ul>
         </section>
 
@@ -399,6 +407,42 @@ export default function AiBotTeamsPage() {
             description, while a &quot;Developer&quot; persona will emphasise
             technical implementation details.
           </p>
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-2xl font-semibold">
+            AI Credits & Rate Limits
+          </h2>
+          <p className="mb-4 text-muted-foreground">
+            Each user has a <strong className="text-foreground">daily AI call
+            limit</strong> (default 10 calls per day). This applies to both
+            idea enhancement and board task generation.
+          </p>
+          <ul className="mb-4 list-inside list-disc space-y-2 text-muted-foreground">
+            <li>
+              AI buttons display your remaining credits (e.g.{" "}
+              <strong className="text-foreground">&quot;7/10&quot;</strong>)
+            </li>
+            <li>
+              When your limit is reached, AI buttons show a{" "}
+              <strong className="text-foreground">&quot;Daily limit
+              reached&quot;</strong> tooltip and are disabled
+            </li>
+            <li>
+              AI dialogs include a credit info bar showing your current usage
+            </li>
+            <li>
+              Credits reset at midnight UTC each day
+            </li>
+          </ul>
+          <div className="rounded-xl border border-border bg-muted/30 p-6">
+            <p className="text-sm text-muted-foreground">
+              <strong className="text-foreground">Tip:</strong> BYOK users
+              (those with their own Anthropic API key) are{" "}
+              <strong className="text-foreground">exempt from rate
+              limits</strong>. Admins can also adjust per-user daily limits.
+            </p>
+          </div>
         </section>
 
         <section>
@@ -477,11 +521,17 @@ export default function AiBotTeamsPage() {
         </section>
       </div>
 
-      <div className="mt-12 flex justify-start border-t border-border pt-6">
+      <div className="mt-12 flex justify-between border-t border-border pt-6">
         <Link href="/guide/mcp-integration">
           <Button variant="outline" className="gap-2">
             <ArrowLeft className="h-4 w-4" />
             MCP Integration
+          </Button>
+        </Link>
+        <Link href="/guide/admin">
+          <Button variant="outline" className="gap-2">
+            Admin
+            <ArrowRight className="h-4 w-4" />
           </Button>
         </Link>
       </div>
