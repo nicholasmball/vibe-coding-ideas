@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VibeCodes UX Mockups — Before & After</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-root: #050506;
+    --bg-card: #09090b;
+    --bg-elevated: #111113;
+    --bg-surface: #18181b;
+    --bg-muted: #27272a;
+    --border: #27272a;
+    --border-subtle: #1e1e21;
+    --text-primary: #fafafa;
+    --text-secondary: #a1a1aa;
+    --text-muted: #71717a;
+    --violet-500: #8b5cf6;
+    --violet-600: #7c3aed;
+    --violet-400: #a78bfa;
+    --violet-glow: rgba(139, 92, 246, 0.15);
+    --green-500: #22c55e;
+    --blue-500: #3b82f6;
+    --amber-500: #f59e0b;
+    --red-500: #ef4444;
+    --rose-500: #f43f5e;
+    --cyan-500: #06b6d4;
+    --emerald-500: #10b981;
+    --purple-500: #a855f7;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg-root);
+    color: var(--text-primary);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ═══ Page Header ═══ */
+  .page-header {
+    text-align: center;
+    padding: 80px 24px 48px;
+    position: relative;
+  }
+  .page-header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 600px; height: 400px;
+    background: radial-gradient(ellipse, var(--violet-glow) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .page-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+    position: relative;
+  }
+  .page-header h1 span { color: var(--violet-400); }
+  .page-header p {
+    color: var(--text-secondary);
+    font-size: 1.1rem;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+
+  /* ═══ Section Layout ═══ */
+  .mockup-section {
+    max-width: 1200px;
+    margin: 0 auto 96px;
+    padding: 0 24px;
+  }
+  .section-header {
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .section-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--violet-400);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 8px;
+  }
+  .section-header h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+  .section-header p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+  }
+
+  .comparison {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 32px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .comparison { grid-template-columns: 1fr; }
+  }
+
+  .comparison-panel {
+    position: relative;
+  }
+  .comparison-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .comparison-label.before { color: var(--text-muted); }
+  .comparison-label.after { color: var(--emerald-500); }
+  .comparison-label .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .comparison-label.before .dot { background: var(--text-muted); }
+  .comparison-label.after .dot { background: var(--emerald-500); }
+
+  .mockup-frame {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    position: relative;
+  }
+  .comparison-panel.after .mockup-frame {
+    border-color: rgba(139, 92, 246, 0.25);
+    box-shadow: 0 0 40px -10px var(--violet-glow);
+  }
+
+  /* ═══ Shared Component Styles ═══ */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: var(--radius);
+    font-size: 0.8rem;
+    font-weight: 500;
+    font-family: 'DM Sans', sans-serif;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-primary);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: var(--bg-muted); }
+  .btn-primary {
+    background: var(--violet-600);
+    border-color: var(--violet-500);
+    color: white;
+  }
+  .btn-primary:hover { background: var(--violet-500); }
+  .btn-ghost {
+    border-color: transparent;
+    color: var(--text-secondary);
+  }
+  .btn-sm { padding: 5px 10px; font-size: 0.75rem; }
+  .btn-destructive {
+    color: var(--red-500);
+    border-color: transparent;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    border: 1px solid transparent;
+  }
+
+  .icon {
+    width: 16px; height: 16px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .icon svg { width: 100%; height: 100%; }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     MOCKUP 1 — Landing Page Hero
+     ═══════════════════════════════════════════════════════════════════ */
+  .hero-mockup {
+    padding: 48px 32px;
+    text-align: center;
+    position: relative;
+    min-height: 340px;
+    overflow: hidden;
+  }
+  .hero-mockup .gradient-blob {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.3;
+    pointer-events: none;
+  }
+  .hero-mockup .blob-1 {
+    width: 250px; height: 250px;
+    background: var(--violet-600);
+    top: -60px; left: -40px;
+  }
+  .hero-mockup .blob-2 {
+    width: 200px; height: 200px;
+    background: var(--blue-500);
+    bottom: -40px; right: -20px;
+  }
+  .hero-mockup h3 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  .hero-mockup .subtitle {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    max-width: 340px;
+    margin: 0 auto 20px;
+    position: relative;
+  }
+  .hero-ctas {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    position: relative;
+    margin-bottom: 32px;
+  }
+
+  /* Browser frame mockup */
+  .browser-frame {
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    box-shadow:
+      0 25px 60px -12px rgba(0,0,0,0.5),
+      0 0 80px -20px var(--violet-glow);
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .browser-titlebar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .traffic-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .traffic-dot.red { background: #ff5f57; }
+  .traffic-dot.yellow { background: #febc2e; }
+  .traffic-dot.green { background: #28c840; }
+  .browser-url {
+    flex: 1;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    background: var(--bg-elevated);
+    padding: 3px 12px;
+    border-radius: 4px;
+    margin-left: 8px;
+  }
+  .browser-content {
+    padding: 14px;
+  }
+
+  /* Mini kanban inside browser */
+  .mini-kanban {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+  }
+  .mini-col {
+    background: var(--bg-card);
+    border-radius: 6px;
+    padding: 8px;
+    border: 1px solid var(--border-subtle);
+  }
+  .mini-col-title {
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .mini-task {
+    background: var(--bg-surface);
+    border-radius: 4px;
+    padding: 6px 8px;
+    margin-bottom: 4px;
+    border: 1px solid var(--border-subtle);
+  }
+  .mini-task:last-child { margin-bottom: 0; }
+  .mini-task-title {
+    font-size: 0.55rem;
+    color: var(--text-primary);
+    margin-bottom: 3px;
+    font-weight: 500;
+  }
+  .mini-label {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.45rem;
+    font-weight: 600;
+  }
+  .mini-label.feat { background: rgba(139,92,246,0.2); color: var(--violet-400); }
+  .mini-label.bug { background: rgba(239,68,68,0.2); color: var(--red-500); }
+  .mini-label.ui { background: rgba(6,182,212,0.2); color: var(--cyan-500); }
+  .mini-label.perf { background: rgba(245,158,11,0.2); color: var(--amber-500); }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     MOCKUP 2 — Mobile Action Buttons
+     ═══════════════════════════════════════════════════════════════════ */
+  .mobile-viewport {
+    width: 320px;
+    margin: 0 auto;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .comparison-panel.after .mobile-viewport {
+    border-color: rgba(139,92,246,0.25);
+    box-shadow: 0 0 40px -10px var(--violet-glow);
+  }
+  .mobile-status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 16px;
+    font-size: 0.6rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: var(--bg-surface);
+  }
+  .mobile-content {
+    padding: 16px;
+  }
+  .idea-title-mock {
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+  .idea-meta-mock {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+  .action-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .action-row.overflow { overflow: visible; }
+  .action-row .btn { font-size: 0.7rem; padding: 6px 10px; }
+
+  /* Dropdown mockup */
+  .dropdown-mockup {
+    position: relative;
+    display: inline-block;
+  }
+  .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px;
+    min-width: 180px;
+    z-index: 10;
+    box-shadow: 0 10px 30px -5px rgba(0,0,0,0.5);
+  }
+  .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .dropdown-item:hover { background: var(--bg-muted); color: var(--text-primary); }
+  .dropdown-item.destructive { color: var(--red-500); }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     MOCKUP 3 — Dashboard Onboarding
+     ═══════════════════════════════════════════════════════════════════ */
+  .dashboard-mockup {
+    padding: 20px;
+  }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius);
+    padding: 12px;
+  }
+  .stat-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  .stat-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-muted);
+  }
+  .empty-section {
+    background: var(--bg-surface);
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+  }
+  .empty-section p {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin-bottom: 12px;
+  }
+  .section-title-bar {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title-bar .count-badge {
+    font-size: 0.65rem;
+    background: var(--bg-muted);
+    padding: 1px 7px;
+    border-radius: 999px;
+    color: var(--text-muted);
+  }
+
+  /* Welcome card */
+  .welcome-card {
+    position: relative;
+    background: var(--bg-elevated);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    margin-bottom: 20px;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+    overflow: hidden;
+  }
+  .welcome-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-lg);
+    padding: 1px;
+    background: linear-gradient(135deg, var(--violet-500) 0%, var(--blue-500) 50%, var(--violet-500) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  .welcome-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: radial-gradient(ellipse at top left, rgba(139,92,246,0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .welcome-dismiss {
+    position: absolute;
+    top: 12px; right: 12px;
+    width: 24px; height: 24px;
+    border-radius: 4px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    z-index: 2;
+  }
+  .welcome-dismiss:hover { background: var(--bg-muted); color: var(--text-primary); }
+  .welcome-card h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+    position: relative;
+    z-index: 1;
+  }
+  .welcome-card .welcome-sub {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 1;
+  }
+  .welcome-actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+  }
+  .welcome-action {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius);
+    padding: 16px 14px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    text-align: center;
+  }
+  .welcome-action:hover {
+    border-color: var(--violet-500);
+    background: var(--bg-muted);
+  }
+  .welcome-action-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 10px;
+    font-size: 1.1rem;
+  }
+  .welcome-action-icon.idea { background: rgba(245,158,11,0.12); color: var(--amber-500); }
+  .welcome-action-icon.feed { background: rgba(59,130,246,0.12); color: var(--blue-500); }
+  .welcome-action-icon.guide { background: rgba(16,185,129,0.12); color: var(--emerald-500); }
+  .welcome-action-title {
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin-bottom: 3px;
+  }
+  .welcome-action-desc {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     MOCKUP 4 — Board Mobile Filter Drawer
+     ═══════════════════════════════════════════════════════════════════ */
+  .board-toolbar-mock {
+    padding: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .board-toolbar-mock .btn { font-size: 0.7rem; padding: 6px 10px; }
+  .search-input-mock {
+    flex: 1;
+    min-width: 120px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 10px 6px 28px;
+    font-size: 0.75rem;
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    position: relative;
+  }
+  .search-wrapper {
+    position: relative;
+    flex: 1;
+    min-width: 120px;
+  }
+  .search-wrapper .search-icon {
+    position: absolute;
+    left: 8px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 0.7rem;
+  }
+
+  /* Clean toolbar */
+  .board-toolbar-clean {
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .filter-btn-badge {
+    position: relative;
+  }
+  .filter-btn-badge .badge-count {
+    position: absolute;
+    top: -4px; right: -4px;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--violet-500);
+    color: white;
+    font-size: 0.55rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Bottom sheet */
+  .bottom-sheet-overlay {
+    position: relative;
+    background: rgba(0,0,0,0.5);
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+  }
+  .bottom-sheet {
+    background: var(--bg-elevated);
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    padding: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .sheet-handle {
+    width: 36px; height: 4px;
+    background: var(--bg-muted);
+    border-radius: 2px;
+    margin: 0 auto 16px;
+  }
+  .sheet-title {
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  .filter-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .filter-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .filter-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    min-width: 70px;
+  }
+  .filter-select {
+    flex: 1;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 7px 10px;
+    font-size: 0.75rem;
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+  }
+  .toggle-switch {
+    width: 36px; height: 20px;
+    border-radius: 10px;
+    background: var(--bg-muted);
+    position: relative;
+    cursor: pointer;
+  }
+  .toggle-switch .toggle-dot {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    position: absolute;
+    top: 2px; left: 2px;
+    transition: all 0.2s;
+  }
+  .sheet-footer {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: center;
+  }
+
+  /* ═══════════════════════════════════════════════════════════════════
+     MOCKUP 5 — Task Detail Dialog
+     ═══════════════════════════════════════════════════════════════════ */
+  .dialog-backdrop {
+    background: rgba(0,0,0,0.6);
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 420px;
+  }
+  .dialog-narrow {
+    width: 100%;
+    max-width: 420px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .dialog-wide {
+    width: 100%;
+    max-width: 560px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+  .comparison-panel.after .dialog-wide {
+    border-color: rgba(139,92,246,0.25);
+    box-shadow: 0 0 40px -10px var(--violet-glow);
+  }
+  .dialog-cover {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    display: block;
+    background: linear-gradient(135deg, var(--bg-muted) 0%, var(--bg-surface) 100%);
+    position: relative;
+  }
+  .dialog-cover-better { height: 130px; }
+  .dialog-cover-pattern {
+    width: 100%;
+    height: 100%;
+    background:
+      linear-gradient(135deg, rgba(139,92,246,0.1) 0%, rgba(59,130,246,0.1) 100%),
+      repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.015) 10px, rgba(255,255,255,0.015) 20px);
+  }
+  .dialog-body {
+    padding: 16px;
+  }
+  .dialog-body-spacious { padding: 20px; }
+  .dialog-task-title {
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+  }
+  .dialog-labels {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .dialog-label {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 600;
+  }
+  .dialog-label.feat { background: rgba(139,92,246,0.2); color: var(--violet-400); }
+  .dialog-label.urgent { background: rgba(239,68,68,0.2); color: var(--red-500); }
+  .dialog-label.ui { background: rgba(6,182,212,0.2); color: var(--cyan-500); }
+  .dialog-desc {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 14px;
+  }
+  .dialog-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 12px;
+  }
+  .dialog-tab {
+    padding: 8px 12px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    font-weight: 500;
+  }
+  .dialog-tab.active {
+    color: var(--text-primary);
+    border-bottom-color: var(--violet-500);
+  }
+  .dialog-tab-content {
+    min-height: 80px;
+  }
+  .checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+  }
+  .checkbox-mock {
+    width: 14px; height: 14px;
+    border-radius: 3px;
+    border: 1.5px solid var(--border);
+    flex-shrink: 0;
+  }
+  .checkbox-mock.checked {
+    background: var(--violet-500);
+    border-color: var(--violet-500);
+    position: relative;
+  }
+  .checkbox-mock.checked::after {
+    content: '✓';
+    position: absolute;
+    top: -1px; left: 1.5px;
+    font-size: 0.6rem;
+    color: white;
+  }
+  .checklist-done {
+    text-decoration: line-through;
+    color: var(--text-muted);
+  }
+
+  /* Split layout for wide dialog */
+  .dialog-split {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 0;
+    min-height: 220px;
+  }
+  .dialog-split-left {
+    padding: 20px;
+    border-right: 1px solid var(--border-subtle);
+  }
+  .dialog-split-right {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+  }
+  .dialog-split-right .dialog-tabs { margin-bottom: 10px; }
+  .comment-mock {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .comment-avatar {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--bg-muted);
+    flex-shrink: 0;
+  }
+  .comment-body {
+    flex: 1;
+  }
+  .comment-author {
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .comment-text {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+  .comment-time {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+
+  /* ═══ Cramped indicator ═══ */
+  .cramped-indicator {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: rgba(239,68,68,0.15);
+    color: var(--red-500);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .spacious-indicator {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: rgba(16,185,129,0.15);
+    color: var(--emerald-500);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ═══ Footer ═══ */
+  .page-footer {
+    text-align: center;
+    padding: 48px 24px 64px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    border-top: 1px solid var(--border-subtle);
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══ Page Header ═══ -->
+<header class="page-header">
+  <h1>VibeCodes <span>UX Mockups</span></h1>
+  <p>Before & after comparisons for the 5 most noticeable UI improvements</p>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MOCKUP 1 — Landing Page Hero
+     ═══════════════════════════════════════════════════════════════════ -->
+<section class="mockup-section">
+  <div class="section-header">
+    <div class="section-number">Mockup 01</div>
+    <h2>Landing Page Hero with Product Screenshot</h2>
+    <p>Adding a visual preview of the product below the hero copy to show users what they're signing up for.</p>
+  </div>
+  <div class="comparison">
+    <!-- BEFORE -->
+    <div class="comparison-panel before">
+      <div class="comparison-label before"><span class="dot"></span> Before</div>
+      <div class="mockup-frame">
+        <div class="hero-mockup">
+          <div class="gradient-blob blob-1"></div>
+          <div class="gradient-blob blob-2"></div>
+          <h3>Where Vibe Coding Ideas<br>Come to Life</h3>
+          <p class="subtitle">Drop a rough concept and watch it evolve through community collaboration, voting, and real-time project boards.</p>
+          <div class="hero-ctas">
+            <button class="btn btn-primary">Get Started</button>
+            <button class="btn">Learn More</button>
+          </div>
+          <!-- Nothing below CTAs -->
+        </div>
+      </div>
+    </div>
+    <!-- AFTER -->
+    <div class="comparison-panel after">
+      <div class="comparison-label after"><span class="dot"></span> After</div>
+      <div class="mockup-frame">
+        <div class="hero-mockup">
+          <div class="gradient-blob blob-1"></div>
+          <div class="gradient-blob blob-2"></div>
+          <h3>Where Vibe Coding Ideas<br>Come to Life</h3>
+          <p class="subtitle">Drop a rough concept and watch it evolve through community collaboration, voting, and real-time project boards.</p>
+          <div class="hero-ctas">
+            <button class="btn btn-primary">Get Started</button>
+            <button class="btn">Learn More</button>
+          </div>
+          <!-- Product screenshot in browser frame -->
+          <div class="browser-frame">
+            <div class="browser-titlebar">
+              <span class="traffic-dot red"></span>
+              <span class="traffic-dot yellow"></span>
+              <span class="traffic-dot green"></span>
+              <span class="browser-url">vibecodes.co.uk/ideas/board</span>
+            </div>
+            <div class="browser-content">
+              <div class="mini-kanban">
+                <div class="mini-col">
+                  <div class="mini-col-title">To Do</div>
+                  <div class="mini-task">
+                    <div class="mini-task-title">Set up auth flow</div>
+                    <span class="mini-label feat">Feature</span>
+                  </div>
+                  <div class="mini-task">
+                    <div class="mini-task-title">Design system tokens</div>
+                    <span class="mini-label ui">UI</span>
+                  </div>
+                  <div class="mini-task">
+                    <div class="mini-task-title">API rate limiting</div>
+                    <span class="mini-label perf">Perf</span>
+                  </div>
+                </div>
+                <div class="mini-col">
+                  <div class="mini-col-title">In Progress</div>
+                  <div class="mini-task">
+                    <div class="mini-task-title">Realtime subscriptions</div>
+                    <span class="mini-label feat">Feature</span>
+                  </div>
+                  <div class="mini-task">
+                    <div class="mini-task-title">Fix mobile nav</div>
+                    <span class="mini-label bug">Bug</span>
+                  </div>
+                </div>
+                <div class="mini-col">
+                  <div class="mini-col-title">Done</div>
+                  <div class="mini-task">
+                    <div class="mini-task-title">OAuth integration</div>
+                    <span class="mini-label feat">Feature</span>
+                  </div>
+                  <div class="mini-task">
+                    <div class="mini-task-title">Dark mode toggle</div>
+                    <span class="mini-label ui">UI</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MOCKUP 2 — Mobile Action Buttons
+     ═══════════════════════════════════════════════════════════════════ -->
+<section class="mockup-section">
+  <div class="section-header">
+    <div class="section-number">Mockup 02</div>
+    <h2>Idea Detail — Mobile "More" Menu</h2>
+    <p>Collapsing secondary actions into a dropdown to prevent button overflow on mobile viewports.</p>
+  </div>
+  <div class="comparison">
+    <!-- BEFORE -->
+    <div class="comparison-panel before">
+      <div class="comparison-label before"><span class="dot"></span> Before — 320px viewport</div>
+      <div class="mobile-viewport">
+        <div class="mobile-status-bar">
+          <span>9:41</span>
+          <span>●●● WiFi 🔋</span>
+        </div>
+        <div class="mobile-content">
+          <div class="idea-title-mock">AI-Powered Code Review Bot</div>
+          <div class="idea-meta-mock">by @sarah · 3 days ago</div>
+          <div class="action-row overflow">
+            <button class="btn btn-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+              12
+            </button>
+            <button class="btn btn-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Collaborate
+            </button>
+            <button class="btn btn-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+              Board
+            </button>
+            <button class="btn btn-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+              Edit
+            </button>
+            <button class="btn btn-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+              Enhance
+            </button>
+            <button class="btn btn-sm btn-destructive">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- AFTER -->
+    <div class="comparison-panel after">
+      <div class="comparison-label after"><span class="dot"></span> After — Clean mobile layout</div>
+      <div class="mobile-viewport">
+        <div class="mobile-status-bar">
+          <span>9:41</span>
+          <span>●●● WiFi 🔋</span>
+        </div>
+        <div class="mobile-content">
+          <div class="idea-title-mock">AI-Powered Code Review Bot</div>
+          <div class="idea-meta-mock">by @sarah · 3 days ago</div>
+          <div class="action-row">
+            <button class="btn btn-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+              12
+            </button>
+            <button class="btn btn-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              Collaborate
+            </button>
+            <button class="btn btn-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+              Board
+            </button>
+            <div class="dropdown-mockup">
+              <button class="btn btn-sm btn-ghost">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+              </button>
+              <div class="dropdown-menu">
+                <div class="dropdown-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                  Edit
+                </div>
+                <div class="dropdown-item">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+                  Enhance with AI
+                </div>
+                <div class="dropdown-item destructive">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                  Delete
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MOCKUP 3 — Dashboard Onboarding Welcome Card
+     ═══════════════════════════════════════════════════════════════════ -->
+<section class="mockup-section">
+  <div class="section-header">
+    <div class="section-number">Mockup 03</div>
+    <h2>Dashboard Onboarding Welcome Card</h2>
+    <p>Guiding new users with a dismissible welcome section showing quick-start actions.</p>
+  </div>
+  <div class="comparison">
+    <!-- BEFORE -->
+    <div class="comparison-panel before">
+      <div class="comparison-label before"><span class="dot"></span> Before — Empty dashboard</div>
+      <div class="mockup-frame">
+        <div class="dashboard-mockup">
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-label">My Ideas</div><div class="stat-value">0</div></div>
+            <div class="stat-card"><div class="stat-label">Collaborations</div><div class="stat-value">0</div></div>
+            <div class="stat-card"><div class="stat-label">Total Votes</div><div class="stat-value">0</div></div>
+            <div class="stat-card"><div class="stat-label">Comments</div><div class="stat-value">0</div></div>
+          </div>
+          <div class="section-title-bar">My Ideas <span class="count-badge">0</span></div>
+          <div class="empty-section">
+            <p>You haven't created any ideas yet.</p>
+            <button class="btn btn-sm btn-primary">Create your first idea</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- AFTER -->
+    <div class="comparison-panel after">
+      <div class="comparison-label after"><span class="dot"></span> After — With welcome card</div>
+      <div class="mockup-frame">
+        <div class="dashboard-mockup">
+          <!-- Welcome card -->
+          <div class="welcome-card">
+            <button class="welcome-dismiss">&times;</button>
+            <h3>Welcome to VibeCodes!</h3>
+            <p class="welcome-sub">You're all set. Here are a few things to get you started:</p>
+            <div class="welcome-actions">
+              <div class="welcome-action">
+                <div class="welcome-action-icon idea">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+                </div>
+                <div class="welcome-action-title">Create your first idea</div>
+                <div class="welcome-action-desc">Share a concept and get feedback</div>
+              </div>
+              <div class="welcome-action">
+                <div class="welcome-action-icon feed">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-2.12 6.36-6.36 2.12 2.12-6.36 6.36-2.12z"/></svg>
+                </div>
+                <div class="welcome-action-title">Browse the feed</div>
+                <div class="welcome-action-desc">Discover and vote on ideas</div>
+              </div>
+              <div class="welcome-action">
+                <div class="welcome-action-icon guide">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                </div>
+                <div class="welcome-action-title">Read the guide</div>
+                <div class="welcome-action-desc">Learn how VibeCodes works</div>
+              </div>
+            </div>
+          </div>
+          <!-- Stats -->
+          <div class="stats-grid">
+            <div class="stat-card"><div class="stat-label">My Ideas</div><div class="stat-value">0</div></div>
+            <div class="stat-card"><div class="stat-label">Collaborations</div><div class="stat-value">0</div></div>
+            <div class="stat-card"><div class="stat-label">Total Votes</div><div class="stat-value">0</div></div>
+            <div class="stat-card"><div class="stat-label">Comments</div><div class="stat-value">0</div></div>
+          </div>
+          <div class="section-title-bar">My Ideas <span class="count-badge">0</span></div>
+          <div class="empty-section">
+            <p>You haven't created any ideas yet.</p>
+            <button class="btn btn-sm btn-primary">Create your first idea</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MOCKUP 4 — Board Mobile Filter Drawer
+     ═══════════════════════════════════════════════════════════════════ -->
+<section class="mockup-section">
+  <div class="section-header">
+    <div class="section-number">Mockup 04</div>
+    <h2>Board Toolbar — Mobile Filter Drawer</h2>
+    <p>Replacing the chaotic wrapping toolbar with a clean search bar and a slide-up filter sheet on mobile.</p>
+  </div>
+  <div class="comparison">
+    <!-- BEFORE -->
+    <div class="comparison-panel before">
+      <div class="comparison-label before"><span class="dot"></span> Before — Wrapping chaos</div>
+      <div class="mobile-viewport">
+        <div class="mobile-status-bar">
+          <span>9:41</span>
+          <span>●●● WiFi 🔋</span>
+        </div>
+        <div class="board-toolbar-mock">
+          <div class="search-wrapper">
+            <span class="search-icon">&#128269;</span>
+            <input class="search-input-mock" type="text" placeholder="Search tasks..." disabled>
+          </div>
+          <button class="btn btn-sm">Assignee</button>
+          <button class="btn btn-sm">Label</button>
+          <button class="btn btn-sm">Due Date</button>
+          <button class="btn btn-sm">
+            <span style="display:inline-flex;width:14px;height:14px;border:1.5px solid var(--border);border-radius:3px;"></span>
+            Archived
+          </button>
+          <button class="btn btn-sm btn-ghost">Clear</button>
+          <button class="btn btn-sm btn-primary">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+            AI Generate
+          </button>
+          <button class="btn btn-sm">Import</button>
+        </div>
+        <div style="padding:16px; text-align:center; color:var(--text-muted); font-size:0.75rem;">
+          (Board columns below...)
+        </div>
+      </div>
+    </div>
+    <!-- AFTER -->
+    <div class="comparison-panel after">
+      <div class="comparison-label after"><span class="dot"></span> After — Clean toolbar + filter sheet</div>
+      <div class="mobile-viewport">
+        <div class="mobile-status-bar">
+          <span>9:41</span>
+          <span>●●● WiFi 🔋</span>
+        </div>
+        <div class="board-toolbar-clean">
+          <div class="search-wrapper" style="flex:1;">
+            <span class="search-icon">&#128269;</span>
+            <input class="search-input-mock" type="text" placeholder="Search tasks..." disabled style="width:100%;">
+          </div>
+          <div class="filter-btn-badge">
+            <button class="btn btn-sm">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+              Filters
+            </button>
+            <span class="badge-count">2</span>
+          </div>
+          <button class="btn btn-sm btn-primary" style="padding:6px 8px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/></svg>
+          </button>
+          <button class="btn btn-sm" style="padding:6px 8px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </button>
+        </div>
+        <!-- Bottom sheet overlay -->
+        <div class="bottom-sheet-overlay">
+          <div class="bottom-sheet">
+            <div class="sheet-handle"></div>
+            <div class="sheet-title">Filters</div>
+            <div class="filter-stack">
+              <div class="filter-row">
+                <span class="filter-label">Assignee</span>
+                <select class="filter-select" disabled><option>Sarah Chen</option></select>
+              </div>
+              <div class="filter-row">
+                <span class="filter-label">Label</span>
+                <select class="filter-select" disabled><option>Bug</option></select>
+              </div>
+              <div class="filter-row">
+                <span class="filter-label">Due Date</span>
+                <select class="filter-select" disabled><option>Any</option></select>
+              </div>
+              <div class="filter-row">
+                <span class="filter-label">Archived</span>
+                <div class="toggle-switch"><div class="toggle-dot"></div></div>
+              </div>
+            </div>
+            <div class="sheet-footer">
+              <button class="btn btn-sm btn-ghost">Clear all filters</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     MOCKUP 5 — Task Detail Dialog
+     ═══════════════════════════════════════════════════════════════════ -->
+<section class="mockup-section">
+  <div class="section-header">
+    <div class="section-number">Mockup 05</div>
+    <h2>Wider Task Detail Dialog with Split Layout</h2>
+    <p>Increasing dialog width and using a two-pane layout on larger screens for better content breathing room.</p>
+  </div>
+  <div class="comparison">
+    <!-- BEFORE -->
+    <div class="comparison-panel before">
+      <div class="comparison-label before"><span class="dot"></span> Before — max-w-lg (cramped)</div>
+      <div class="mockup-frame">
+        <div class="dialog-backdrop">
+          <div class="dialog-narrow" style="position:relative;">
+            <span class="cramped-indicator">512px</span>
+            <div class="dialog-cover"><div class="dialog-cover-pattern"></div></div>
+            <div class="dialog-body">
+              <div class="dialog-task-title">Implement OAuth flow for GitHub</div>
+              <div class="dialog-labels">
+                <span class="dialog-label feat">Feature</span>
+                <span class="dialog-label urgent">Urgent</span>
+                <span class="dialog-label ui">Auth</span>
+              </div>
+              <div class="dialog-desc">Set up OAuth 2.0 with GitHub provider. Handle callback, token exchange, and session creation. Must support...</div>
+              <div class="dialog-tabs">
+                <span class="dialog-tab active">Checklist</span>
+                <span class="dialog-tab">Comments</span>
+                <span class="dialog-tab">Activity</span>
+                <span class="dialog-tab">Files</span>
+              </div>
+              <div class="dialog-tab-content">
+                <div class="checklist-item"><div class="checkbox-mock checked"></div><span class="checklist-done">Create OAuth app on GitHub</span></div>
+                <div class="checklist-item"><div class="checkbox-mock checked"></div><span class="checklist-done">Implement callback route</span></div>
+                <div class="checklist-item"><div class="checkbox-mock"></div><span>Token exchange logic</span></div>
+                <div class="checklist-item"><div class="checkbox-mock"></div><span>Session persistence</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- AFTER -->
+    <div class="comparison-panel after">
+      <div class="comparison-label after"><span class="dot"></span> After — max-w-xl + split layout</div>
+      <div class="mockup-frame">
+        <div class="dialog-backdrop">
+          <div class="dialog-wide" style="position:relative;">
+            <span class="spacious-indicator">640px</span>
+            <div class="dialog-cover dialog-cover-better"><div class="dialog-cover-pattern"></div></div>
+            <div class="dialog-split">
+              <div class="dialog-split-left">
+                <div class="dialog-task-title">Implement OAuth flow for GitHub</div>
+                <div class="dialog-labels">
+                  <span class="dialog-label feat">Feature</span>
+                  <span class="dialog-label urgent">Urgent</span>
+                  <span class="dialog-label ui">Auth</span>
+                </div>
+                <div class="dialog-desc">Set up OAuth 2.0 with GitHub provider. Handle callback, token exchange, and session creation. Must support existing email users linking their GitHub account.</div>
+                <div style="margin-top:8px;">
+                  <div class="checklist-item"><div class="checkbox-mock checked"></div><span class="checklist-done">Create OAuth app on GitHub</span></div>
+                  <div class="checklist-item"><div class="checkbox-mock checked"></div><span class="checklist-done">Implement callback route</span></div>
+                  <div class="checklist-item"><div class="checkbox-mock"></div><span>Token exchange logic</span></div>
+                  <div class="checklist-item"><div class="checkbox-mock"></div><span>Session persistence</span></div>
+                </div>
+              </div>
+              <div class="dialog-split-right">
+                <div class="dialog-tabs">
+                  <span class="dialog-tab active">Comments</span>
+                  <span class="dialog-tab">Activity</span>
+                  <span class="dialog-tab">Files</span>
+                </div>
+                <div class="dialog-tab-content">
+                  <div class="comment-mock">
+                    <div class="comment-avatar"></div>
+                    <div class="comment-body">
+                      <div class="comment-author">Sarah Chen</div>
+                      <div class="comment-text">Should we also handle the case where a user already signed up with email but wants to link GitHub?</div>
+                      <div class="comment-time">2 hours ago</div>
+                    </div>
+                  </div>
+                  <div class="comment-mock">
+                    <div class="comment-avatar" style="background:var(--violet-600);"></div>
+                    <div class="comment-body">
+                      <div class="comment-author">Claude Bot</div>
+                      <div class="comment-text">Yes — I've added account linking to the checklist. Will handle it in the callback route.</div>
+                      <div class="comment-time">1 hour ago</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ Footer ═══ -->
+<footer class="page-footer">
+  VibeCodes UX Review Mockups &mdash; See docs/ux-review.md for full recommendations
+</footer>
+
+</body>
+</html>

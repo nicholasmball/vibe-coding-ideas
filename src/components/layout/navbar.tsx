@@ -101,7 +101,7 @@ export function Navbar() {
                   </Button>
                 </Link>
                 {isAdmin && (
-                  <Link href="/admin">
+                  <Link href="/admin" prefetch={false}>
                     <Button variant={isActive("/admin") ? "secondary" : "ghost"} className="gap-2">
                       <Shield className="h-4 w-4" />
                       Admin
@@ -110,7 +110,7 @@ export function Navbar() {
                 )}
               </>
             )}
-            <Link href="/guide">
+            <Link href="/guide" prefetch={false}>
               <Button variant={isActive("/guide") ? "secondary" : "ghost"} className="gap-2">
                 <BookOpen className="h-4 w-4" />
                 Guide

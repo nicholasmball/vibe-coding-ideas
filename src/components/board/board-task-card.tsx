@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef, memo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, CheckSquare, Paperclip, MessageSquare, Archive, X, Bot } from "lucide-react";
@@ -64,7 +64,7 @@ function HighlightedText({
   );
 }
 
-export function BoardTaskCard({
+export const BoardTaskCard = memo(function BoardTaskCard({
   task,
   ideaId,
   columnId,
@@ -121,6 +121,10 @@ export function BoardTaskCard({
     return () => { cancelled = true; };
   }, [coverImagePath]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const sortableData = useMemo(
+    () => ({ type: "task" as const, columnId }),
+    [columnId]
+  );
   const {
     attributes,
     listeners,
@@ -130,14 +134,17 @@ export function BoardTaskCard({
     isDragging,
   } = useSortable({
     id: task.id,
-    data: { type: "task", task, columnId },
+    data: sortableData,
     disabled: !!isArchived,
+    transition: {
+      duration: 120,
+      easing: "cubic-bezier(0.25, 1, 0.5, 1)",
+    },
   });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+  const style = transform
+    ? { transform: CSS.Transform.toString(transform), transition }
+    : undefined;
 
   const assigneeInitials = useMemo(
     () =>
@@ -304,18 +311,20 @@ export function BoardTaskCard({
           </div>
         </div>
       </div>
-      <TaskDetailDialog
-        open={detailOpen}
-        onOpenChange={setDetailOpen}
-        task={task}
-        ideaId={ideaId}
-        boardLabels={boardLabels}
-        checklistItems={checklistItems}
-        teamMembers={teamMembers}
-        currentUserId={currentUserId}
-        initialTab={initialTab}
-        userBots={userBots}
-      />
+      {detailOpen && (
+        <TaskDetailDialog
+          open={detailOpen}
+          onOpenChange={setDetailOpen}
+          task={task}
+          ideaId={ideaId}
+          boardLabels={boardLabels}
+          checklistItems={checklistItems}
+          teamMembers={teamMembers}
+          currentUserId={currentUserId}
+          initialTab={initialTab}
+          userBots={userBots}
+        />
+      )}
       {/* Cover image lightbox */}
       {coverPreviewOpen && coverUrl && (
         <div
@@ -340,4 +349,4 @@ export function BoardTaskCard({
       )}
     </>
   );
-}
+});

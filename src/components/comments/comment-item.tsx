@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { CommentTypeBadge } from "./comment-type-badge";
 import { CommentForm } from "./comment-form";
 import { incorporateComment, deleteComment } from "@/actions/comments";
+import { undoableAction } from "@/lib/undo-toast";
 import { formatRelativeTime } from "@/lib/utils";
 import { Markdown } from "@/components/ui/markdown";
 import type { CommentWithAuthor } from "@/types";
@@ -28,6 +29,7 @@ export function CommentItem({
   depth = 0,
 }: CommentItemProps) {
   const [showReplyForm, setShowReplyForm] = useState(false);
+  const [removed, setRemoved] = useState(false);
   const [isPending, startTransition] = useTransition();
   const isIdeaAuthor = currentUserId === ideaAuthorId;
   const isCommentAuthor = currentUserId === comment.author_id;
@@ -46,10 +48,16 @@ export function CommentItem({
   };
 
   const handleDelete = () => {
-    startTransition(async () => {
-      await deleteComment(comment.id, ideaId);
+    setRemoved(true);
+    undoableAction({
+      message: "Comment deleted",
+      execute: () => deleteComment(comment.id, ideaId),
+      undo: () => setRemoved(false),
+      errorMessage: "Failed to delete comment",
     });
   };
+
+  if (removed) return null;
 
   return (
     <div className={depth > 0 ? "ml-6 border-l border-border pl-4" : ""}>

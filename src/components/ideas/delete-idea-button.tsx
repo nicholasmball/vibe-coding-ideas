@@ -45,7 +45,7 @@ export function DeleteIdeaButton({ ideaId, variant = "button" }: DeleteIdeaButto
     <AlertDialog>
       <AlertDialogTrigger asChild>
         {variant === "dropdown" ? (
-          <button className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-accent cursor-default">
+          <button className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm text-destructive hover:bg-accent">
             <Trash2 className="h-4 w-4" />
             Delete
           </button>

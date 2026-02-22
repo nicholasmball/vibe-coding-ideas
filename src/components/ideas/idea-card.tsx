@@ -28,19 +28,28 @@ export function IdeaCard({ idea, hasVoted, taskCount }: IdeaCardProps) {
       .toUpperCase() ?? "?";
 
   return (
-    <Card className="transition-colors hover:border-primary/30">
+    <Card className="group/card relative transition-colors hover:border-primary/30">
+      {/* Full-card clickable overlay */}
+      <Link
+        href={`/ideas/${idea.id}`}
+        className="absolute inset-0 z-0"
+        aria-label={idea.title}
+        tabIndex={-1}
+      />
       <CardHeader className="pb-3">
         <div className="flex items-start gap-3">
-          <VoteButton
-            ideaId={idea.id}
-            upvotes={idea.upvotes}
-            hasVoted={hasVoted}
-          />
+          <div className="relative z-10">
+            <VoteButton
+              ideaId={idea.id}
+              upvotes={idea.upvotes}
+              hasVoted={hasVoted}
+            />
+          </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1.5">
               <Link
                 href={`/ideas/${idea.id}`}
-                className="text-lg font-semibold hover:text-primary transition-colors line-clamp-1"
+                className="relative z-10 text-lg font-semibold hover:text-primary transition-colors line-clamp-1"
               >
                 {idea.title}
               </Link>
@@ -92,7 +101,7 @@ export function IdeaCard({ idea, hasVoted, taskCount }: IdeaCardProps) {
             </div>
             <span>{formatRelativeTime(idea.created_at)}</span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="relative z-10 flex items-center gap-3">
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="flex items-center gap-1">

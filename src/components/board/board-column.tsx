@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, memo } from "react";
 import { toast } from "sonner";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -26,12 +26,16 @@ import { TaskEditDialog } from "./task-edit-dialog";
 import { ColumnEditDialog } from "./column-edit-dialog";
 import { useBoardOps } from "./board-context";
 import { deleteBoardColumn, archiveColumnTasks } from "@/actions/board";
+import { undoableAction } from "@/lib/undo-toast";
 import type {
   BoardColumnWithTasks,
   BoardLabel,
   BoardChecklistItem,
   User,
+  AiCredits,
 } from "@/types";
+
+const EMPTY_CHECKLIST: BoardChecklistItem[] = [];
 
 interface BoardColumnProps {
   column: BoardColumnWithTasks;
@@ -45,9 +49,12 @@ interface BoardColumnProps {
   initialTaskId?: string;
   userBots?: User[];
   coverImageUrls?: Record<string, string>;
+  aiEnabled?: boolean;
+  aiCredits?: AiCredits | null;
+  ideaDescription?: string;
 }
 
-export function BoardColumn({
+export const BoardColumn = memo(function BoardColumn({
   column,
   totalTaskCount,
   ideaId,
@@ -59,11 +66,18 @@ export function BoardColumn({
   initialTaskId,
   userBots = [],
   coverImageUrls = {},
+  aiEnabled = false,
+  aiCredits,
+  ideaDescription = "",
 }: BoardColumnProps) {
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const ops = useBoardOps();
 
+  const sortableData = useMemo(
+    () => ({ type: "column" as const, columnId: column.id }),
+    [column.id]
+  );
   const {
     attributes,
     listeners,
@@ -74,27 +88,37 @@ export function BoardColumn({
     isOver,
   } = useSortable({
     id: column.id,
-    data: { type: "column", columnId: column.id },
+    data: sortableData,
+    transition: {
+      duration: 120,
+      easing: "cubic-bezier(0.25, 1, 0.5, 1)",
+    },
   });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+  const style = transform
+    ? { transform: CSS.Transform.toString(transform), transition }
+    : undefined;
 
-  const taskIds = column.tasks.map((t) => t.id);
+  const taskIds = useMemo(() => column.tasks.map((t) => t.id), [column.tasks]);
 
-  async function handleDelete() {
+  function handleDelete() {
     const rollback = ops.deleteColumn(column.id);
     ops.incrementPendingOps();
-    try {
-      await deleteBoardColumn(column.id, ideaId);
-    } catch {
-      rollback();
-      toast.error("Failed to delete column");
-    } finally {
-      ops.decrementPendingOps();
-    }
+    undoableAction({
+      message: `Deleted "${column.title}"`,
+      execute: async () => {
+        try {
+          await deleteBoardColumn(column.id, ideaId);
+        } finally {
+          ops.decrementPendingOps();
+        }
+      },
+      undo: () => {
+        rollback();
+        ops.decrementPendingOps();
+      },
+      errorMessage: "Failed to delete column",
+    });
   }
 
   async function handleArchiveAll() {
@@ -194,7 +218,7 @@ export function BoardColumn({
                 columnId={column.id}
                 teamMembers={teamMembers}
                 boardLabels={boardLabels}
-                checklistItems={checklistItemsByTaskId[task.id] ?? []}
+                checklistItems={checklistItemsByTaskId[task.id] ?? EMPTY_CHECKLIST}
                 highlightQuery={highlightQuery}
                 currentUserId={currentUserId}
                 autoOpen={task.id === initialTaskId}
@@ -228,6 +252,9 @@ export function BoardColumn({
         boardLabels={boardLabels}
         currentUserId={currentUserId}
         userBots={userBots}
+        aiEnabled={aiEnabled}
+        aiCredits={aiCredits}
+        ideaDescription={ideaDescription}
       />
       <ColumnEditDialog
         open={renameOpen}
@@ -239,4 +266,4 @@ export function BoardColumn({
       />
     </>
   );
-}
+});

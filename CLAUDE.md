@@ -147,6 +147,34 @@ mcp-server/                 # MCP server for Claude Code integration
         └── bots.ts         # list_bots, get_bot_prompt, set_bot_identity, create_bot
 ```
 
+## Workflow Rules (MANDATORY)
+
+### Board Task Workflow — MUST DO BEFORE ANY IMPLEMENTATION
+At the START of every session where you are asked to implement, fix, or change anything, BEFORE writing any code:
+
+1. **Check the VibeCodes board** for a matching task using the VibeCodes MCP tools (`get_my_tasks` or `get_board`)
+2. **If a matching task exists:**
+   - Reassign it to yourself using `update_task` (even if already assigned to someone else)
+   - Move it to "In Progress" — do this IMMEDIATELY, before writing any code
+   - Read all comments on the task via `get_task` — they contain context from previous work
+   - Add a comment noting what you're about to do
+3. **If no matching task exists:** Proceed normally, but consider whether one should be created
+4. **When finished:** Move the task to "Verify" with a summary comment of what was done
+5. **Post research/analysis findings as task comments** — detailed findings MUST be added as a comment on the board task so context is preserved for future sessions
+6. **NEVER use raw SQL** (`mcp__supabase__execute_sql`) for board operations — always use VibeCodes MCP tools which log activity and maintain consistency
+
+This applies even when:
+- A plan is provided from a previous session
+- The user says "implement this plan"
+- Work seems purely technical with no board context mentioned
+- You are resuming from context compaction
+
+### Push to Live = Move Verify to Done
+When the user says "push to live" (or "commit and push", "deploy", etc.), after pushing, move ALL tasks in the "Verify" column to "Done" on the VibeCodes board.
+
+### Blocked Tasks
+Move tasks to "Blocked/Requires User Input" when blocked for any reason (dependency, technical issue, missing info, design decision needed). Add a comment explaining WHY it's blocked.
+
 ## Key Patterns
 
 ### Supabase Types (IMPORTANT)

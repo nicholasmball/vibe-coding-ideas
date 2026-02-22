@@ -4,7 +4,9 @@ import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import {
   DndContext,
   DragOverlay,
-  closestCorners,
+  MeasuringStrategy,
+  pointerWithin,
+  closestCenter,
   MouseSensor,
   TouchSensor,
   KeyboardSensor,
@@ -13,7 +15,9 @@ import {
   type DragStartEvent,
   type DragEndEvent,
   type DragOverEvent,
+  type CollisionDetection,
 } from "@dnd-kit/core";
+import React from "react";
 import {
   SortableContext,
   horizontalListSortingStrategy,
@@ -37,6 +41,49 @@ import type {
   BotProfile,
   AiCredits,
 } from "@/types";
+
+// Custom collision detection: pointerWithin finds the column, closestCenter picks task position
+const multiContainerCollision: CollisionDetection = (args) => {
+  // First check if pointer is within any droppable (columns)
+  const pointerCollisions = pointerWithin(args);
+  if (pointerCollisions.length > 0) {
+    return pointerCollisions;
+  }
+  // Fallback to closestCenter for edge cases (fast moves, keyboard nav)
+  return closestCenter(args);
+};
+
+const layoutMeasuring = {
+  droppable: { strategy: MeasuringStrategy.WhileDragging },
+};
+
+// Memoized overlay — prevents parent re-renders from cascading on every drag frame
+const OverlayContent = React.memo(function OverlayContent({
+  activeTask,
+  activeColumn,
+}: {
+  activeTask: BoardTaskWithAssignee | null;
+  activeColumn: BoardColumnWithTasks | null;
+}) {
+  if (activeTask) {
+    return (
+      <div className="w-[280px] rounded-md border border-primary bg-background p-3 shadow-lg">
+        <p className="text-sm font-medium">{activeTask.title}</p>
+      </div>
+    );
+  }
+  if (activeColumn) {
+    return (
+      <div className="w-[280px] rounded-lg border border-primary bg-muted/50 p-3 shadow-lg opacity-80">
+        <p className="text-sm font-semibold">{activeColumn.title}</p>
+        <p className="text-xs text-muted-foreground">
+          {activeColumn.tasks.filter((t) => !t.archived).length} tasks
+        </p>
+      </div>
+    );
+  }
+  return null;
+});
 
 interface KanbanBoardProps {
   columns: BoardColumnWithTasks[];
@@ -78,6 +125,10 @@ export function KanbanBoard({
   const [activeColumn, setActiveColumn] =
     useState<BoardColumnWithTasks | null>(null);
   const dragSourceColumnRef = useRef<string | null>(null);
+  const dragCurrentColumnRef = useRef<string | null>(null);
+  const lastOverColumnRef = useRef<string | null>(null);
+  // Snapshot of columns at drag start — used for immediate revert on cancel
+  const dragStartColumnsRef = useRef<BoardColumnWithTasks[] | null>(null);
 
   // Track in-flight move operations to prevent server data from reverting optimistic updates
   const [pendingOps, setPendingOps] = useState(0);
@@ -107,26 +158,30 @@ export function KanbanBoard({
   }, [handleScrollCheck, columns]);
 
   // Update columns when server data changes (via realtime refresh)
-  const serverKey = JSON.stringify(
-    initialColumns.map((c) => [
-      c.id,
-      c.position,
-      c.is_done_column,
-      c.tasks.map((t) => [
-        t.id,
-        t.labels.map((l) => l.id).sort(),
-        t.due_date,
-        t.checklist_total,
-        t.checklist_done,
-        t.assignee_id,
-        t.title,
-        t.description,
-        t.archived,
-        t.attachment_count,
-        t.comment_count,
-        t.cover_image_path,
-      ]),
-    ])
+  const serverKey = useMemo(
+    () =>
+      JSON.stringify(
+        initialColumns.map((c) => [
+          c.id,
+          c.position,
+          c.is_done_column,
+          c.tasks.map((t) => [
+            t.id,
+            t.labels.map((l) => l.id).sort(),
+            t.due_date,
+            t.checklist_total,
+            t.checklist_done,
+            t.assignee_id,
+            t.title,
+            t.description,
+            t.archived,
+            t.attachment_count,
+            t.comment_count,
+            t.cover_image_path,
+          ]),
+        ])
+      ),
+    [initialColumns]
   );
   const [lastServerKey, setLastServerKey] = useState(serverKey);
   // Keep refs for deferred sync callback
@@ -322,11 +377,10 @@ export function KanbanBoard({
     ]
   );
 
-  // Derive filtered columns
+  // Derive filtered columns (preserves object references for unchanged columns)
   const filteredColumns = useMemo(() => {
-    return columns.map((col) => ({
-      ...col,
-      tasks: col.tasks.filter((task) => {
+    return columns.map((col) => {
+      const filtered = col.tasks.filter((task) => {
         // Archived filter
         if (task.archived && !showArchived) return false;
 
@@ -365,8 +419,10 @@ export function KanbanBoard({
         }
 
         return true;
-      }),
-    }));
+      });
+      // Preserve reference when no tasks were filtered out
+      return filtered.length === col.tasks.length ? col : { ...col, tasks: filtered };
+    });
   }, [
     columns,
     searchQuery,
@@ -391,13 +447,22 @@ export function KanbanBoard({
       const { active } = event;
       const data = active.data.current;
 
+      // Snapshot columns so we can revert immediately if drag is cancelled
+      dragStartColumnsRef.current = columnsRef.current;
+
       if (data?.type === "column") {
         const col = columnsRef.current.find((c) => c.id === data.columnId);
         if (col) setActiveColumn(col);
       } else {
-        const task = data?.task as BoardTaskWithAssignee | undefined;
-        if (task) setActiveTask(task);
-        dragSourceColumnRef.current = (data?.columnId as string) ?? null;
+        const colId = (data?.columnId as string) ?? null;
+        // Look up the task from columns state (sortableData no longer carries it)
+        if (colId) {
+          const col = columnsRef.current.find((c) => c.id === colId);
+          const task = col?.tasks.find((t) => t.id === active.id);
+          if (task) setActiveTask(task);
+        }
+        dragSourceColumnRef.current = colId;
+        dragCurrentColumnRef.current = colId;
       }
     },
     []
@@ -412,7 +477,9 @@ export function KanbanBoard({
       const overData = over.data.current;
       if (!activeData || activeData.type !== "task") return;
 
-      const activeColumnId = activeData.columnId as string;
+      // Use our ref for the current column (never mutate active.data)
+      const activeColumnId = dragCurrentColumnRef.current;
+      if (!activeColumnId) return;
 
       // Determine target column
       let overColumnId: string;
@@ -430,6 +497,13 @@ export function KanbanBoard({
       }
 
       if (activeColumnId === overColumnId) return;
+
+      // Skip if we already moved the task to this column
+      if (overColumnId === lastOverColumnRef.current) return;
+      lastOverColumnRef.current = overColumnId;
+
+      // Update our tracking ref (replaces mutating active.data.current)
+      dragCurrentColumnRef.current = overColumnId;
 
       // Move task between columns optimistically
       setColumns((prev) => {
@@ -471,10 +545,6 @@ export function KanbanBoard({
         columnsRef.current = next;
         return next;
       });
-
-      if (active.data.current) {
-        active.data.current.columnId = overColumnId;
-      }
     },
     []
   );
@@ -485,10 +555,15 @@ export function KanbanBoard({
       const activeData = active.data.current;
       const currentColumns = columnsRef.current;
 
+      lastOverColumnRef.current = null;
+
       // Column drag end
       if (activeData?.type === "column") {
         setActiveColumn(null);
-        if (!over) return;
+        if (!over) {
+          dragStartColumnsRef.current = null;
+          return;
+        }
 
         const activeId = activeData.columnId as string;
         const overId = over.data.current?.columnId as string | undefined;
@@ -518,29 +593,37 @@ export function KanbanBoard({
         return;
       }
 
-      // Task drag end
+      // Task drag end — read current column from our ref (not active.data)
       setActiveTask(null);
 
-      const movedBetweenColumns = dragSourceColumnRef.current !== (activeData?.columnId as string | undefined);
+      const currentColumnId = dragCurrentColumnRef.current;
+      const movedBetweenColumns = dragSourceColumnRef.current !== currentColumnId;
 
-      // Dropped on nothing — revert if task was moved between columns
+      // Clean up refs
+      dragCurrentColumnRef.current = null;
+
+      // Dropped on nothing — revert to pre-drag state immediately
       if (!over || !activeData || activeData.type !== "task") {
-        if (movedBetweenColumns) {
-          setLastServerKey(""); // force re-sync to revert optimistic cross-column move
+        if (dragStartColumnsRef.current) {
+          const snapshot = dragStartColumnsRef.current;
+          setColumns(snapshot);
+          columnsRef.current = snapshot;
         }
+        dragStartColumnsRef.current = null;
         return;
       }
 
-      const activeColumnId = activeData.columnId as string;
+      // Clear snapshot — this was a valid drop, no revert needed
+      dragStartColumnsRef.current = null;
+
+      const activeColumnId = currentColumnId ?? (activeData.columnId as string);
       const col = currentColumns.find((c) => c.id === activeColumnId);
       if (!col) {
-        setLastServerKey("");
         return;
       }
 
       const activeIndex = col.tasks.findIndex((t) => t.id === active.id);
       if (activeIndex === -1) {
-        setLastServerKey("");
         return;
       }
 
@@ -606,7 +689,7 @@ export function KanbanBoard({
     [ideaId]
   );
 
-  const columnIds = columns.map((c) => c.id);
+  const columnIds = useMemo(() => columns.map((c) => c.id), [columns]);
 
   return (
     <BoardOpsContext.Provider value={boardOps}>
@@ -635,7 +718,8 @@ export function KanbanBoard({
       />
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCorners}
+        collisionDetection={multiContainerCollision}
+        measuring={layoutMeasuring}
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
@@ -666,6 +750,9 @@ export function KanbanBoard({
                     initialTaskId={initialTaskId}
                     userBots={userBots}
                     coverImageUrls={coverImageUrls}
+                    aiEnabled={aiEnabled}
+                    aiCredits={aiCredits}
+                    ideaDescription={ideaDescription}
                   />
                 );
               })}
@@ -677,20 +764,8 @@ export function KanbanBoard({
             <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-background to-transparent sm:hidden" />
           )}
         </div>
-        <DragOverlay>
-          {activeTask && (
-            <div className="w-[280px] rounded-md border border-primary bg-background p-3 shadow-lg">
-              <p className="text-sm font-medium">{activeTask.title}</p>
-            </div>
-          )}
-          {activeColumn && (
-            <div className="w-[280px] rounded-lg border border-primary bg-muted/50 p-3 shadow-lg opacity-80">
-              <p className="text-sm font-semibold">{activeColumn.title}</p>
-              <p className="text-xs text-muted-foreground">
-                {activeColumn.tasks.filter((t) => !t.archived).length} tasks
-              </p>
-            </div>
-          )}
+        <DragOverlay dropAnimation={null}>
+          <OverlayContent activeTask={activeTask} activeColumn={activeColumn} />
         </DragOverlay>
       </DndContext>
     </div>

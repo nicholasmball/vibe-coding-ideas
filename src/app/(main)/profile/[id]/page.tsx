@@ -99,6 +99,29 @@ export default async function ProfilePage({ params }: PageProps) {
     idea_title: ideaTitleMap[c.idea_id],
   }));
 
+  // Fetch task statistics for profile user
+  const [{ count: tasksCreatedCount }, { data: doneColumnIds }] =
+    await Promise.all([
+      supabase
+        .from("board_tasks")
+        .select("*", { count: "exact", head: true })
+        .eq("assignee_id", id),
+      supabase
+        .from("board_columns")
+        .select("id")
+        .eq("is_done_column", true),
+    ]);
+  let tasksCompletedCount = 0;
+  const doneIds = (doneColumnIds ?? []).map((c) => c.id);
+  if (doneIds.length > 0) {
+    const { count } = await supabase
+      .from("board_tasks")
+      .select("*", { count: "exact", head: true })
+      .eq("assignee_id", id)
+      .in("column_id", doneIds);
+    tasksCompletedCount = count ?? 0;
+  }
+
   // Get current user's votes and admin status
   let userVotes: string[] = [];
   let isCurrentUserAdmin = false;
@@ -156,6 +179,8 @@ export default async function ProfilePage({ params }: PageProps) {
         ideaCount={ideas?.length ?? 0}
         collaborationCount={collaborations?.length ?? 0}
         commentCount={rawComments?.length ?? 0}
+        tasksCreated={tasksCreatedCount ?? 0}
+        tasksCompleted={tasksCompletedCount}
       />
       {(currentUser?.id === id || showDeleteButton) && (
         <div className="mt-4 flex flex-wrap justify-end gap-2">

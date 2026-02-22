@@ -20,14 +20,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Bot, X, Image as ImageIcon } from "lucide-react";
+import { Bot, X, Image as ImageIcon, Sparkles, Loader2 } from "lucide-react";
 import { getLabelColorConfig } from "@/lib/utils";
 import { createBoardTask, addLabelsToTask } from "@/actions/board";
 import { useBoardOps } from "./board-context";
 import { createClient } from "@/lib/supabase/client";
 import { logTaskActivity } from "@/lib/activity";
+import { enhanceTaskDescription } from "@/actions/ai";
 import { POSITION_GAP } from "@/lib/constants";
-import type { User, BoardLabel, BoardTaskWithAssignee } from "@/types";
+import type { User, BoardLabel, BoardTaskWithAssignee, AiCredits } from "@/types";
 
 interface TaskEditDialogProps {
   open: boolean;
@@ -38,6 +39,9 @@ interface TaskEditDialogProps {
   boardLabels: BoardLabel[];
   currentUserId: string;
   userBots?: User[];
+  aiEnabled?: boolean;
+  aiCredits?: AiCredits | null;
+  ideaDescription?: string;
 }
 
 export function TaskEditDialog({
@@ -49,6 +53,9 @@ export function TaskEditDialog({
   boardLabels,
   currentUserId,
   userBots = [],
+  aiEnabled = false,
+  aiCredits,
+  ideaDescription = "",
 }: TaskEditDialogProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -57,9 +64,27 @@ export function TaskEditDialog({
   const [loading, setLoading] = useState(false);
   const [pendingImages, setPendingImages] = useState<{ file: File; previewUrl: string }[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [enhancing, setEnhancing] = useState(false);
   const dragCounterRef = useRef(0);
   const dialogRef = useRef<HTMLDivElement>(null);
   const ops = useBoardOps();
+
+  const showAiEnhance = aiEnabled && description.trim().length > 10;
+  const aiExhausted = !aiCredits?.isByok && aiCredits?.remaining === 0;
+
+  async function handleEnhanceDescription() {
+    if (!title.trim() || !description.trim()) return;
+    setEnhancing(true);
+    try {
+      const result = await enhanceTaskDescription(ideaId, title.trim(), description.trim());
+      setDescription(result.enhanced);
+      toast.success("Description enhanced");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to enhance");
+    } finally {
+      setEnhancing(false);
+    }
+  }
 
   // Scoped paste handler — only active when this dialog is open
   useEffect(() => {
@@ -325,7 +350,27 @@ export function TaskEditDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="task-description">Description</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="task-description">Description</Label>
+              {showAiEnhance && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 gap-1 px-2 text-xs text-muted-foreground"
+                  onClick={handleEnhanceDescription}
+                  disabled={enhancing || aiExhausted}
+                  title={aiExhausted ? "Daily limit reached" : "Enhance with AI"}
+                >
+                  {enhancing ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3 w-3" />
+                  )}
+                  {enhancing ? "Enhancing..." : "Enhance"}
+                </Button>
+              )}
+            </div>
             <Textarea
               id="task-description"
               value={description}

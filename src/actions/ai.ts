@@ -11,7 +11,7 @@ import type { AiCredits } from "@/types";
 
 const AI_MODEL = "claude-sonnet-4-5-20250929";
 
-type ActionType = "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks";
+type ActionType = "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -540,4 +540,68 @@ export async function generateBoardTasks(
     tasks,
     count: tasks.length,
   };
+}
+
+// ── Enhance Task Description ─────────────────────────────────────────────
+
+export async function enhanceTaskDescription(
+  ideaId: string,
+  taskTitle: string,
+  taskDescription: string
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: profile } = await supabase
+    .from("users")
+    .select("ai_enabled, encrypted_anthropic_key, ai_daily_limit")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile?.ai_enabled) {
+    throw new Error("AI features are not enabled for your account");
+  }
+
+  const keyType = getKeyType(profile.encrypted_anthropic_key);
+  const rateCheck = await checkRateLimit(supabase, user.id, profile);
+  if (!rateCheck.allowed) {
+    throw new Error(`Daily AI limit reached (${rateCheck.used}/${rateCheck.limit}). Try again tomorrow.`);
+  }
+
+  const anthropic = getAnthropicProvider(profile.encrypted_anthropic_key);
+
+  const { data: idea } = await supabase
+    .from("ideas")
+    .select("id, title, description")
+    .eq("id", ideaId)
+    .single();
+
+  if (!idea) throw new Error("Idea not found");
+
+  const { text, usage } = await generateText({
+    model: anthropic(AI_MODEL),
+    system: "You are a concise technical writer. Improve the task description's clarity and structure. STRICT RULES: Keep the output roughly the same length as the input (never more than 2x). Do NOT add boilerplate sections, templates, checklists, or context the user didn't provide. Just sharpen what's already there. Return ONLY the improved description — no preamble.",
+    prompt: `**Task Title:** ${taskTitle}
+**Current Description:**
+${taskDescription}
+
+**Context (for reference only, do NOT repeat in output):** Project "${idea.title}"`,
+    maxOutputTokens: 1000,
+  });
+
+  await logAiUsage(supabase, {
+    userId: user.id,
+    actionType: "enhance_task_description",
+    inputTokens: usage.inputTokens ?? 0,
+    outputTokens: usage.outputTokens ?? 0,
+    model: AI_MODEL,
+    keyType,
+    ideaId,
+  });
+
+  return { enhanced: text };
 }

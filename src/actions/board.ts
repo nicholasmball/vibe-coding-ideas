@@ -150,7 +150,8 @@ export async function reorderBoardColumns(
 
   await Promise.all(updates);
 
-  revalidatePath(`/ideas/${ideaId}/board`);
+  // No revalidatePath — Realtime subscription handles sync.
+  // Skipping avoids a redundant full server re-render on every column drag.
 }
 
 export async function createBoardTask(
@@ -333,7 +334,8 @@ export async function moveBoardTask(
 
   if (error) throw new Error(error.message);
 
-  revalidatePath(`/ideas/${ideaId}/board`);
+  // No revalidatePath — Realtime subscription handles sync.
+  // Skipping avoids a redundant full server re-render on every drag.
 }
 
 // ============================================================

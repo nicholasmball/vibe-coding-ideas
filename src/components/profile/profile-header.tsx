@@ -9,6 +9,8 @@ interface ProfileHeaderProps {
   ideaCount: number;
   collaborationCount: number;
   commentCount: number;
+  tasksCreated?: number;
+  tasksCompleted?: number;
 }
 
 export function ProfileHeader({
@@ -16,6 +18,8 @@ export function ProfileHeader({
   ideaCount,
   collaborationCount,
   commentCount,
+  tasksCreated = 0,
+  tasksCompleted = 0,
 }: ProfileHeaderProps) {
   const initials =
     user.full_name
@@ -72,7 +76,7 @@ export function ProfileHeader({
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-3 gap-4 border-t border-border pt-4">
+      <div className="mt-6 grid grid-cols-3 gap-4 border-t border-border pt-4 sm:grid-cols-5">
         <div className="text-center">
           <p className="text-2xl font-bold">{ideaCount}</p>
           <p className="text-sm text-muted-foreground">Ideas</p>
@@ -84,6 +88,14 @@ export function ProfileHeader({
         <div className="text-center">
           <p className="text-2xl font-bold">{commentCount}</p>
           <p className="text-sm text-muted-foreground">Comments</p>
+        </div>
+        <div className="text-center">
+          <p className="text-2xl font-bold">{tasksCreated}</p>
+          <p className="text-sm text-muted-foreground">Tasks</p>
+        </div>
+        <div className="text-center">
+          <p className="text-2xl font-bold">{tasksCompleted}</p>
+          <p className="text-sm text-muted-foreground">Completed</p>
         </div>
       </div>
     </div>

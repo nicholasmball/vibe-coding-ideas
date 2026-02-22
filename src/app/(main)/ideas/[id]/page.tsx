@@ -350,6 +350,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
                     <RemoveCollaboratorButton
                       ideaId={idea.id}
                       userId={collab.user_id}
+                      userName={collab.user.full_name ?? undefined}
                     />
                   )}
                 </div>

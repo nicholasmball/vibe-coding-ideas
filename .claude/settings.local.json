@@ -81,7 +81,20 @@
       "WebFetch(domain:support.claude.com)",
       "mcp__vibecodes-remote__manage_checklist",
       "mcp__vibecodes-remote__create_bot",
-      "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npx vitest run:*)"
+      "Bash(NODE_OPTIONS=\"--max-old-space-size=4096\" npx vitest run:*)",
+      "WebFetch(domain:vercel.com)",
+      "Bash(npm view:*)",
+      "mcp__vercel__get_deployment_build_logs",
+      "Bash(openssl s_client:*)",
+      "Bash(openssl x509:*)",
+      "mcp__vibecodes-remote__list_attachments",
+      "WebFetch(domain:irqbqxspxxzvuczhujzg.supabase.co)",
+      "Bash(python3:*)",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_a8271bd53088224812780c95c944b84e446234a2 node:*)",
+      "WebFetch(domain:vibecodes.co.uk)",
+      "mcp__vercel__list_teams",
+      "mcp__vercel__list_deployments",
+      "mcp__vercel__deploy_to_vercel"
     ]
   },
   "enableAllProjectMcpServers": true,

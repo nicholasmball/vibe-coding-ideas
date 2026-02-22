@@ -907,7 +907,7 @@ export type Database = {
         Row: {
           id: string;
           user_id: string;
-          action_type: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks";
+          action_type: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description";
           input_tokens: number;
           output_tokens: number;
           model: string;
@@ -918,7 +918,7 @@ export type Database = {
         Insert: {
           id?: string;
           user_id: string;
-          action_type: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks";
+          action_type: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description";
           input_tokens?: number;
           output_tokens?: number;
           model: string;
@@ -929,7 +929,7 @@ export type Database = {
         Update: {
           id?: string;
           user_id?: string;
-          action_type?: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks";
+          action_type?: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description";
           input_tokens?: number;
           output_tokens?: number;
           model?: string;

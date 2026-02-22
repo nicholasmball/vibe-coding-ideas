@@ -34,7 +34,7 @@ export function EnhanceIdeaButton({
 
   const button = variant === "dropdown" ? (
     <button
-      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent cursor-default disabled:opacity-50"
+      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent disabled:opacity-50"
       onClick={() => setOpen(true)}
       disabled={exhausted}
     >

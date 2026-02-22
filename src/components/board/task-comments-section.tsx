@@ -17,6 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/utils";
 import { logTaskActivity } from "@/lib/activity";
 import { createTaskComment, deleteTaskComment } from "@/actions/board";
+import { undoableAction } from "@/lib/undo-toast";
 import type { BoardTaskCommentWithAuthor, User } from "@/types";
 
 interface TaskCommentsSectionProps {
@@ -258,25 +259,26 @@ export function TaskCommentsSection({
     }
   }
 
-  async function handleDelete(commentId: string) {
+  function handleDelete(commentId: string) {
     // Optimistic: remove immediately
-    const removed = comments.find((c) => c.id === commentId);
+    const removedComment = comments.find((c) => c.id === commentId);
     setComments((prev) => prev.filter((c) => c.id !== commentId));
 
-    try {
-      await deleteTaskComment(commentId, ideaId);
-    } catch {
-      // Rollback
-      if (removed) {
-        setComments((prev) =>
-          [...prev, removed].sort(
-            (a, b) =>
-              new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-          )
-        );
-      }
-      toast.error("Failed to delete comment");
-    }
+    undoableAction({
+      message: "Comment deleted",
+      execute: () => deleteTaskComment(commentId, ideaId),
+      undo: () => {
+        if (removedComment) {
+          setComments((prev) =>
+            [...prev, removedComment].sort(
+              (a, b) =>
+                new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            )
+          );
+        }
+      },
+      errorMessage: "Failed to delete comment",
+    });
   }
 
   return (
