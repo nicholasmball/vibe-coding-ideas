@@ -8,7 +8,12 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "docker:down": "docker compose down",
+    "docker:supabase": "docker compose up -d db auth rest realtime storage meta studio kong",
+    "docker:reset": "docker compose down -v && npm run docker:supabase",
+    "docker:seed": "./docker/seed.sh",
+    "docker:studio": "open http://localhost:54323"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.44",
