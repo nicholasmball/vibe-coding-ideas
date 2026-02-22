@@ -1,0 +1,47 @@
+#!/bin/sh
+mount -t devtmpfs dev /dev
+exec >/dev/console 2>&1
+
+echo "=== VibeCodes VM Starting ==="
+
+echo "Mounting filesystems..."
+mount -t proc proc /proc
+mount -t sysfs sys /sys
+mount -t tmpfs tmpfs /tmp
+mount -t tmpfs tmpfs /run
+mkdir -p /dev/shm
+mount -t tmpfs tmpfs /dev/shm
+mkdir -p /sys/fs/cgroup
+mount -t cgroup2 none /sys/fs/cgroup
+
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+
+echo "Loading network driver..."
+modprobe virtio_net && echo "✓ virtio_net loaded" || echo "✗ virtio_net failed"
+sleep 1
+
+echo "Configuring Podman..."
+mkdir -p /var/lib/containers /run/containers /etc/containers
+cat > /etc/containers/storage.conf << 'STORAGEEOF'
+[storage]
+driver = "vfs"
+STORAGEEOF
+
+echo "Configuring network..."
+ip link set lo up
+for iface in /sys/class/net/*; do
+    ifname=$(basename $iface)
+    if [ "$ifname" != "lo" ]; then
+        echo "Found interface: $ifname"
+        ip link set $ifname up
+        udhcpc -i $ifname -n -q &
+        sleep 2
+        break
+    fi
+done
+
+echo "Network status:"
+ip addr show
+
+echo "=== Starting Podman API on :2375 ==="
+exec podman system service --time=0 --log-level=info tcp:0.0.0.0:2375

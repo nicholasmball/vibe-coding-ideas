@@ -14,6 +14,10 @@ export type IdeaVisibility = Database["public"]["Enums"]["idea_visibility"];
 export type CommentType = Database["public"]["Enums"]["comment_type"];
 export type VoteType = Database["public"]["Enums"]["vote_type"];
 export type NotificationType = Database["public"]["Enums"]["notification_type"];
+export type WorkerStatus = Database["public"]["Enums"]["worker_status"];
+export type TaskAssignmentStatus = Database["public"]["Enums"]["task_assignment_status"];
+export type WorkerPlatform = Database["public"]["Enums"]["worker_platform"];
+export type WorkerArch = Database["public"]["Enums"]["worker_arch"];
 
 // Derived types
 export type IdeaWithAuthor = Idea & {
@@ -103,3 +107,32 @@ export type AiCredits = {
 
 // Sort options
 export type SortOption = "newest" | "popular" | "discussed";
+
+// Worker types
+export type Worker = Database["public"]["Tables"]["workers"]["Row"];
+export type TaskAssignment = Database["public"]["Tables"]["task_assignments"]["Row"];
+
+export type WorkerWithOwner = Worker & {
+  owner: User;
+};
+
+export type TaskAssignmentWithDetails = TaskAssignment & {
+  task: BoardTask;
+  worker: Worker;
+  assigner: User;
+};
+
+export type WorkerCapabilities = {
+  cpu_cores?: number;
+  memory_gb?: number;
+  qemu_version?: string;
+};
+
+export type AvailableWorker = {
+  worker_id: string;
+  worker_name: string;
+  user_id: string;
+  running_tasks: number;
+  max_containers: number;
+  slots_available: number;
+};

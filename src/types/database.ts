@@ -97,6 +97,8 @@ export type Database = {
           visibility: "public" | "private";
           tags: string[];
           github_url: string | null;
+          git_repo_url: string | null;
+          git_main_branch: string;
           upvotes: number;
           comment_count: number;
           collaborator_count: number;
@@ -112,6 +114,8 @@ export type Database = {
           visibility?: "public" | "private";
           tags?: string[];
           github_url?: string | null;
+          git_repo_url?: string | null;
+          git_main_branch?: string;
           upvotes?: number;
           comment_count?: number;
           collaborator_count?: number;
@@ -127,6 +131,8 @@ export type Database = {
           visibility?: "public" | "private";
           tags?: string[];
           github_url?: string | null;
+          git_repo_url?: string | null;
+          git_main_branch?: string;
           upvotes?: number;
           comment_count?: number;
           collaborator_count?: number;
@@ -330,6 +336,7 @@ export type Database = {
           attachment_count: number;
           comment_count: number;
           cover_image_path: string | null;
+          current_assignment_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -348,6 +355,7 @@ export type Database = {
           attachment_count?: number;
           comment_count?: number;
           cover_image_path?: string | null;
+          current_assignment_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -366,6 +374,7 @@ export type Database = {
           attachment_count?: number;
           comment_count?: number;
           cover_image_path?: string | null;
+          current_assignment_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -389,6 +398,13 @@ export type Database = {
             columns: ["assignee_id"];
             isOneToOne: false;
             referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "board_tasks_current_assignment_id_fkey";
+            columns: ["current_assignment_id"];
+            isOneToOne: true;
+            referencedRelation: "task_assignments";
             referencedColumns: ["id"];
           },
         ];
@@ -954,6 +970,145 @@ export type Database = {
           },
         ];
       };
+      workers: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          machine_id: string;
+          status: "offline" | "online" | "busy" | "error";
+          platform: "darwin" | "linux";
+          arch: "arm64" | "x64";
+          capabilities: Json;
+          ngrok_url: string | null;
+          max_containers: number;
+          last_heartbeat: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          machine_id: string;
+          status?: "offline" | "online" | "busy" | "error";
+          platform: "darwin" | "linux";
+          arch: "arm64" | "x64";
+          capabilities?: Json;
+          ngrok_url?: string | null;
+          max_containers?: number;
+          last_heartbeat?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          machine_id?: string;
+          status?: "offline" | "online" | "busy" | "error";
+          platform?: "darwin" | "linux";
+          arch?: "arm64" | "x64";
+          capabilities?: Json;
+          ngrok_url?: string | null;
+          max_containers?: number;
+          last_heartbeat?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "workers_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      task_assignments: {
+        Row: {
+          id: string;
+          task_id: string;
+          worker_id: string;
+          idea_id: string;
+          assigned_by: string;
+          git_branch: string | null;
+          container_id: string | null;
+          status: "queued" | "assigned" | "running" | "completed" | "failed" | "cancelled";
+          queue_position: number | null;
+          started_at: string | null;
+          completed_at: string | null;
+          error_message: string | null;
+          exit_code: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          task_id: string;
+          worker_id: string;
+          idea_id: string;
+          assigned_by: string;
+          git_branch?: string | null;
+          container_id?: string | null;
+          status?: "queued" | "assigned" | "running" | "completed" | "failed" | "cancelled";
+          queue_position?: number | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          error_message?: string | null;
+          exit_code?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          task_id?: string;
+          worker_id?: string;
+          idea_id?: string;
+          assigned_by?: string;
+          git_branch?: string | null;
+          container_id?: string | null;
+          status?: "queued" | "assigned" | "running" | "completed" | "failed" | "cancelled";
+          queue_position?: number | null;
+          started_at?: string | null;
+          completed_at?: string | null;
+          error_message?: string | null;
+          exit_code?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "task_assignments_task_id_fkey";
+            columns: ["task_id"];
+            isOneToOne: true;
+            referencedRelation: "board_tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_assignments_worker_id_fkey";
+            columns: ["worker_id"];
+            isOneToOne: false;
+            referencedRelation: "workers";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_assignments_idea_id_fkey";
+            columns: ["idea_id"];
+            isOneToOne: false;
+            referencedRelation: "ideas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_assignments_assigned_by_fkey";
+            columns: ["assigned_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -993,6 +1148,17 @@ export type Database = {
         };
         Returns: undefined;
       };
+      get_available_workers: {
+        Args: Record<string, never>;
+        Returns: {
+          worker_id: string;
+          worker_name: string;
+          user_id: string;
+          running_tasks: number;
+          max_containers: number;
+          slots_available: number;
+        }[];
+      };
     };
     Enums: {
       idea_status: "open" | "in_progress" | "completed" | "archived";
@@ -1000,6 +1166,10 @@ export type Database = {
       comment_type: "comment" | "suggestion" | "question";
       vote_type: "upvote" | "downvote";
       notification_type: "comment" | "vote" | "collaborator" | "user_deleted" | "status_change" | "task_mention";
+      worker_status: "offline" | "online" | "busy" | "error";
+      task_assignment_status: "queued" | "assigned" | "running" | "completed" | "failed" | "cancelled";
+      worker_platform: "darwin" | "linux";
+      worker_arch: "arm64" | "x64";
     };
     CompositeTypes: {
       [_ in never]: never;

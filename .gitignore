@@ -49,3 +49,6 @@ next-env.d.ts
 # MCP server build output + deps
 mcp-server/dist
 mcp-server/node_modules
+
+/vm/images
+/vm/modules*
