@@ -5,7 +5,7 @@ export function Footer() {
   return (
     <footer className="shrink-0 border-t border-border py-4">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-xs text-muted-foreground">
           <div className="flex items-center gap-1.5">
             <Sparkles className="h-3 w-3" />
             <span>&copy; {new Date().getFullYear()} VibeCodes</span>
