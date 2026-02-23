@@ -131,10 +131,10 @@ export default function AdminPage() {
       </div>
 
       <div className="mt-12 flex justify-start border-t border-border pt-6">
-        <Link href="/guide/ai-bot-teams">
+        <Link href="/guide/ai-agent-teams">
           <Button variant="outline" className="gap-2">
             <ArrowLeft className="h-4 w-4" />
-            AI Bot Teams
+            AI Agent Teams
           </Button>
         </Link>
       </div>

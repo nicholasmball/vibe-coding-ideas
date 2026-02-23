@@ -47,10 +47,10 @@ export function EditBotDialog({ bot, children }: EditBotDialogProps) {
         system_prompt: systemPrompt.trim() || null,
         avatar_url: avatarUrl.trim() || null,
       });
-      toast.success("Bot updated");
+      toast.success("Agent updated");
       setOpen(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to update bot");
+      toast.error(err instanceof Error ? err.message : "Failed to update agent");
     } finally {
       setSubmitting(false);
     }
@@ -66,11 +66,11 @@ export function EditBotDialog({ bot, children }: EditBotDialogProps) {
     setDeleting(true);
     deleteBot(bot.id)
       .then(() => {
-        toast.success("Bot deleted");
+        toast.success("Agent deleted");
         setOpen(false);
       })
       .catch((err) => {
-        toast.error(err instanceof Error ? err.message : "Failed to delete bot");
+        toast.error(err instanceof Error ? err.message : "Failed to delete agent");
         setDeleting(false);
         setConfirmDelete(false);
       });
@@ -83,7 +83,7 @@ export function EditBotDialog({ bot, children }: EditBotDialogProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Pencil className="h-4 w-4" />
-            Edit Bot
+            Edit Agent
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSave} className="space-y-4">

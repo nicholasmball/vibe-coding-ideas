@@ -56,7 +56,8 @@ src/
 │   │   ├── ideas-and-voting/
 │   │   ├── collaboration/
 │   │   ├── kanban-boards/
-│   │   └── mcp-integration/
+│   │   ├── mcp-integration/
+│   │   └── ai-agent-teams/
 │   └── (main)/             # Authenticated routes (with navbar)
 │       ├── layout.tsx      # Navbar wrapper
 │       ├── dashboard/      # Personal dashboard (reorderable two-column grid, collapsible sections, bounded lists)
@@ -66,6 +67,7 @@ src/
 │       ├── ideas/[id]/board # Kanban task board (author + collaborators only)
 │       ├── ideas/[id]/edit # Edit idea (author only)
 │       ├── admin/          # Admin: AI usage analytics + user management (admin only)
+│       ├── agents/          # Agent management (dedicated page)
 │       ├── members/        # User directory with search/sort/pagination
 │       └── profile/[id]    # User profile with tabs
 ├── actions/                # Server Actions (all use server-side validation)
@@ -144,7 +146,7 @@ mcp-server/                 # MCP server for Claude Code integration
         ├── columns.ts      # create_column, update_column, delete_column, reorder_columns
         ├── notifications.ts # list_notifications, mark_notification_read, mark_all_notifications_read
         ├── profile.ts      # update_profile
-        └── bots.ts         # list_bots, get_bot_prompt, set_bot_identity, create_bot
+        └── bots.ts         # list_agents, get_agent_prompt, set_agent_identity, create_agent
 ```
 
 ## Workflow Rules (MANDATORY)
@@ -194,7 +196,7 @@ Move tasks to "Blocked/Requires User Input" when blocked for any reason (depende
 - All client-side catch blocks that call server actions should show `toast.error()` — never fail silently
 
 ### Auth Flow
-- Middleware protects `/dashboard`, `/feed`, `/ideas`, `/profile`, `/admin` routes (redirects to `/login`)
+- Middleware protects `/dashboard`, `/feed`, `/ideas`, `/profile`, `/admin`, `/agents` routes (redirects to `/login`)
 - Middleware redirects logged-in users away from `/login`, `/signup`
 - OAuth callback at `/callback` exchanges code for session
 - Email/password with forgot/reset password flow
@@ -222,7 +224,7 @@ Move tasks to "Blocked/Requires User Input" when blocked for any reason (depende
 - `board_columns.is_done_column` (boolean) marks columns where tasks are considered complete
 - Dashboard excludes archived tasks and tasks in done columns
 - Dashboard layout: reorderable two-column grid on `lg:` (1024px+), single column below; container `max-w-6xl`
-  - Default left column: Active Boards, My Bots (conditional), My Tasks
+  - Default left column: Active Boards, My Agents (conditional), My Tasks
   - Default right column: My Ideas, Collaborations, Recent Activity
   - "Customize" button toggles configure mode with arrow buttons (up/down within column, left/right between columns)
   - Panel order persisted in `localStorage` (`dashboard-panel-order`); "Reset" restores defaults
@@ -231,7 +233,7 @@ Move tasks to "Blocked/Requires User Input" when blocked for any reason (depende
 - All dashboard sections wrapped in `CollapsibleSection` (client component): chevron toggle, item count badge, collapse state persisted in `localStorage` (`dashboard-collapsed-{sectionId}`), all expanded by default
 - My Tasks and Recent Activity bounded to 5 items with "Show all (N)" toggle (session-only, not persisted)
 - Dashboard "Active Boards" section shows up to 5 most recently active boards (by task `updated_at`) for ideas the user owns or collaborates on, with per-column task counts
-- Dashboard "My Bots" section (conditionally rendered if user has bots): shows each bot's name, role badge, MCP Active badge (if `users.active_bot_id` matches), current task assignment (most recent non-done, non-archived task), last activity action + relative time; inactive bots dimmed; clicking a bot opens bot activity dialog
+- Dashboard "My Agents" section (conditionally rendered if user has bots): shows each bot's name, role badge, MCP Active badge (if `users.active_bot_id` matches), current task assignment (most recent non-done, non-archived task), last activity action + relative time; inactive bots dimmed; clicking a bot opens bot activity dialog
 - Bot activity dialog: assigned tasks, merged activity+comments feed grouped by session (30-min gap), activity details rendered from JSONB (e.g. "moved to In Progress", "added a label "Bug""), comment previews with markdown rendering
 - Idea card board icon (`LayoutDashboard`) is a `<Link>` to `/ideas/[id]/board` (shown when `taskCount > 0`)
 - Idea detail page uses inline editing for authors: title (borderless input, save on blur), description (click-to-edit markdown, save on blur), tags (TagInput with 300ms debounce auto-save), GitHub URL (click-to-edit), visibility (badge toggle). Non-authors see read-only. Edit page kept as fallback.
@@ -268,12 +270,12 @@ Move tasks to "Blocked/Requires User Input" when blocked for any reason (depende
 - `bot_profiles` table stores bot metadata: name, role, system_prompt, avatar_url, is_active, owner_id
 - `create_bot_user` and `delete_bot_user` SECURITY DEFINER RPCs handle atomic bot creation/deletion
 - Bots get their own `users` row for FK compatibility (assignee_id, actor_id, author_id)
-- Bot management UI on profile page: create, edit, toggle active/inactive, delete
+- Agent management UI on dedicated `/agents` page: create, edit, toggle active/inactive, delete
 - `BOT_ROLE_TEMPLATES` in constants provide starter templates (Developer, UX Designer, BA, QA Tester)
-- Assignee picker in task detail dialog includes "My Bots" section below team members
+- Assignee picker in task detail dialog includes "My Agents" section below team members
 - Bot indicators (Bot icon) shown in activity timeline, task comments, task cards, and assignee avatars
 - Auto-collaborator: assigning a bot to a task automatically adds it as collaborator on the idea
-- MCP `set_bot_identity` tool persists identity to DB (`users.active_bot_id`) — survives reconnections, restarts, and context compaction
+- MCP `set_agent_identity` tool persists identity to DB (`users.active_bot_id`) — survives reconnections, restarts, and context compaction
 - `VIBECODES_BOT_ID` env var overrides DB-persisted identity on local MCP startup
 - `McpContext.ownerUserId` distinguishes the real human from the active bot identity (for ownership validation)
 
@@ -418,16 +420,16 @@ Both modes share the same 38 tools via `mcp-server/src/register-tools.ts` with d
 | `mark_notification_read` | Write | Mark a single notification as read |
 | `mark_all_notifications_read` | Write | Mark all unread notifications as read |
 | `update_profile` | Write | Update user profile (name, bio, github, avatar, contact) |
-| `list_bots` | Read | List bots owned by the current user |
-| `get_bot_prompt` | Read | Get system prompt for a bot or active identity |
-| `set_bot_identity` | Write | Switch session to a bot persona (or reset to default) |
-| `create_bot` | Write | Create a new bot profile with name, role, prompt |
+| `list_agents` | Read | List agents owned by the current user |
+| `get_agent_prompt` | Read | Get system prompt for an agent or active identity |
+| `set_agent_identity` | Write | Switch session to an agent persona (or reset to default) |
+| `create_agent` | Write | Create a new agent profile with name, role, prompt |
 
 ### Architecture (Dependency Injection)
 - `mcp-server/src/context.ts` defines `McpContext` interface: `{ supabase, userId, ownerUserId? }`
 - All tool handler functions accept `ctx: McpContext` as first parameter
 - `mcp-server/src/register-tools.ts` wires tools to MCP server via `getContext(extra)` callback (sync or async)
-- Local mode: mutable context (service-role + bot user, identity switchable via `set_bot_identity`); reads persisted `active_bot_id` from DB on startup if no `VIBECODES_BOT_ID` env var
+- Local mode: mutable context (service-role + bot user, identity switchable via `set_agent_identity`); reads persisted `active_bot_id` from DB on startup if no `VIBECODES_BOT_ID` env var
 - Remote mode: per-request context (user JWT + user ID from auth, `ownerUserId` tracks real human); lazily reads persisted `active_bot_id` from DB on first tool call per connection
 
 ### Key Details

@@ -71,10 +71,10 @@ export function CreateBotDialog() {
         systemPrompt.trim() || null,
         avatarUrl.trim() || null
       );
-      toast.success("Bot created");
+      toast.success("Agent created");
       handleOpenChange(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to create bot");
+      toast.error(err instanceof Error ? err.message : "Failed to create agent");
     } finally {
       setSubmitting(false);
     }
@@ -85,14 +85,14 @@ export function CreateBotDialog() {
       <DialogTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
           <Plus className="h-4 w-4" />
-          Create Bot
+          Create Agent
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5" />
-            Create Bot
+            Create Agent
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">

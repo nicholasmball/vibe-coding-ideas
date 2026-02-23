@@ -16,7 +16,7 @@ export const getBotPromptSchema = z.object({
     .string()
     .uuid()
     .optional()
-    .describe("Bot ID to get prompt for. Defaults to active bot identity."),
+    .describe("Agent ID to get prompt for. Defaults to active agent identity."),
 });
 
 export const setBotIdentitySchema = z.object({
@@ -24,22 +24,22 @@ export const setBotIdentitySchema = z.object({
     .string()
     .uuid()
     .optional()
-    .describe("Bot ID to switch to. Omit both bot_id and bot_name to reset to default."),
+    .describe("Agent ID to switch to. Omit both bot_id and bot_name to reset to default."),
   bot_name: z
     .string()
     .optional()
-    .describe("Bot name to search for (if bot_id not provided)."),
+    .describe("Agent name to search for (if bot_id not provided)."),
 });
 
 export const createBotSchema = z.object({
-  name: z.string().min(1).max(100).describe("Bot display name"),
-  role: z.string().max(50).optional().describe("Bot role (e.g. Developer, QA Tester)"),
+  name: z.string().min(1).max(100).describe("Agent display name"),
+  role: z.string().max(50).optional().describe("Agent role (e.g. Developer, QA Tester)"),
   system_prompt: z
     .string()
     .max(10000)
     .optional()
-    .describe("System prompt for the bot persona"),
-  avatar_url: z.string().url().optional().describe("Avatar URL for the bot"),
+    .describe("System prompt for the agent persona"),
+  avatar_url: z.string().url().optional().describe("Avatar URL for the agent"),
 });
 
 // --- Handlers ---
@@ -82,7 +82,7 @@ export async function getBotPrompt(
     .maybeSingle();
 
   if (error) throw new Error(error.message);
-  if (!data) throw new Error("Bot profile not found");
+  if (!data) throw new Error("Agent profile not found");
 
   return data;
 }
@@ -107,8 +107,8 @@ export async function setBotIdentity(
     return {
       active_bot: null,
       instruction:
-        "Identity reset to default. You are no longer acting as a specific bot persona. " +
-        "Stop following any previous bot system prompt and return to your normal behavior. " +
+        "Identity reset to default. You are no longer acting as a specific agent persona. " +
+        "Stop following any previous agent system prompt and return to your normal behavior. " +
         "This change has been persisted and will survive reconnections.",
     };
   }
@@ -125,7 +125,7 @@ export async function setBotIdentity(
       .maybeSingle();
 
     if (error) throw new Error(error.message);
-    if (!data) throw new Error(`No bot found with name "${args.bot_name}"`);
+    if (!data) throw new Error(`No agent found with name "${args.bot_name}"`);
     botId = data.id;
   }
 
@@ -137,8 +137,8 @@ export async function setBotIdentity(
     .maybeSingle();
 
   if (error) throw new Error(error.message);
-  if (!bot) throw new Error("Bot not found");
-  if (!bot.is_active) throw new Error("Bot is inactive. Activate it first.");
+  if (!bot) throw new Error("Agent not found");
+  if (!bot.is_active) throw new Error("Agent is inactive. Activate it first.");
 
   onIdentityChange(bot.id);
 
@@ -160,14 +160,14 @@ export async function setBotIdentity(
     result.system_prompt = bot.system_prompt;
     result.instruction =
       `You are now acting as "${bot.name}"${bot.role ? ` (${bot.role})` : ""}. ` +
-      `All your actions (comments, task updates, activity) will be attributed to this bot. ` +
+      `All your actions (comments, task updates, activity) will be attributed to this agent. ` +
       `This identity has been persisted and will survive reconnections. ` +
       `IMPORTANT: You MUST follow the system_prompt above for the rest of this session. ` +
       `It defines your persona, behavior, and how you should approach tasks.`;
   } else {
     result.instruction =
       `You are now acting as "${bot.name}"${bot.role ? ` (${bot.role})` : ""}. ` +
-      `All your actions (comments, task updates, activity) will be attributed to this bot. ` +
+      `All your actions (comments, task updates, activity) will be attributed to this agent. ` +
       `This identity has been persisted and will survive reconnections.`;
   }
 

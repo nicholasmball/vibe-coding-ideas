@@ -17,8 +17,8 @@ export async function createBot(
 
   if (!user) throw new Error("Not authenticated");
 
-  if (!name.trim()) throw new Error("Bot name is required");
-  if (name.length > 100) throw new Error("Bot name must be 100 characters or less");
+  if (!name.trim()) throw new Error("Agent name is required");
+  if (name.length > 100) throw new Error("Agent name must be 100 characters or less");
 
   const { data, error } = await supabase.rpc("create_bot_user", {
     p_name: name.trim(),
@@ -31,6 +31,7 @@ export async function createBot(
   if (error) throw new Error(error.message);
 
   revalidatePath(`/profile/${user.id}`);
+  revalidatePath("/agents");
   return data as string;
 }
 
@@ -52,9 +53,9 @@ export async function updateBot(
   if (!user) throw new Error("Not authenticated");
 
   if (updates.name !== undefined) {
-    if (!updates.name.trim()) throw new Error("Bot name is required");
+    if (!updates.name.trim()) throw new Error("Agent name is required");
     if (updates.name.length > 100)
-      throw new Error("Bot name must be 100 characters or less");
+      throw new Error("Agent name must be 100 characters or less");
   }
 
   // Update bot_profiles
@@ -91,6 +92,7 @@ export async function updateBot(
   }
 
   revalidatePath(`/profile/${user.id}`);
+  revalidatePath("/agents");
   revalidatePath("/ideas");
 }
 
@@ -110,6 +112,7 @@ export async function deleteBot(botId: string) {
   if (error) throw new Error(error.message);
 
   revalidatePath(`/profile/${user.id}`);
+  revalidatePath("/agents");
 }
 
 export async function listMyBots(): Promise<BotProfile[]> {

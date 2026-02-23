@@ -161,6 +161,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
       <div
         ref={setNodeRef}
         style={style}
+        data-testid={`task-card-${task.id}`}
         className={`group cursor-pointer overflow-hidden rounded-md border border-border bg-background shadow-sm ${
           isDragging ? "opacity-50" : ""
         } ${isArchived ? "opacity-50" : ""}`}
@@ -181,6 +182,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
         <div className="flex items-start gap-2 p-3">
           {!isArchived && (
             <button
+              data-testid="task-drag-handle"
               className="mt-0.5 cursor-grab text-muted-foreground opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 active:cursor-grabbing touch-none"
               {...attributes}
               {...listeners}
@@ -303,7 +305,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
                   </TooltipTrigger>
                   <TooltipContent>
                     {task.assignee.full_name ?? "Assigned"}
-                    {task.assignee.is_bot ? " (bot)" : ""}
+                    {task.assignee.is_bot ? " (agent)" : ""}
                   </TooltipContent>
                 </Tooltip>
               )}

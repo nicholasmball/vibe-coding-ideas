@@ -395,7 +395,7 @@ export function TaskEditDialog({
                 {userBots.length > 0 && (
                   <>
                     <div className="px-2 py-1.5 text-[10px] font-medium text-muted-foreground">
-                      My Bots
+                      My Agents
                     </div>
                     {userBots
                       .filter((b) => !teamMembers.some((m) => m.id === b.id))

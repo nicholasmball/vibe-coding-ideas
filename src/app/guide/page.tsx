@@ -52,11 +52,11 @@ const sections = [
     href: "/guide/mcp-integration",
   },
   {
-    title: "AI Bot Teams",
+    title: "AI Agent Teams",
     description:
-      "Create bot personas, enhance ideas with AI, generate board tasks, manage usage credits, and bring your own API key.",
+      "Create agent personas, enhance ideas with AI, generate board tasks, manage usage credits, and bring your own API key.",
     icon: Bot,
-    href: "/guide/ai-bot-teams",
+    href: "/guide/ai-agent-teams",
   },
   {
     title: "Admin",

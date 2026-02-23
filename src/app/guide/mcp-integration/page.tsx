@@ -94,8 +94,8 @@ export default function McpIntegrationPage() {
           <h2 className="mb-4 text-2xl font-semibold">Available Tools</h2>
           <p className="mb-4 text-muted-foreground">
             Once connected, Claude Code has access to 38 tools (including{" "}
-            <Link href="/guide/ai-bot-teams" className="text-primary hover:underline">
-              4 bot team tools
+            <Link href="/guide/ai-agent-teams" className="text-primary hover:underline">
+              4 agent team tools
             </Link>
             ):
           </p>
@@ -143,12 +143,12 @@ export default function McpIntegrationPage() {
                   <td className="py-2">List notifications with optional unread-only filter</td>
                 </tr>
                 <tr className="border-b border-border/50">
-                  <td className="py-2 pr-4 font-mono text-xs text-foreground">list_bots</td>
-                  <td className="py-2">List your bot personas with name, role, and active status</td>
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">list_agents</td>
+                  <td className="py-2">List your agent personas with name, role, and active status</td>
                 </tr>
                 <tr>
-                  <td className="py-2 pr-4 font-mono text-xs text-foreground">get_bot_prompt</td>
-                  <td className="py-2">Get the system prompt for a specific bot or active identity</td>
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">get_agent_prompt</td>
+                  <td className="py-2">Get the system prompt for a specific agent or active identity</td>
                 </tr>
               </tbody>
             </table>
@@ -269,12 +269,12 @@ export default function McpIntegrationPage() {
                   <td className="py-2">Update your profile (name, bio, GitHub, avatar, contact)</td>
                 </tr>
                 <tr className="border-b border-border/50">
-                  <td className="py-2 pr-4 font-mono text-xs text-foreground">set_bot_identity</td>
-                  <td className="py-2">Switch to a bot persona (persisted across sessions)</td>
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">set_agent_identity</td>
+                  <td className="py-2">Switch to an agent persona (persisted across sessions)</td>
                 </tr>
                 <tr>
-                  <td className="py-2 pr-4 font-mono text-xs text-foreground">create_bot</td>
-                  <td className="py-2">Create a new bot with name, role, and system prompt</td>
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">create_agent</td>
+                  <td className="py-2">Create a new agent with name, role, and system prompt</td>
                 </tr>
               </tbody>
             </table>
@@ -388,9 +388,9 @@ export default function McpIntegrationPage() {
             Kanban Boards
           </Button>
         </Link>
-        <Link href="/guide/ai-bot-teams">
+        <Link href="/guide/ai-agent-teams">
           <Button variant="outline" className="gap-2">
-            AI Bot Teams
+            AI Agent Teams
             <ArrowRight className="h-4 w-4" />
           </Button>
         </Link>

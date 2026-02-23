@@ -627,11 +627,11 @@ export function registerTools(
     }
   );
 
-  // --- Bot Tools ---
+  // --- Agent Tools ---
 
   server.tool(
-    "list_bots",
-    "List bots owned by the current user (or a specific owner). Returns bot profiles with name, role, system prompt, and active status.",
+    "list_agents",
+    "List agents owned by the current user (or a specific owner). Returns agent profiles with name, role, system prompt, and active status.",
     listBotsSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
@@ -644,8 +644,8 @@ export function registerTools(
   );
 
   server.tool(
-    "get_bot_prompt",
-    "Get the system prompt for a specific bot or the current active bot identity.",
+    "get_agent_prompt",
+    "Get the system prompt for a specific agent or the current active agent identity.",
     getBotPromptSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
@@ -658,8 +658,8 @@ export function registerTools(
   );
 
   server.tool(
-    "set_bot_identity",
-    "Switch session identity to a bot persona. Provide bot_id or bot_name. Omit both to reset to default identity. Returns the bot's system prompt.",
+    "set_agent_identity",
+    "Switch session identity to an agent persona. Provide bot_id or bot_name. Omit both to reset to default identity. Returns the agent's system prompt.",
     setBotIdentitySchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
@@ -675,8 +675,8 @@ export function registerTools(
   );
 
   server.tool(
-    "create_bot",
-    "Create a new bot profile with a name, role, and system prompt. The bot gets its own user identity for assignments and activity logs.",
+    "create_agent",
+    "Create a new agent profile with a name, role, and system prompt. The agent gets its own user identity for assignments and activity logs.",
     createBotSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {

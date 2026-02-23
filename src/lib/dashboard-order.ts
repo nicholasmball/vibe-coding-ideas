@@ -5,7 +5,7 @@ export type PanelPlacement = {
 
 export const SECTION_LABELS: Record<string, string> = {
   "active-boards": "Active Boards",
-  "my-bots": "My Bots",
+  "my-bots": "My Agents",
   "my-tasks": "My Tasks",
   "my-ideas": "My Ideas",
   collaborations: "Collaborations",

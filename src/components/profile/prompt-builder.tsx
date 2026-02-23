@@ -149,7 +149,7 @@ export function PromptBuilder({
           <Textarea
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            placeholder="Instructions for this bot persona..."
+            placeholder="Instructions for this agent persona..."
             rows={6}
             maxLength={10000}
             className="text-sm"

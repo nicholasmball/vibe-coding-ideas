@@ -37,10 +37,10 @@ const EXPECTED_TOOL_NAMES = [
   "mark_notification_read",
   "mark_all_notifications_read",
   "update_profile",
-  "list_bots",
-  "get_bot_prompt",
-  "set_bot_identity",
-  "create_bot",
+  "list_agents",
+  "get_agent_prompt",
+  "set_agent_identity",
+  "create_agent",
 ];
 
 function createMockServer() {
@@ -162,7 +162,7 @@ describe("registerTools", () => {
     expect(getContext).toHaveBeenCalledWith(extra);
   });
 
-  it("includes bot tools in the registered set", () => {
+  it("includes agent tools in the registered set", () => {
     const server = createMockServer();
     const getContext = vi.fn();
 
@@ -171,13 +171,13 @@ describe("registerTools", () => {
     const registeredNames = server.tool.mock.calls.map(
       (call: unknown[]) => call[0]
     );
-    expect(registeredNames).toContain("list_bots");
-    expect(registeredNames).toContain("get_bot_prompt");
-    expect(registeredNames).toContain("set_bot_identity");
-    expect(registeredNames).toContain("create_bot");
+    expect(registeredNames).toContain("list_agents");
+    expect(registeredNames).toContain("get_agent_prompt");
+    expect(registeredNames).toContain("set_agent_identity");
+    expect(registeredNames).toContain("create_agent");
   });
 
-  it("set_bot_identity calls onIdentityChange when provided", async () => {
+  it("set_agent_identity calls onIdentityChange when provided", async () => {
     const server = createMockServer();
     // Mock supabase with chained update call for identity persistence
     const mockUpdate = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
@@ -191,9 +191,9 @@ describe("registerTools", () => {
 
     registerTools(server, getContext, onIdentityChange);
 
-    // Find set_bot_identity tool
+    // Find set_agent_identity tool
     const setIdentityCall = server.tool.mock.calls.find(
-      (call: unknown[]) => call[0] === "set_bot_identity"
+      (call: unknown[]) => call[0] === "set_agent_identity"
     );
     expect(setIdentityCall).toBeDefined();
 
@@ -207,7 +207,7 @@ describe("registerTools", () => {
     expect(mockUpdate).toHaveBeenCalledWith({ active_bot_id: null });
   });
 
-  it("set_bot_identity uses noop when onIdentityChange not provided", async () => {
+  it("set_agent_identity uses noop when onIdentityChange not provided", async () => {
     const server = createMockServer();
     // Mock supabase with chained update call for identity persistence
     const mockUpdate = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
@@ -222,7 +222,7 @@ describe("registerTools", () => {
     registerTools(server, getContext);
 
     const setIdentityCall = server.tool.mock.calls.find(
-      (call: unknown[]) => call[0] === "set_bot_identity"
+      (call: unknown[]) => call[0] === "set_agent_identity"
     );
     const callback = setIdentityCall![3];
 
@@ -231,7 +231,7 @@ describe("registerTools", () => {
     expect(result.isError).toBeUndefined();
   });
 
-  it("list_bots returns error with non-functional supabase", async () => {
+  it("list_agents returns error with non-functional supabase", async () => {
     const server = createMockServer();
     const mockContext: McpContext = {
       supabase: {} as McpContext["supabase"],
@@ -242,7 +242,7 @@ describe("registerTools", () => {
     registerTools(server, getContext);
 
     const listBotsCall = server.tool.mock.calls.find(
-      (call: unknown[]) => call[0] === "list_bots"
+      (call: unknown[]) => call[0] === "list_agents"
     );
     const callback = listBotsCall![3];
     const result = await callback({}, {});
@@ -251,7 +251,7 @@ describe("registerTools", () => {
     expect(result.content[0].text).toMatch(/^Error: /);
   });
 
-  it("create_bot validates required name field", async () => {
+  it("create_agent validates required name field", async () => {
     const server = createMockServer();
     const mockContext: McpContext = {
       supabase: {} as McpContext["supabase"],
@@ -262,7 +262,7 @@ describe("registerTools", () => {
     registerTools(server, getContext);
 
     const createBotCall = server.tool.mock.calls.find(
-      (call: unknown[]) => call[0] === "create_bot"
+      (call: unknown[]) => call[0] === "create_agent"
     );
     const callback = createBotCall![3];
 

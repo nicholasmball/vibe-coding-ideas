@@ -8,8 +8,9 @@ import { EditProfileDialog } from "@/components/profile/edit-profile-dialog";
 import { NotificationSettings } from "@/components/profile/notification-settings";
 import { ApiKeySettings } from "@/components/profile/api-key-settings";
 import { BoardColumnSettings } from "@/components/profile/board-column-settings";
-import { BotManagement } from "@/components/profile/bot-management";
-import type { IdeaWithAuthor, BotProfile } from "@/types";
+import Link from "next/link";
+import { Bot } from "lucide-react";
+import type { IdeaWithAuthor } from "@/types";
 import type { Metadata } from "next";
 
 interface PageProps {
@@ -140,17 +141,6 @@ export default async function ProfilePage({ params }: PageProps) {
     isCurrentUserAdmin = adminCheck?.is_admin ?? false;
   }
 
-  // Fetch user's bots (only on own profile)
-  let userBots: BotProfile[] = [];
-  if (currentUser?.id === id) {
-    const { data: bots } = await supabase
-      .from("bot_profiles")
-      .select("*")
-      .eq("owner_id", id)
-      .order("created_at", { ascending: true });
-    userBots = (bots ?? []) as BotProfile[];
-  }
-
   // Fetch task counts for displayed ideas
   const allProfileIdeaIds = [
     ...(ideas ?? []).map((i) => i.id),
@@ -212,9 +202,15 @@ export default async function ProfilePage({ params }: PageProps) {
           )}
         </div>
       )}
-      {currentUser?.id === id && userBots.length >= 0 && (
-        <div className="mt-6">
-          <BotManagement bots={userBots} />
+      {currentUser?.id === id && (
+        <div className="mt-4">
+          <Link
+            href="/agents"
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Bot className="h-4 w-4" />
+            Manage agents
+          </Link>
         </div>
       )}
       <ProfileTabs

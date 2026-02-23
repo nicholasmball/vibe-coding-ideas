@@ -20,7 +20,7 @@ export function BotManagement({ bots }: BotManagementProps) {
     try {
       await updateBot(bot.id, { is_active: !bot.is_active });
     } catch {
-      toast.error("Failed to update bot");
+      toast.error("Failed to update agent");
     }
   }
 
@@ -29,14 +29,14 @@ export function BotManagement({ bots }: BotManagementProps) {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Bot className="h-5 w-5" />
-          <h2 className="text-lg font-semibold">My Bots</h2>
+          <h2 className="text-lg font-semibold">My Agents</h2>
         </div>
         <CreateBotDialog />
       </div>
 
       {bots.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No bots yet. Create one to give Claude Code sessions distinct identities.
+          No agents yet. Create one to give Claude Code sessions distinct identities.
         </p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">

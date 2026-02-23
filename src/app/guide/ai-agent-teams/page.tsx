@@ -3,12 +3,12 @@ import { Bot, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "AI Bot Teams - VibeCodes Guide",
+  title: "AI Agent Teams - VibeCodes Guide",
   description:
-    "Create distinct AI bot personas for parallel Claude Code sessions. Assign different roles, track who did what, and scale your AI workforce.",
+    "Create distinct AI agent personas for parallel Claude Code sessions. Assign different roles, track who did what, and scale your AI workforce.",
 };
 
-export default function AiBotTeamsPage() {
+export default function AiAgentTeamsPage() {
   return (
     <div>
       <Link
@@ -23,12 +23,12 @@ export default function AiBotTeamsPage() {
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
           <Bot className="h-6 w-6 text-primary" />
         </div>
-        <h1 className="text-3xl font-bold tracking-tight">AI Bot Teams</h1>
+        <h1 className="text-3xl font-bold tracking-tight">AI Agent Teams</h1>
       </div>
 
       <div className="space-y-10">
         <section>
-          <h2 className="mb-4 text-2xl font-semibold">Why Bot Teams?</h2>
+          <h2 className="mb-4 text-2xl font-semibold">Why Agent Teams?</h2>
           <p className="text-muted-foreground">
             When you use Claude Code with VibeCodes, all actions show up as
             &quot;Claude Code&quot; in your activity log, comments, and task
@@ -37,42 +37,45 @@ export default function AiBotTeamsPage() {
             sessions in parallel</strong>, each working on different tasks?
           </p>
           <p className="mt-3 text-muted-foreground">
-            Bot teams solve this. You create distinct bot personas — like
+            Agent teams solve this. You create distinct agent personas — like
             &quot;Dev Alpha&quot;, &quot;QA Tester&quot;, or &quot;UX Scout&quot;
             — each with its own name, role, and system prompt. When a Claude Code
-            session operates as a bot, all its actions are attributed to that
-            specific bot. You can see exactly which AI agent did what.
+            session operates as an agent, all its actions are attributed to that
+            specific agent. You can see exactly which AI agent did what.
           </p>
         </section>
 
         <section>
-          <h2 className="mb-4 text-2xl font-semibold">Creating Bots</h2>
+          <h2 className="mb-4 text-2xl font-semibold">Creating Agents</h2>
           <p className="mb-4 text-muted-foreground">
-            Bots are managed on your <strong className="text-foreground">profile
-            page</strong>. Scroll to the &quot;My Bots&quot; section:
+            Agents are managed on the{" "}
+            <Link href="/agents" className="text-primary hover:underline">
+              Agents
+            </Link>{" "}
+            page:
           </p>
           <ol className="list-inside list-decimal space-y-2 text-muted-foreground">
-            <li>Click <strong className="text-foreground">Create Bot</strong></li>
+            <li>Click <strong className="text-foreground">Create Agent</strong></li>
             <li>Enter a name (e.g., &quot;Dev Alpha&quot;)</li>
             <li>
               Pick a <strong className="text-foreground">role template</strong>{" "}
               — Developer, UX Designer, Business Analyst, QA Tester, Product
               Owner, Automated Tester, DevOps, or Support — or leave it blank
-              for a general-purpose bot
+              for a general-purpose agent
             </li>
             <li>
               Customize the <strong className="text-foreground">system prompt
-              </strong> if you want. This prompt is stored on the bot and
+              </strong> if you want. This prompt is stored on the agent and
               available to Claude Code via the{" "}
               <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
-                get_bot_prompt
+                get_agent_prompt
               </code>{" "}
               tool
             </li>
             <li>Click Create</li>
           </ol>
           <p className="mt-4 text-muted-foreground">
-            Your bots are <strong className="text-foreground">global</strong>{" "}
+            Your agents are <strong className="text-foreground">global</strong>{" "}
             — they work across all your ideas, not just one. Create them once,
             use them everywhere.
           </p>
@@ -152,23 +155,23 @@ export default function AiBotTeamsPage() {
             Structured Prompt Builder
           </h2>
           <p className="mb-4 text-muted-foreground">
-            When creating or editing a bot, the{" "}
+            When creating or editing an agent, the{" "}
             <strong className="text-foreground">prompt builder</strong> helps
             you craft effective system prompts using three structured fields:
           </p>
           <ul className="list-inside list-disc space-y-2 text-muted-foreground">
             <li>
-              <strong className="text-foreground">Goal</strong> — what the bot
+              <strong className="text-foreground">Goal</strong> — what the agent
               should achieve (e.g., &quot;Deliver production-ready code that
               follows project conventions&quot;)
             </li>
             <li>
               <strong className="text-foreground">Constraints</strong> — what
-              the bot must never do (e.g., &quot;Ship code without tests&quot;)
+              the agent must never do (e.g., &quot;Ship code without tests&quot;)
             </li>
             <li>
               <strong className="text-foreground">Approach</strong> — how the
-              bot should work (e.g., &quot;Read existing code before writing
+              agent should work (e.g., &quot;Read existing code before writing
               new code&quot;)
             </li>
           </ul>
@@ -176,44 +179,44 @@ export default function AiBotTeamsPage() {
             Role templates pre-fill these fields. You can edit them or switch
             to a freeform text prompt at any time. The builder combines the
             fields into a single system prompt that Claude follows when acting
-            as that bot.
+            as that agent.
           </p>
         </section>
 
         <section>
           <h2 className="mb-4 text-2xl font-semibold">
-            Assigning Bots to Tasks
+            Assigning Agents to Tasks
           </h2>
           <p className="mb-4 text-muted-foreground">
             On any kanban board, open a task and look for the{" "}
             <strong className="text-foreground">assignee dropdown</strong>.
-            Your active bots appear in a &quot;My Bots&quot; section below
-            the team members, marked with a bot icon.
+            Your active agents appear in a &quot;My Agents&quot; section below
+            the team members, marked with an agent icon.
           </p>
           <p className="text-muted-foreground">
-            When you assign a bot to a task, VibeCodes automatically adds it
+            When you assign an agent to a task, VibeCodes automatically adds it
             as a <strong className="text-foreground">collaborator</strong> on
-            the idea. This ensures the bot has the right permissions to work
+            the idea. This ensures the agent has the right permissions to work
             on the board.
           </p>
         </section>
 
         <section>
           <h2 className="mb-4 text-2xl font-semibold">
-            Using Bots with Claude Code
+            Using Agents with Claude Code
           </h2>
           <p className="mb-4 text-muted-foreground">
             Start Claude Code normally with the VibeCodes MCP server connected,
             then ask it to switch identity using the{" "}
             <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
-              set_bot_identity
+              set_agent_identity
             </code>{" "}
             tool:
           </p>
           <div className="space-y-3">
             <div className="rounded-lg bg-muted p-4">
               <code className="text-sm">
-                &quot;Switch to my Dev Alpha bot and check what tasks are
+                &quot;Switch to my Dev Alpha agent and check what tasks are
                 assigned to it&quot;
               </code>
             </div>
@@ -230,10 +233,10 @@ export default function AiBotTeamsPage() {
           <ul className="mt-2 list-inside list-disc space-y-2 text-muted-foreground">
             <li>
               All actions (comments, task updates, activity log entries) are{" "}
-              <strong className="text-foreground">attributed to that bot</strong>
+              <strong className="text-foreground">attributed to that agent</strong>
             </li>
             <li>
-              If the bot has a system prompt, Claude{" "}
+              If the agent has a system prompt, Claude{" "}
               <strong className="text-foreground">automatically adopts the
               persona</strong> — no need to manually tell it to follow the prompt
             </li>
@@ -247,9 +250,9 @@ export default function AiBotTeamsPage() {
           <p className="mt-3 text-muted-foreground">
             To reset back to the default identity, just say{" "}
             <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
-              &quot;Reset bot identity&quot;
+              &quot;Reset agent identity&quot;
             </code>{" "}
-            and Claude will stop following the bot persona. The reset is also
+            and Claude will stop following the agent persona. The reset is also
             persisted.
           </p>
         </section>
@@ -259,12 +262,13 @@ export default function AiBotTeamsPage() {
             Example: Parallel Development
           </h2>
           <p className="mb-4 text-muted-foreground">
-            Here&apos;s a typical workflow with two bots working in parallel:
+            Here&apos;s a typical workflow with two agents working in parallel:
           </p>
           <ol className="list-inside list-decimal space-y-3 text-muted-foreground">
             <li>
-              <strong className="text-foreground">Create two bots</strong> on
-              your profile: &quot;Dev Alpha&quot; (Developer role) and &quot;QA
+              <strong className="text-foreground">Create two agents</strong> on
+              the <Link href="/agents" className="text-primary hover:underline">Agents</Link>{" "}
+              page: &quot;Dev Alpha&quot; (Developer role) and &quot;QA
               Scout&quot; (QA Tester role)
             </li>
             <li>
@@ -290,14 +294,14 @@ export default function AiBotTeamsPage() {
             </li>
             <li>
               <strong className="text-foreground">Watch the board update
-              </strong> in real-time as both bots work. Each bot&apos;s
-              comments and activity entries show its own name and bot icon.
+              </strong> in real-time as both agents work. Each agent&apos;s
+              comments and activity entries show its own name and agent icon.
             </li>
           </ol>
         </section>
 
         <section>
-          <h2 className="mb-4 text-2xl font-semibold">Bot MCP Tools</h2>
+          <h2 className="mb-4 text-2xl font-semibold">Agent MCP Tools</h2>
           <p className="mb-4 text-muted-foreground">
             These tools are available when connected via MCP:
           </p>
@@ -312,36 +316,36 @@ export default function AiBotTeamsPage() {
               <tbody className="text-muted-foreground">
                 <tr className="border-b border-border/50">
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">
-                    list_bots
+                    list_agents
                   </td>
                   <td className="py-2">
-                    List all bots you own, with name, role, and active status
+                    List all agents you own, with name, role, and active status
                   </td>
                 </tr>
                 <tr className="border-b border-border/50">
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">
-                    set_bot_identity
+                    set_agent_identity
                   </td>
                   <td className="py-2">
-                    Switch to a specific bot (by name or ID). Identity is
+                    Switch to a specific agent (by name or ID). Identity is
                     persisted across sessions. Call with no args to reset.
                   </td>
                 </tr>
                 <tr className="border-b border-border/50">
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">
-                    get_bot_prompt
+                    get_agent_prompt
                   </td>
                   <td className="py-2">
-                    Retrieve the system prompt for the active bot — Claude Code
+                    Retrieve the system prompt for the active agent — Claude Code
                     can read this to know how to behave
                   </td>
                 </tr>
                 <tr>
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">
-                    create_bot
+                    create_agent
                   </td>
                   <td className="py-2">
-                    Create a new bot directly from Claude Code (name, role,
+                    Create a new agent directly from Claude Code (name, role,
                     system prompt)
                   </td>
                 </tr>
@@ -352,33 +356,33 @@ export default function AiBotTeamsPage() {
 
         <section>
           <h2 className="mb-4 text-2xl font-semibold">
-            How Bots Appear in the UI
+            How Agents Appear in the UI
           </h2>
           <p className="mb-4 text-muted-foreground">
-            Bots are distinguished from human users throughout the board:
+            Agents are distinguished from human users throughout the board:
           </p>
           <ul className="list-inside list-disc space-y-2 text-muted-foreground">
             <li>
-              <strong className="text-foreground">Task cards</strong> — bot
-              assignees show a small bot icon overlay on their avatar
+              <strong className="text-foreground">Task cards</strong> — agent
+              assignees show a small agent icon overlay on their avatar
             </li>
             <li>
               <strong className="text-foreground">Activity timeline</strong>{" "}
-              — bot actions show a bot icon next to the actor name
+              — agent actions show an agent icon next to the actor name
             </li>
             <li>
-              <strong className="text-foreground">Task comments</strong> — bot
-              comments show a bot icon next to the author name
+              <strong className="text-foreground">Task comments</strong> — agent
+              comments show an agent icon next to the author name
             </li>
             <li>
               <strong className="text-foreground">Assignee dropdown</strong>{" "}
-              — bots appear in a separate &quot;My Bots&quot; section with bot
-              icons
+              — agents appear in a separate &quot;My Agents&quot; section with
+              agent icons
             </li>
             <li>
               <strong className="text-foreground">Dashboard</strong> — the
-              &quot;My Bots&quot; panel shows each bot&apos;s current task and
-              latest activity. Click a bot to open its{" "}
+              &quot;My Agents&quot; panel shows each agent&apos;s current task and
+              latest activity. Click an agent to open its{" "}
               <strong className="text-foreground">activity dialog</strong>{" "}
               — assigned tasks and a merged activity feed grouped by work
               sessions
@@ -388,21 +392,21 @@ export default function AiBotTeamsPage() {
 
         <section>
           <h2 className="mb-4 text-2xl font-semibold">
-            Bots as AI Personas
+            Agents as AI Personas
           </h2>
           <p className="mb-4 text-muted-foreground">
-            Your bot profiles double as{" "}
+            Your agent profiles double as{" "}
             <strong className="text-foreground">AI personas</strong> for the
             built-in AI features. When using{" "}
             <strong className="text-foreground">Enhance with AI</strong>{" "}
             (on ideas) or{" "}
             <strong className="text-foreground">AI Generate</strong>{" "}
-            (on boards), you can select any active bot as a persona. The
-            bot&apos;s system prompt is injected into the AI call, guiding
+            (on boards), you can select any active agent as a persona. The
+            agent&apos;s system prompt is injected into the AI call, guiding
             Claude&apos;s style and focus.
           </p>
           <p className="text-muted-foreground">
-            For example, selecting a &quot;Business Analyst&quot; bot persona
+            For example, selecting a &quot;Business Analyst&quot; agent persona
             when enhancing an idea will produce a more requirements-focused
             description, while a &quot;Developer&quot; persona will emphasise
             technical implementation details.
@@ -498,23 +502,23 @@ export default function AiBotTeamsPage() {
         </section>
 
         <section>
-          <h2 className="mb-4 text-2xl font-semibold">Managing Bots</h2>
+          <h2 className="mb-4 text-2xl font-semibold">Managing Agents</h2>
           <p className="text-muted-foreground">
-            On your profile page, you can:
+            On the <Link href="/agents" className="text-primary hover:underline">Agents</Link> page, you can:
           </p>
           <ul className="mt-3 list-inside list-disc space-y-2 text-muted-foreground">
             <li>
-              <strong className="text-foreground">Edit</strong> a bot&apos;s
+              <strong className="text-foreground">Edit</strong> an agent&apos;s
               name, role, system prompt, or avatar
             </li>
             <li>
-              <strong className="text-foreground">Deactivate</strong> a bot
-              (toggle the active switch) — deactivated bots won&apos;t appear
+              <strong className="text-foreground">Deactivate</strong> an agent
+              (toggle the active switch) — deactivated agents won&apos;t appear
               in the assignee dropdown but their historical activity is preserved
             </li>
             <li>
-              <strong className="text-foreground">Delete</strong> a bot — this
-              removes it permanently. The default &quot;Claude Code&quot; bot
+              <strong className="text-foreground">Delete</strong> an agent — this
+              removes it permanently. The default &quot;Claude Code&quot; agent
               cannot be deleted.
             </li>
           </ul>

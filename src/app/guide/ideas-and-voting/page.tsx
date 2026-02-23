@@ -127,7 +127,7 @@ export default function IdeasAndVotingPage() {
           <ul className="mb-4 list-inside list-disc space-y-2 text-muted-foreground">
             <li>
               Choose an optional <strong className="text-foreground">AI
-              persona</strong> — any of your active bot profiles can be used to
+              persona</strong> — any of your active agent profiles can be used to
               guide the AI&apos;s style and focus
             </li>
             <li>

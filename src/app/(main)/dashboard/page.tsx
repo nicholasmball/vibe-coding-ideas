@@ -486,12 +486,12 @@ export default async function DashboardPage() {
     sections["my-bots"] = (
       <CollapsibleSection
         sectionId="my-bots"
-        title="My Bots"
+        title="My Agents"
         icon={<Bot className="h-5 w-5" />}
         count={dashboardBots.length}
         headerRight={
           <Link
-            href={`/profile/${user.id}`}
+            href="/agents"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             Manage

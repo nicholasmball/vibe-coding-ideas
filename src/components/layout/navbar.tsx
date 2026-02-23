@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Sparkles, Plus, LogOut, User as UserIcon, Menu, LayoutDashboard, BookOpen, Users, Rss, Shield } from "lucide-react";
+import { Sparkles, Plus, LogOut, User as UserIcon, Menu, LayoutDashboard, BookOpen, Users, Rss, Shield, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -92,6 +92,12 @@ export function Navbar() {
                   <Button variant={isActive("/members") ? "secondary" : "ghost"} className="gap-2">
                     <Users className="h-4 w-4" />
                     Members
+                  </Button>
+                </Link>
+                <Link href="/agents">
+                  <Button variant={isActive("/agents") ? "secondary" : "ghost"} className="gap-2">
+                    <Bot className="h-4 w-4" />
+                    Agents
                   </Button>
                 </Link>
                 <Link href="/ideas/new">
@@ -236,6 +242,15 @@ export function Navbar() {
                     <Button variant={isActive("/members") ? "secondary" : "ghost"} className="w-full justify-start gap-2">
                       <Users className="h-4 w-4" />
                       Members
+                    </Button>
+                  </Link>
+                  <Link
+                    href="/agents"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Button variant={isActive("/agents") ? "secondary" : "ghost"} className="w-full justify-start gap-2">
+                      <Bot className="h-4 w-4" />
+                      Agents
                     </Button>
                   </Link>
                   <Link
