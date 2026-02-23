@@ -12,7 +12,7 @@ export const listBotsSchema = z.object({
 });
 
 export const getBotPromptSchema = z.object({
-  bot_id: z
+  agent_id: z
     .string()
     .uuid()
     .optional()
@@ -20,15 +20,15 @@ export const getBotPromptSchema = z.object({
 });
 
 export const setBotIdentitySchema = z.object({
-  bot_id: z
+  agent_id: z
     .string()
     .uuid()
     .optional()
-    .describe("Agent ID to switch to. Omit both bot_id and bot_name to reset to default."),
-  bot_name: z
+    .describe("Agent ID to switch to. Omit both agent_id and agent_name to reset to default."),
+  agent_name: z
     .string()
     .optional()
-    .describe("Agent name to search for (if bot_id not provided)."),
+    .describe("Agent name to search for (if agent_id not provided)."),
 });
 
 export const createBotSchema = z.object({
@@ -73,7 +73,7 @@ export async function getBotPrompt(
   ctx: McpContext,
   args: z.infer<typeof getBotPromptSchema>
 ) {
-  const botId = args.bot_id ?? ctx.userId;
+  const botId = args.agent_id ?? ctx.userId;
 
   const { data, error } = await ctx.supabase
     .from("bot_profiles")
@@ -95,7 +95,7 @@ export async function setBotIdentity(
   const persistUserId = ctx.ownerUserId ?? ctx.userId;
 
   // Reset to default if neither provided
-  if (!args.bot_id && !args.bot_name) {
+  if (!args.agent_id && !args.agent_name) {
     onIdentityChange(null);
 
     // Persist null to DB
@@ -113,19 +113,19 @@ export async function setBotIdentity(
     };
   }
 
-  let botId = args.bot_id;
+  let botId = args.agent_id;
 
   // Look up by name if no ID provided
-  if (!botId && args.bot_name) {
+  if (!botId && args.agent_name) {
     const { data, error } = await ctx.supabase
       .from("bot_profiles")
       .select("id, name, is_active")
-      .ilike("name", args.bot_name)
+      .ilike("name", args.agent_name)
       .limit(1)
       .maybeSingle();
 
     if (error) throw new Error(error.message);
-    if (!data) throw new Error(`No agent found with name "${args.bot_name}"`);
+    if (!data) throw new Error(`No agent found with name "${args.agent_name}"`);
     botId = data.id;
   }
 

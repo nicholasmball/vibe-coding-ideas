@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/tooltip";
 import { toggleVote } from "@/actions/votes";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface VoteButtonProps {
   ideaId: string;
@@ -18,7 +19,7 @@ interface VoteButtonProps {
 }
 
 export function VoteButton({ ideaId, upvotes, hasVoted }: VoteButtonProps) {
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [optimisticState, setOptimisticState] = useOptimistic(
     { upvotes, hasVoted },
     (state) => ({
@@ -30,7 +31,11 @@ export function VoteButton({ ideaId, upvotes, hasVoted }: VoteButtonProps) {
   const handleVote = () => {
     startTransition(async () => {
       setOptimisticState(optimisticState);
-      await toggleVote(ideaId);
+      try {
+        await toggleVote(ideaId);
+      } catch {
+        toast.error("Failed to vote");
+      }
     });
   };
 
@@ -38,10 +43,10 @@ export function VoteButton({ ideaId, upvotes, hasVoted }: VoteButtonProps) {
     <Tooltip>
       <TooltipTrigger asChild>
         <Button
+          data-testid="vote-button"
           variant="outline"
           size="sm"
           onClick={handleVote}
-          disabled={isPending}
           className={cn(
             "flex flex-col items-center gap-0 px-3 py-2 h-auto",
             optimisticState.hasVoted &&

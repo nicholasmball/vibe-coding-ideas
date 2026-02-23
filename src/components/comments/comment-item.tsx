@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Reply, Check, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { CommentTypeBadge } from "./comment-type-badge";
 import { CommentForm } from "./comment-form";
 import { incorporateComment, deleteComment } from "@/actions/comments";
 import { undoableAction } from "@/lib/undo-toast";
+import { toast } from "sonner";
 import { formatRelativeTime } from "@/lib/utils";
 import { Markdown } from "@/components/ui/markdown";
 import type { CommentWithAuthor } from "@/types";
@@ -30,7 +31,7 @@ export function CommentItem({
 }: CommentItemProps) {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [removed, setRemoved] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [isIncorporating, setIsIncorporating] = useState(false);
   const isIdeaAuthor = currentUserId === ideaAuthorId;
   const isCommentAuthor = currentUserId === comment.author_id;
 
@@ -41,10 +42,15 @@ export function CommentItem({
       .join("")
       .toUpperCase() ?? "?";
 
-  const handleIncorporate = () => {
-    startTransition(async () => {
+  const handleIncorporate = async () => {
+    if (isIncorporating) return;
+    setIsIncorporating(true);
+    try {
       await incorporateComment(comment.id, ideaId);
-    });
+    } catch {
+      setIsIncorporating(false);
+      toast.error("Failed to incorporate suggestion");
+    }
   };
 
   const handleDelete = () => {
@@ -73,7 +79,7 @@ export function CommentItem({
                 {comment.author.full_name ?? "Anonymous"}
               </span>
               <CommentTypeBadge type={comment.type} />
-              {comment.is_incorporated && (
+              {(comment.is_incorporated || isIncorporating) && (
                 <Badge
                   variant="outline"
                   className="bg-emerald-400/10 border-emerald-400/20 text-emerald-400 text-[10px]"
@@ -103,13 +109,13 @@ export function CommentItem({
               )}
               {isIdeaAuthor &&
                 comment.type === "suggestion" &&
-                !comment.is_incorporated && (
+                !comment.is_incorporated &&
+                !isIncorporating && (
                   <Button
                     variant="ghost"
                     size="sm"
                     className="h-7 gap-1 text-xs text-emerald-400"
                     onClick={handleIncorporate}
-                    disabled={isPending}
                   >
                     <Check className="h-3 w-3" />
                     Mark as incorporated
@@ -121,7 +127,6 @@ export function CommentItem({
                   size="sm"
                   className="h-7 gap-1 text-xs text-destructive"
                   onClick={handleDelete}
-                  disabled={isPending}
                 >
                   <Trash2 className="h-3 w-3" />
                   Delete

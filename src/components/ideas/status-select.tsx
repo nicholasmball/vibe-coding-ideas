@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useOptimistic, useTransition } from "react";
 import {
   Select,
   SelectContent,
@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { STATUS_CONFIG } from "@/lib/constants";
 import { updateIdeaStatus } from "@/actions/ideas";
+import { toast } from "sonner";
 import type { IdeaStatus } from "@/types";
 
 interface StatusSelectProps {
@@ -18,17 +19,27 @@ interface StatusSelectProps {
 }
 
 export function StatusSelect({ ideaId, currentStatus }: StatusSelectProps) {
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
+  const [optimisticStatus, setOptimisticStatus] = useOptimistic(
+    currentStatus,
+    (_: IdeaStatus, next: IdeaStatus) => next
+  );
 
   const handleChange = (value: string) => {
+    const newStatus = value as IdeaStatus;
     startTransition(async () => {
-      await updateIdeaStatus(ideaId, value as IdeaStatus);
+      setOptimisticStatus(newStatus);
+      try {
+        await updateIdeaStatus(ideaId, newStatus);
+      } catch {
+        toast.error("Failed to update status");
+      }
     });
   };
 
   return (
-    <Select value={currentStatus} onValueChange={handleChange} disabled={isPending}>
-      <SelectTrigger className="w-[160px]">
+    <Select value={optimisticStatus} onValueChange={handleChange}>
+      <SelectTrigger className="w-[160px]" data-testid="status-select">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

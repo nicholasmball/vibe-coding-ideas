@@ -1,9 +1,10 @@
 "use client";
 
-import { useTransition } from "react";
-import { Users, UserPlus, UserMinus } from "lucide-react";
+import { useOptimistic, useTransition } from "react";
+import { UserPlus, UserMinus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toggleCollaborator } from "@/actions/collaborators";
+import { toast } from "sonner";
 
 interface CollaboratorButtonProps {
   ideaId: string;
@@ -16,24 +17,32 @@ export function CollaboratorButton({
   isCollaborator,
   isAuthor,
 }: CollaboratorButtonProps) {
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
+  const [optimisticIsCollaborator, setOptimisticIsCollaborator] = useOptimistic(
+    isCollaborator,
+    (_: boolean, next: boolean) => next
+  );
 
   if (isAuthor) return null;
 
   const handleToggle = () => {
     startTransition(async () => {
-      await toggleCollaborator(ideaId);
+      setOptimisticIsCollaborator(!optimisticIsCollaborator);
+      try {
+        await toggleCollaborator(ideaId);
+      } catch {
+        toast.error("Failed to update collaboration");
+      }
     });
   };
 
   return (
     <Button
-      variant={isCollaborator ? "outline" : "default"}
+      variant={optimisticIsCollaborator ? "outline" : "default"}
       onClick={handleToggle}
-      disabled={isPending}
       className="gap-2"
     >
-      {isCollaborator ? (
+      {optimisticIsCollaborator ? (
         <>
           <UserMinus className="h-4 w-4" />
           Leave Project

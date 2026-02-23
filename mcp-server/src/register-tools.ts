@@ -659,7 +659,7 @@ export function registerTools(
 
   server.tool(
     "set_agent_identity",
-    "Switch session identity to an agent persona. Provide bot_id or bot_name. Omit both to reset to default identity. Returns the agent's system prompt.",
+    "Switch session identity to an agent persona. Provide agent_id or agent_name. Omit both to reset to default identity. Returns the agent's system prompt.",
     setBotIdentitySchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {

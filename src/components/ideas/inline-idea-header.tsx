@@ -23,8 +23,14 @@ export function InlineIdeaHeader({
   const [title, setTitle] = useState(initialTitle);
   const [visibility, setVisibility] = useState(initialVisibility);
   const previousTitleRef = useRef(initialTitle);
+  const escapePressedRef = useRef(false);
 
   async function handleTitleBlur() {
+    if (escapePressedRef.current) {
+      escapePressedRef.current = false;
+      setTitle(previousTitleRef.current);
+      return;
+    }
     const trimmed = title.trim();
     if (!trimmed || trimmed === previousTitleRef.current) {
       setTitle(previousTitleRef.current);
@@ -44,7 +50,7 @@ export function InlineIdeaHeader({
       e.preventDefault();
       (e.target as HTMLInputElement).blur();
     } else if (e.key === "Escape") {
-      setTitle(previousTitleRef.current);
+      escapePressedRef.current = true;
       (e.target as HTMLInputElement).blur();
     }
   }
