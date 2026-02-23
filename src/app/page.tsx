@@ -231,6 +231,10 @@ export default async function LandingPage() {
                 Guide
               </Link>
               <span className="text-border">&middot;</span>
+              <Link href="/privacy" className="hover:text-foreground">
+                Privacy
+              </Link>
+              <span className="text-border">&middot;</span>
               <a
                 href="https://github.com/NickBall/vibe-coding-ideas"
                 target="_blank"
