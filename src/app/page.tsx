@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Users, MessageSquare, Lightbulb, ArrowRight, Zap, Handshake, Bot, LayoutDashboard, Bug, Code } from "lucide-react";
+import { Users, MessageSquare, Lightbulb, ArrowRight, Zap, Handshake, Bot, LayoutDashboard, Bug, Code, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";

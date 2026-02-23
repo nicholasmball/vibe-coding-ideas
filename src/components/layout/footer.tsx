@@ -19,6 +19,10 @@ export function Footer() {
             Terms of Service
           </Link>
           <span className="text-border">&middot;</span>
+          <Link href="/privacy" className="hover:text-foreground">
+            Privacy Policy
+          </Link>
+          <span className="text-border">&middot;</span>
           <a
             href="https://github.com/NickBall/vibe-coding-ideas"
             target="_blank"
