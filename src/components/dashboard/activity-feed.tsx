@@ -36,9 +36,14 @@ export function ActivityFeed({ notifications }: ActivityFeedProps) {
 
   if (notifications.length === 0) {
     return (
-      <p className="py-4 text-center text-sm text-muted-foreground">
-        No recent activity.
-      </p>
+      <div className="py-4 text-center">
+        <p className="text-sm text-muted-foreground">
+          No recent activity.
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Activity shows up when others vote, comment, or collaborate on your ideas.
+        </p>
+      </div>
     );
   }
 

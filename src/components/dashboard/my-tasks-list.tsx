@@ -19,9 +19,18 @@ export function MyTasksList({ tasks }: MyTasksListProps) {
 
   if (tasks.length === 0) {
     return (
-      <p className="py-4 text-center text-sm text-muted-foreground">
-        No tasks assigned to you.
-      </p>
+      <div className="py-4 text-center">
+        <p className="text-sm text-muted-foreground">
+          No tasks assigned to you.
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Tasks appear here when you&apos;re assigned to them on a{" "}
+          <Link href="/feed" className="text-primary hover:underline">
+            project board
+          </Link>
+          .
+        </p>
+      </div>
     );
   }
 

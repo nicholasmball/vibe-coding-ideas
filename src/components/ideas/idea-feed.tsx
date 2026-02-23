@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Search, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { IdeaCard } from "./idea-card";
 import { Input } from "@/components/ui/input";
@@ -241,6 +242,43 @@ export function IdeaFeed({
                   : "No ideas match your filters."
               : "No ideas yet. Be the first to share one!"}
           </p>
+          {currentView === "mine" && (
+            <Link href="/ideas/new">
+              <Button variant="outline" size="sm" className="mt-4">
+                Share an idea
+              </Button>
+            </Link>
+          )}
+          {currentView === "collaborating" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-4"
+              onClick={() => updateParams({ view: "" })}
+            >
+              Browse ideas
+            </Button>
+          )}
+          {currentView === "all" && !currentSearch && !currentTag && !currentStatus && (
+            <Link href="/ideas/new">
+              <Button variant="outline" size="sm" className="mt-4">
+                Share the first idea
+              </Button>
+            </Link>
+          )}
+          {(currentSearch || currentTag || currentStatus) && currentView === "all" && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-4"
+              onClick={() => {
+                clearSearch();
+                updateParams({ tag: "", status: "", q: "" });
+              }}
+            >
+              Clear filters
+            </Button>
+          )}
         </div>
       ) : (
         <div className="space-y-4">

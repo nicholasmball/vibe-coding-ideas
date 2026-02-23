@@ -235,15 +235,6 @@ export default async function LandingPage() {
                 Privacy
               </Link>
               <span className="text-border">&middot;</span>
-              <a
-                href="https://github.com/NickBall/vibe-coding-ideas"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-foreground"
-              >
-                GitHub
-              </a>
-              <span className="text-border">&middot;</span>
               <span>&copy; {new Date().getFullYear()} VibeCodes</span>
             </div>
           </div>
