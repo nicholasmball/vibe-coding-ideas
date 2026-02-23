@@ -448,3 +448,56 @@ Both modes share the same 38 tools via `mcp-server/src/register-tools.ts` with d
 - **Discovery**: `/.well-known/oauth-authorization-server` (RFC 8414), `/.well-known/oauth-protected-resource` (RFC 9728)
 - **DB tables**: `mcp_oauth_clients` (DCR), `mcp_oauth_codes` (auth codes, 10-min TTL), `bot_profiles` (multi-bot support), `ai_usage_log` (AI usage tracking)
 - **Env vars** (Vercel): `NEXT_PUBLIC_APP_URL`, `SUPABASE_SERVICE_ROLE_KEY`
+
+## Local Project Config (.vibecodes/)
+
+When working in a repo linked to a VibeCodes idea, a `.vibecodes/` folder provides context so MCP tools don't require explicit `idea_id` on every call.
+
+### Folder Structure
+```
+.vibecodes/
+├── config.json      # Core project linking config
+├── memory/          # Future: session artifacts, research notes
+└── .gitignore       # Ignores memory/ contents
+```
+
+### Config Schema (`.vibecodes/config.json`)
+```json
+{
+  "ideaId": "62e57071-3645-422f-96c0-b2042e39e6dd",
+  "ideaTitle": "VibeCodes",
+  "taskId": "abc123...",
+  "botId": "def456...",
+  "defaultColumn": "82a02910-..."
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `ideaId` | Yes | Links this repo to a VibeCodes idea |
+| `ideaTitle` | No | Human-readable reference |
+| `taskId` | No | Current working task |
+| `botId` | No | Preferred bot identity |
+| `defaultColumn` | No | Column ID for new tasks |
+
+### How It Works
+1. **Read config at session start** — check for `.vibecodes/config.json` in the repo root
+2. **Auto-inject `idea_id`** — when calling MCP tools that require `idea_id`, use the value from config
+3. **Update `taskId`** — when starting work on a task, update config to track current context
+4. **Use `defaultColumn`** — when creating tasks without explicit column, use this column ID
+
+### Example Workflow
+```
+User: "Show me my board"
+Claude: [reads .vibecodes/config.json → ideaId: 62e57071...]
+        [calls get_board with idea_id from config]
+
+User: "Create a task called 'Fix login bug'"
+Claude: [uses ideaId + defaultColumn from config]
+        [calls create_task with injected values]
+```
+
+### This Repo
+This repository is linked to the VibeCodes idea:
+- **Idea ID**: `62e57071-3645-422f-96c0-b2042e39e6dd`
+- **Config**: `.vibecodes/config.json`

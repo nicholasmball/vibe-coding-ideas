@@ -1,0 +1,3 @@
+# Keep memory folder private
+memory/*
+!memory/.gitkeep
