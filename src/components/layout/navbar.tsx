@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ThemeToggle } from "./theme-toggle";
 import { NotificationBell } from "./notification-bell";
+import { FeedbackDialog } from "./feedback-dialog";
 import { useUser } from "@/hooks/use-user";
 import { createClient } from "@/lib/supabase/client";
 import { useState, useEffect } from "react";
@@ -123,6 +124,7 @@ export function Navbar() {
               </Button>
             </Link>
             <ThemeToggle />
+            {user && <FeedbackDialog />}
             {user && <NotificationBell />}
             {loading ? (
               <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
@@ -188,6 +190,7 @@ export function Navbar() {
           {/* Mobile menu button */}
           <div className="flex items-center gap-2 md:hidden">
             <ThemeToggle />
+            {user && <FeedbackDialog />}
             {user && <NotificationBell />}
             <Tooltip>
               <TooltipTrigger asChild>
