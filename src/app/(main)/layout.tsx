@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/layout/navbar";
+import { Footer } from "@/components/layout/footer";
 
 export default function MainLayout({
   children,
@@ -8,7 +9,10 @@ export default function MainLayout({
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden">
       <Navbar />
-      <main className="flex-1 overflow-auto">{children}</main>
+      <main className="flex min-h-0 flex-1 flex-col overflow-auto">
+        <div className="flex-1">{children}</div>
+        <Footer />
+      </main>
     </div>
   );
 }

@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Sparkles, Users, MessageSquare, Lightbulb, ArrowRight, Zap, Handshake, Bot, LayoutDashboard, Bug, Code } from "lucide-react";
+import { Users, MessageSquare, Lightbulb, ArrowRight, Zap, Handshake, Bot, LayoutDashboard, Bug, Code } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/layout/navbar";
+import { Footer } from "@/components/layout/footer";
 import { createClient } from "@/lib/supabase/server";
 
 const features = [
@@ -218,33 +219,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border py-8">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              <span>VibeCodes</span>
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              <Link href="/guide" className="hover:text-foreground">
-                Guide
-              </Link>
-              <span className="text-border">&middot;</span>
-              <a
-                href="https://github.com/NickBall/vibe-coding-ideas"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-foreground"
-              >
-                GitHub
-              </a>
-              <span className="text-border">&middot;</span>
-              <span>&copy; {new Date().getFullYear()} VibeCodes</span>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

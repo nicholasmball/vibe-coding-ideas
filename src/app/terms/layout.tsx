@@ -2,12 +2,11 @@ import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 
 export const metadata = {
-  title: "Guide - VibeCodes",
-  description:
-    "Learn how to use VibeCodes — share ideas, collaborate with developers, manage projects with kanban boards, and integrate with Claude Code via MCP.",
+  title: "Terms of Service - VibeCodes",
+  description: "Read the VibeCodes Terms of Service.",
 };
 
-export default function GuideLayout({
+export default function TermsLayout({
   children,
 }: {
   children: React.ReactNode;
