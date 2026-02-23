@@ -32,15 +32,14 @@ export default function PrivacyPolicyPage() {
           1. Data Controller &amp; Contact Details
         </h2>
         <p className="mt-3 text-muted-foreground">
-          VibeCodes is operated by{" "}
-          <strong className="text-foreground">Nick Ball</strong>, a sole trader
-          based in England. For the purposes of the UK General Data Protection
-          Regulation (UK GDPR) and the Data Protection Act 2018, Nick Ball is
-          the data controller responsible for your personal data.
+          VibeCodes is operated as a sole trader business based in England. For
+          the purposes of the UK General Data Protection Regulation (UK GDPR)
+          and the Data Protection Act 2018, the operator of VibeCodes is the
+          data controller responsible for your personal data.
         </p>
         <div className="mt-3 rounded-xl border border-border bg-muted/30 p-5 text-sm">
           <p className="font-medium text-foreground">Data Controller</p>
-          <p className="mt-1 text-muted-foreground">Nick Ball (sole trader)</p>
+          <p className="mt-1 text-muted-foreground">VibeCodes (sole trader)</p>
           <p className="mt-1 text-muted-foreground">
             Email:{" "}
             <a
@@ -649,9 +648,8 @@ export default function PrivacyPolicyPage() {
         </p>
         <div className="mt-3 rounded-xl border border-border bg-muted/30 p-5 text-sm">
           <p className="font-medium text-foreground">
-            Nick Ball (Data Controller)
+            VibeCodes (Data Controller)
           </p>
-          <p className="mt-1 text-muted-foreground">Trading as VibeCodes</p>
           <p className="mt-1 text-muted-foreground">
             Email:{" "}
             <a
