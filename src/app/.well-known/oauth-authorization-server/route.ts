@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { metadataCorsOptionsRequestHandler } from "mcp-handler";
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -34,6 +33,6 @@ export async function GET(request: Request) {
   }
 }
 
-const corsHandler = metadataCorsOptionsRequestHandler();
-
-export { corsHandler as OPTIONS };
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: CORS_HEADERS });
+}
