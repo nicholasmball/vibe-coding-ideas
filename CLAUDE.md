@@ -497,7 +497,3 @@ Claude: [uses ideaId + defaultColumn from config]
         [calls create_task with injected values]
 ```
 
-### This Repo
-This repository is linked to the VibeCodes idea:
-- **Idea ID**: `62e57071-3645-422f-96c0-b2042e39e6dd`
-- **Config**: `.vibecodes/config.json`
