@@ -87,6 +87,14 @@ export const BoardTaskCard = memo(function BoardTaskCard({
   const cardRef = useRef<HTMLDivElement>(null);
   const wasAutoOpenRef = useRef(autoOpen);
 
+  // Sync autoOpen prop changes (e.g. clicking a second notification while on the same board)
+  useEffect(() => {
+    if (autoOpen) {
+      setDetailOpen(true);
+      wasAutoOpenRef.current = true;
+    }
+  }, [autoOpen]);
+
   // When the auto-opened detail dialog closes, scroll into view and highlight
   useEffect(() => {
     if (wasAutoOpenRef.current && !detailOpen) {
