@@ -13,18 +13,42 @@ export async function requestCollaboration(ideaId: string) {
     throw new Error("Not authenticated");
   }
 
-  // Upsert: handles re-request after decline (resets to pending)
-  const { data: request, error } = await supabase
+  // Check if a request already exists for this idea/user
+  const { data: existing } = await supabase
     .from("collaboration_requests")
-    .upsert(
-      { idea_id: ideaId, requester_id: user.id, status: "pending" as const },
-      { onConflict: "idea_id,requester_id" }
-    )
-    .select("id")
-    .single();
+    .select("id, status")
+    .eq("idea_id", ideaId)
+    .eq("requester_id", user.id)
+    .maybeSingle();
 
-  if (error) {
-    throw new Error("Failed to submit collaboration request");
+  let requestId: string;
+
+  if (existing?.status === "pending") {
+    // Already pending — nothing to do
+    revalidatePath(`/ideas/${ideaId}`);
+    revalidatePath(`/ideas/${ideaId}/board`);
+    return;
+  } else if (existing) {
+    // Re-request after decline: update back to pending
+    const { error } = await supabase
+      .from("collaboration_requests")
+      .update({ status: "pending" as const })
+      .eq("id", existing.id);
+    if (error) {
+      throw new Error("Failed to submit collaboration request");
+    }
+    requestId = existing.id;
+  } else {
+    // New request
+    const { data: request, error } = await supabase
+      .from("collaboration_requests")
+      .insert({ idea_id: ideaId, requester_id: user.id, status: "pending" as const })
+      .select("id")
+      .single();
+    if (error) {
+      throw new Error("Failed to submit collaboration request");
+    }
+    requestId = request.id;
   }
 
   // Notify the idea author (respects preferences)
@@ -44,7 +68,7 @@ export async function requestCollaboration(ideaId: string) {
         actor_id: user.id,
         type: "collaboration_request" as const,
         idea_id: ideaId,
-        collaboration_request_id: request.id,
+        collaboration_request_id: requestId,
       });
     }
   }
