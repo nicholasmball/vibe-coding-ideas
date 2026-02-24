@@ -73,12 +73,12 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
     isCollaborator = !!collab;
   }
 
-  if (!isAuthor && !isCollaborator) {
-    redirect(`/ideas/${id}`);
-  }
+  const isTeamMember = isAuthor || isCollaborator;
 
-  // Lazy-create default columns on first visit
-  await initializeBoardColumns(id);
+  // Only initialize columns for team members (guests see what exists)
+  if (isTeamMember) {
+    await initializeBoardColumns(id);
+  }
 
   // Phase 2: Parallel fetch of all board data
   const [
@@ -120,16 +120,20 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
       .select("*")
       .eq("id", idea.author_id)
       .single(),
-    supabase
-      .from("bot_profiles")
-      .select("*")
-      .eq("owner_id", user.id)
-      .eq("is_active", true),
-    supabase
-      .from("users")
-      .select("ai_enabled, ai_daily_limit, encrypted_anthropic_key")
-      .eq("id", user.id)
-      .single(),
+    isTeamMember
+      ? supabase
+          .from("bot_profiles")
+          .select("*")
+          .eq("owner_id", user.id)
+          .eq("is_active", true)
+      : Promise.resolve({ data: null }),
+    isTeamMember
+      ? supabase
+          .from("users")
+          .select("ai_enabled, ai_daily_limit, encrypted_anthropic_key")
+          .eq("id", user.id)
+          .single()
+      : Promise.resolve({ data: null }),
   ]);
 
   // Phase 3: Queries that depend on Phase 2 results
@@ -272,6 +276,7 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
         botProfiles={userBotProfiles}
         aiCredits={aiCredits}
         coverImageUrls={coverImageUrls}
+        isReadOnly={!isTeamMember}
       />
     </div>
   );

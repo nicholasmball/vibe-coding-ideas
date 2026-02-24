@@ -50,6 +50,7 @@ interface BoardToolbarProps {
   aiEnabled?: boolean;
   botProfiles?: BotProfile[];
   aiCredits?: AiCredits | null;
+  isReadOnly?: boolean;
 }
 
 export function BoardToolbar({
@@ -73,6 +74,7 @@ export function BoardToolbar({
   aiEnabled = false,
   botProfiles = [],
   aiCredits,
+  isReadOnly = false,
 }: BoardToolbarProps) {
   const [importOpen, setImportOpen] = useState(false);
   const [aiGenerateOpen, setAiGenerateOpen] = useState(false);
@@ -239,47 +241,51 @@ export function BoardToolbar({
         {filterControls}
       </div>
 
-      <div className="ml-auto flex gap-2">
-        {aiEnabled && (
+      {!isReadOnly && (
+        <div className="ml-auto flex gap-2">
+          {aiEnabled && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 gap-1.5 text-xs"
+              onClick={() => setAiGenerateOpen(true)}
+              disabled={!aiCredits?.isByok && aiCredits?.remaining === 0}
+              title={!aiCredits?.isByok && aiCredits?.remaining === 0 ? "Daily limit reached" : undefined}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">AI Generate</span>
+              {aiCredits && !aiCredits.isByok && aiCredits.remaining !== null && (
+                <span className="ml-1 text-[10px] text-muted-foreground">
+                  {aiCredits.remaining}/{aiCredits.limit}
+                </span>
+              )}
+            </Button>
+          )}
           <Button
             variant="outline"
             size="sm"
             className="h-8 gap-1.5 text-xs"
-            onClick={() => setAiGenerateOpen(true)}
-            disabled={!aiCredits?.isByok && aiCredits?.remaining === 0}
-            title={!aiCredits?.isByok && aiCredits?.remaining === 0 ? "Daily limit reached" : undefined}
+            onClick={() => setImportOpen(true)}
           >
-            <Sparkles className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">AI Generate</span>
-            {aiCredits && !aiCredits.isByok && aiCredits.remaining !== null && (
-              <span className="ml-1 text-[10px] text-muted-foreground">
-                {aiCredits.remaining}/{aiCredits.limit}
-              </span>
-            )}
+            <Upload className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Import</span>
           </Button>
-        )}
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-8 gap-1.5 text-xs"
-          onClick={() => setImportOpen(true)}
-        >
-          <Upload className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Import</span>
-        </Button>
-      </div>
+        </div>
+      )}
 
-      <ImportDialog
-        open={importOpen}
-        onOpenChange={setImportOpen}
-        ideaId={ideaId}
-        currentUserId={currentUserId}
-        columns={columns}
-        boardLabels={boardLabels}
-        teamMembers={teamMembers}
-      />
+      {!isReadOnly && (
+        <ImportDialog
+          open={importOpen}
+          onOpenChange={setImportOpen}
+          ideaId={ideaId}
+          currentUserId={currentUserId}
+          columns={columns}
+          boardLabels={boardLabels}
+          teamMembers={teamMembers}
+        />
+      )}
 
-      {aiEnabled && (
+      {!isReadOnly && aiEnabled && (
         <AiGenerateDialog
           open={aiGenerateOpen}
           onOpenChange={setAiGenerateOpen}

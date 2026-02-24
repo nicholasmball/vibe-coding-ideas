@@ -32,6 +32,7 @@ interface TaskAttachmentsSectionProps {
   currentUserId: string;
   coverImagePath?: string | null;
   onCoverChange?: (path: string | null) => void;
+  isReadOnly?: boolean;
 }
 
 function formatFileSize(bytes: number): string {
@@ -50,6 +51,7 @@ export function TaskAttachmentsSection({
   currentUserId,
   coverImagePath: initialCoverPath,
   onCoverChange,
+  isReadOnly = false,
 }: TaskAttachmentsSectionProps) {
   const [attachments, setAttachments] = useState<BoardTaskAttachment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -401,7 +403,7 @@ export function TaskAttachmentsSection({
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-0.5">
-                  {isImageType(attachment.content_type) && (
+                  {!isReadOnly && isImageType(attachment.content_type) && (
                     attachment.storage_path === localCoverPath ? (
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -439,17 +441,19 @@ export function TaskAttachmentsSection({
                     </TooltipTrigger>
                     <TooltipContent>Download</TooltipContent>
                   </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        className="cursor-pointer rounded p-1 text-muted-foreground hover:text-destructive"
-                        onClick={() => handleDelete(attachment)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>Delete</TooltipContent>
-                  </Tooltip>
+                  {!isReadOnly && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          className="cursor-pointer rounded p-1 text-muted-foreground hover:text-destructive"
+                          onClick={() => handleDelete(attachment)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>Delete</TooltipContent>
+                    </Tooltip>
+                  )}
                 </div>
               </div>
             ))}
@@ -457,78 +461,83 @@ export function TaskAttachmentsSection({
         </ScrollArea>
       ) : null}
 
-      {/* Drop zone + upload buttons */}
-      <div
-        className={`relative rounded-lg border-2 border-dashed p-4 text-center transition-colors ${
-          isDragging
-            ? "border-primary bg-primary/5"
-            : "border-border"
-        }`}
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
-      >
-        {isDragging ? (
-          <p className="text-sm text-primary">Drop files here</p>
-        ) : (
-          <>
-            <input
-              ref={fileInputRef}
-              id={`file-upload-${taskId}`}
-              type="file"
-              className="hidden"
-              accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.md"
-              onChange={handleFileSelect}
-              multiple
-            />
-            <input
-              ref={cameraInputRef}
-              id={`camera-upload-${taskId}`}
-              type="file"
-              className="hidden"
-              accept="image/*"
-              capture="environment"
-              onChange={handleFileSelect}
-            />
-            <div className="flex flex-wrap items-center justify-center gap-2">
-              <label htmlFor={uploading ? undefined : `file-upload-${taskId}`} className={uploading ? "pointer-events-none" : undefined}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="pointer-events-none gap-1.5 text-xs"
-                  disabled={uploading}
-                  tabIndex={-1}
-                  asChild
-                >
-                  <span>
-                    {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                    {uploading ? "Uploading..." : "Choose file"}
-                  </span>
-                </Button>
-              </label>
-              <label htmlFor={uploading ? undefined : `camera-upload-${taskId}`} className={uploading ? "pointer-events-none" : undefined}>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="pointer-events-none gap-1.5 text-xs"
-                  disabled={uploading}
-                  tabIndex={-1}
-                  asChild
-                >
-                  <span>
-                    <Camera className="h-3.5 w-3.5" />
-                    Camera
-                  </span>
-                </Button>
-              </label>
-            </div>
-            <p className="mt-2 text-[10px] text-muted-foreground">
-              Max 10MB. Drag &amp; drop, paste, or pick from gallery / files.
-            </p>
-          </>
-        )}
-      </div>
+      {/* Drop zone + upload buttons — hidden for read-only */}
+      {!isReadOnly && (
+        <div
+          className={`relative rounded-lg border-2 border-dashed p-4 text-center transition-colors ${
+            isDragging
+              ? "border-primary bg-primary/5"
+              : "border-border"
+          }`}
+          onDragEnter={handleDragEnter}
+          onDragLeave={handleDragLeave}
+          onDragOver={handleDragOver}
+          onDrop={handleDrop}
+        >
+          {isDragging ? (
+            <p className="text-sm text-primary">Drop files here</p>
+          ) : (
+            <>
+              <input
+                ref={fileInputRef}
+                id={`file-upload-${taskId}`}
+                type="file"
+                className="hidden"
+                accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.md"
+                onChange={handleFileSelect}
+                multiple
+              />
+              <input
+                ref={cameraInputRef}
+                id={`camera-upload-${taskId}`}
+                type="file"
+                className="hidden"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFileSelect}
+              />
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <label htmlFor={uploading ? undefined : `file-upload-${taskId}`} className={uploading ? "pointer-events-none" : undefined}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="pointer-events-none gap-1.5 text-xs"
+                    disabled={uploading}
+                    tabIndex={-1}
+                    asChild
+                  >
+                    <span>
+                      {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                      {uploading ? "Uploading..." : "Choose file"}
+                    </span>
+                  </Button>
+                </label>
+                <label htmlFor={uploading ? undefined : `camera-upload-${taskId}`} className={uploading ? "pointer-events-none" : undefined}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="pointer-events-none gap-1.5 text-xs"
+                    disabled={uploading}
+                    tabIndex={-1}
+                    asChild
+                  >
+                    <span>
+                      <Camera className="h-3.5 w-3.5" />
+                      Camera
+                    </span>
+                  </Button>
+                </label>
+              </div>
+              <p className="mt-2 text-[10px] text-muted-foreground">
+                Max 10MB. Drag &amp; drop, paste, or pick from gallery / files.
+              </p>
+            </>
+          )}
+        </div>
+      )}
+      {isReadOnly && attachments.length === 0 && !loading && (
+        <p className="text-xs text-muted-foreground">No attachments</p>
+      )}
 
       {/* Image preview overlay */}
       {previewUrl && (

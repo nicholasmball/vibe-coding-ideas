@@ -25,6 +25,7 @@ interface TaskCommentsSectionProps {
   ideaId: string;
   currentUserId: string;
   teamMembers: User[];
+  isReadOnly?: boolean;
 }
 
 export function TaskCommentsSection({
@@ -32,6 +33,7 @@ export function TaskCommentsSection({
   ideaId,
   currentUserId,
   teamMembers,
+  isReadOnly = false,
 }: TaskCommentsSectionProps) {
   const [comments, setComments] = useState<BoardTaskCommentWithAuthor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -324,7 +326,7 @@ export function TaskCommentsSection({
                       <span className="text-[10px] text-muted-foreground">
                         {formatRelativeTime(comment.created_at)}
                       </span>
-                      {comment.author_id === currentUserId && (
+                      {!isReadOnly && comment.author_id === currentUserId && (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <button
@@ -351,37 +353,39 @@ export function TaskCommentsSection({
         <p className="text-xs text-muted-foreground">No comments yet</p>
       )}
 
-      <form onSubmit={handleSubmit} className="relative flex gap-2">
-        {mentionQuery !== null && (
-          <MentionAutocomplete
-            filteredMembers={filteredMembers}
-            selectedIndex={mentionIndex}
-            onSelect={handleMentionSelect}
+      {!isReadOnly && (
+        <form onSubmit={handleSubmit} className="relative flex gap-2">
+          {mentionQuery !== null && (
+            <MentionAutocomplete
+              filteredMembers={filteredMembers}
+              selectedIndex={mentionIndex}
+              onSelect={handleMentionSelect}
+            />
+          )}
+          <Textarea
+            ref={textareaRef}
+            value={content}
+            onChange={handleInputChange}
+            onKeyDown={handleKeyDown}
+            placeholder="Write a comment... (@ to mention)"
+            rows={2}
+            className="min-h-[60px] text-xs"
           />
-        )}
-        <Textarea
-          ref={textareaRef}
-          value={content}
-          onChange={handleInputChange}
-          onKeyDown={handleKeyDown}
-          placeholder="Write a comment... (@ to mention)"
-          rows={2}
-          className="min-h-[60px] text-xs"
-        />
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="submit"
-              size="icon"
-              className="h-[60px] w-10 shrink-0"
-              disabled={submitting || !content.trim()}
-            >
-              <Send className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Send comment</TooltipContent>
-        </Tooltip>
-      </form>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="submit"
+                size="icon"
+                className="h-[60px] w-10 shrink-0"
+                disabled={submitting || !content.trim()}
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Send comment</TooltipContent>
+          </Tooltip>
+        </form>
+      )}
     </div>
   );
 }

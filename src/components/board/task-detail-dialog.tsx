@@ -53,6 +53,7 @@ interface TaskDetailDialogProps {
   currentUserId: string;
   initialTab?: string;
   userBots?: User[];
+  isReadOnly?: boolean;
 }
 
 export function TaskDetailDialog({
@@ -66,6 +67,7 @@ export function TaskDetailDialog({
   currentUserId,
   initialTab,
   userBots = [],
+  isReadOnly = false,
 }: TaskDetailDialogProps) {
   const ops = useBoardOps();
   const [activeTab, setActiveTab] = useState("details");
@@ -399,13 +401,17 @@ export function TaskDetailDialog({
         {/* Header — always visible */}
         <DialogHeader className={`px-6 pb-0 ${coverUrl ? "pt-4" : "pt-6"}`}>
           <DialogTitle className="sr-only">Task Details</DialogTitle>
-          <Input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onBlur={handleTitleBlur}
-            className="border-none p-0 text-lg font-semibold shadow-none focus-visible:ring-0"
-            disabled={savingTitle}
-          />
+          {isReadOnly ? (
+            <p className="text-lg font-semibold">{task.title}</p>
+          ) : (
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onBlur={handleTitleBlur}
+              className="border-none p-0 text-lg font-semibold shadow-none focus-visible:ring-0"
+              disabled={savingTitle}
+            />
+          )}
         </DialogHeader>
 
         {/* Tabs */}
@@ -442,23 +448,27 @@ export function TaskDetailDialog({
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium">Labels</span>
-                  <LabelPicker
-                    boardLabels={boardLabels}
-                    taskLabels={task.labels}
-                    taskId={task.id}
-                    ideaId={ideaId}
-                    currentUserId={currentUserId}
-                    inDialog
-                  >
-                    <Button variant="outline" size="sm" className="h-6 gap-1 text-xs">
-                      <Tag className="h-3 w-3" />
-                      Edit
-                    </Button>
-                  </LabelPicker>
+                  {!isReadOnly && (
+                    <LabelPicker
+                      boardLabels={boardLabels}
+                      taskLabels={task.labels}
+                      taskId={task.id}
+                      ideaId={ideaId}
+                      currentUserId={currentUserId}
+                      inDialog
+                    >
+                      <Button variant="outline" size="sm" className="h-6 gap-1 text-xs">
+                        <Tag className="h-3 w-3" />
+                        Edit
+                      </Button>
+                    </LabelPicker>
+                  )}
                 </div>
-                {task.labels.length > 0 && (
+                {task.labels.length > 0 ? (
                   <TaskLabelBadges labels={task.labels} maxVisible={6} />
-                )}
+                ) : isReadOnly ? (
+                  <p className="text-xs text-muted-foreground">None</p>
+                ) : null}
               </div>
 
               {/* Assignee & Due Date row */}
@@ -479,51 +489,65 @@ export function TaskDetailDialog({
                         )}
                       </div>
                     )}
-                    <Select
-                      value={localAssigneeId ?? "unassigned"}
-                      onValueChange={handleAssigneeChange}
-                    >
-                      <SelectTrigger className="h-8 w-40 text-xs">
-                        <SelectValue placeholder="Unassigned" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="unassigned">Unassigned</SelectItem>
-                        {teamMembers.map((member) => (
-                          <SelectItem key={member.id} value={member.id}>
-                            {member.full_name ?? member.email}
-                          </SelectItem>
-                        ))}
-                        {userBots.length > 0 && (
-                          <>
-                            <div className="px-2 py-1.5 text-[10px] font-medium text-muted-foreground">
-                              My Agents
-                            </div>
-                            {userBots
-                              .filter((b) => !teamMembers.some((m) => m.id === b.id))
-                              .map((bot) => (
-                                <SelectItem key={bot.id} value={bot.id}>
-                                  <span className="inline-flex items-center gap-1">
-                                    <Bot className="h-3 w-3" />
-                                    {bot.full_name ?? bot.email}
-                                  </span>
-                                </SelectItem>
-                              ))}
-                          </>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    {isReadOnly ? (
+                      <span className="text-xs">
+                        {localAssignee?.full_name ?? "Unassigned"}
+                      </span>
+                    ) : (
+                      <Select
+                        value={localAssigneeId ?? "unassigned"}
+                        onValueChange={handleAssigneeChange}
+                      >
+                        <SelectTrigger className="h-8 w-40 text-xs">
+                          <SelectValue placeholder="Unassigned" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unassigned">Unassigned</SelectItem>
+                          {teamMembers.map((member) => (
+                            <SelectItem key={member.id} value={member.id}>
+                              {member.full_name ?? member.email}
+                            </SelectItem>
+                          ))}
+                          {userBots.length > 0 && (
+                            <>
+                              <div className="px-2 py-1.5 text-[10px] font-medium text-muted-foreground">
+                                My Agents
+                              </div>
+                              {userBots
+                                .filter((b) => !teamMembers.some((m) => m.id === b.id))
+                                .map((bot) => (
+                                  <SelectItem key={bot.id} value={bot.id}>
+                                    <span className="inline-flex items-center gap-1">
+                                      <Bot className="h-3 w-3" />
+                                      {bot.full_name ?? bot.email}
+                                    </span>
+                                  </SelectItem>
+                                ))}
+                            </>
+                          )}
+                        </SelectContent>
+                      </Select>
+                    )}
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
                   <span className="text-sm font-medium">Due Date</span>
                   <div className="flex items-center gap-2">
-                    <DueDatePicker
-                      taskId={task.id}
-                      ideaId={ideaId}
-                      dueDate={task.due_date}
-                      currentUserId={currentUserId}
-                    />
+                    {isReadOnly ? (
+                      <span className="text-xs">
+                        {task.due_date
+                          ? new Date(task.due_date).toLocaleDateString()
+                          : "None"}
+                      </span>
+                    ) : (
+                      <DueDatePicker
+                        taskId={task.id}
+                        ideaId={ideaId}
+                        dueDate={task.due_date}
+                        currentUserId={currentUserId}
+                      />
+                    )}
                   </div>
                 </div>
               </div>
@@ -532,71 +556,83 @@ export function TaskDetailDialog({
 
               {/* Description */}
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">Description</span>
-                  {!editingDescription && description && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 gap-1 text-xs text-muted-foreground"
-                      onClick={() => {
-                        setEditingDescription(true);
-                        requestAnimationFrame(() => {
-                          descriptionTextareaRef.current?.focus();
-                        });
-                      }}
-                    >
-                      <Pencil className="h-3 w-3" />
-                      Edit
-                    </Button>
-                  )}
-                </div>
-                {editingDescription ? (
-                  <div className="relative">
-                    {descMentionQuery !== null && (
-                      <MentionAutocomplete
-                        filteredMembers={filteredDescMembers}
-                        selectedIndex={descMentionIndex}
-                        onSelect={handleDescMentionSelect}
-                      />
-                    )}
-                    <Textarea
-                      ref={descriptionTextareaRef}
-                      value={description}
-                      onChange={handleDescInputChange}
-                      onKeyDown={handleDescKeyDown}
-                      onBlur={handleDescriptionBlur}
-                      placeholder="Add a description... (@ to mention, supports markdown)"
-                      rows={6}
-                      className="text-sm"
-                      disabled={savingDesc}
-                      autoFocus
-                    />
-                  </div>
-                ) : description ? (
-                  <div
-                    className="cursor-pointer rounded-md border border-transparent px-3 py-2 text-sm transition-colors hover:border-border hover:bg-muted/50"
-                    onClick={() => {
-                      setEditingDescription(true);
-                      requestAnimationFrame(() => {
-                        descriptionTextareaRef.current?.focus();
-                      });
-                    }}
-                  >
-                    <Markdown>{description}</Markdown>
-                  </div>
+                <span className="text-sm font-medium">Description</span>
+                {isReadOnly ? (
+                  description ? (
+                    <div className="rounded-md px-3 py-2 text-sm">
+                      <Markdown>{description}</Markdown>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No description</p>
+                  )
                 ) : (
-                  <div
-                    className="cursor-pointer rounded-md border border-dashed border-border px-3 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted/50"
-                    onClick={() => {
-                      setEditingDescription(true);
-                      requestAnimationFrame(() => {
-                        descriptionTextareaRef.current?.focus();
-                      });
-                    }}
-                  >
-                    Add a description...
-                  </div>
+                  <>
+                    <div className="flex items-center justify-between">
+                      {!editingDescription && description && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 gap-1 text-xs text-muted-foreground"
+                          onClick={() => {
+                            setEditingDescription(true);
+                            requestAnimationFrame(() => {
+                              descriptionTextareaRef.current?.focus();
+                            });
+                          }}
+                        >
+                          <Pencil className="h-3 w-3" />
+                          Edit
+                        </Button>
+                      )}
+                    </div>
+                    {editingDescription ? (
+                      <div className="relative">
+                        {descMentionQuery !== null && (
+                          <MentionAutocomplete
+                            filteredMembers={filteredDescMembers}
+                            selectedIndex={descMentionIndex}
+                            onSelect={handleDescMentionSelect}
+                          />
+                        )}
+                        <Textarea
+                          ref={descriptionTextareaRef}
+                          value={description}
+                          onChange={handleDescInputChange}
+                          onKeyDown={handleDescKeyDown}
+                          onBlur={handleDescriptionBlur}
+                          placeholder="Add a description... (@ to mention, supports markdown)"
+                          rows={6}
+                          className="text-sm"
+                          disabled={savingDesc}
+                          autoFocus
+                        />
+                      </div>
+                    ) : description ? (
+                      <div
+                        className="cursor-pointer rounded-md border border-transparent px-3 py-2 text-sm transition-colors hover:border-border hover:bg-muted/50"
+                        onClick={() => {
+                          setEditingDescription(true);
+                          requestAnimationFrame(() => {
+                            descriptionTextareaRef.current?.focus();
+                          });
+                        }}
+                      >
+                        <Markdown>{description}</Markdown>
+                      </div>
+                    ) : (
+                      <div
+                        className="cursor-pointer rounded-md border border-dashed border-border px-3 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted/50"
+                        onClick={() => {
+                          setEditingDescription(true);
+                          requestAnimationFrame(() => {
+                            descriptionTextareaRef.current?.focus();
+                          });
+                        }}
+                      >
+                        Add a description...
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -608,6 +644,7 @@ export function TaskDetailDialog({
                 taskId={task.id}
                 ideaId={ideaId}
                 currentUserId={currentUserId}
+                isReadOnly={isReadOnly}
               />
             </div>
           </TabsContent>
@@ -619,6 +656,7 @@ export function TaskDetailDialog({
               ideaId={ideaId}
               currentUserId={currentUserId}
               teamMembers={teamMembers}
+              isReadOnly={isReadOnly}
             />
           </TabsContent>
 
@@ -630,6 +668,7 @@ export function TaskDetailDialog({
               currentUserId={currentUserId}
               coverImagePath={localCoverPath}
               onCoverChange={setLocalCoverPath}
+              isReadOnly={isReadOnly}
             />
           </TabsContent>
 
@@ -639,37 +678,39 @@ export function TaskDetailDialog({
           </TabsContent>
         </Tabs>
 
-        {/* Footer — always visible */}
-        <div className="flex justify-between border-t border-border px-6 py-3">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="gap-1.5 text-muted-foreground"
-            onClick={handleArchiveToggle}
-          >
-            {isArchived ? (
-              <>
-                <ArchiveRestore className="h-3.5 w-3.5" />
-                Unarchive
-              </>
-            ) : (
-              <>
-                <Archive className="h-3.5 w-3.5" />
-                Archive
-              </>
-            )}
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className={`gap-1.5 ${confirmDelete ? "text-destructive font-medium" : "text-muted-foreground"}`}
-            onClick={handleDeleteClick}
-            disabled={deleting}
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-            {deleting ? "Deleting..." : confirmDelete ? "Are you sure?" : "Delete task"}
-          </Button>
-        </div>
+        {/* Footer — hidden for read-only guests */}
+        {!isReadOnly && (
+          <div className="flex justify-between border-t border-border px-6 py-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 text-muted-foreground"
+              onClick={handleArchiveToggle}
+            >
+              {isArchived ? (
+                <>
+                  <ArchiveRestore className="h-3.5 w-3.5" />
+                  Unarchive
+                </>
+              ) : (
+                <>
+                  <Archive className="h-3.5 w-3.5" />
+                  Archive
+                </>
+              )}
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className={`gap-1.5 ${confirmDelete ? "text-destructive font-medium" : "text-muted-foreground"}`}
+              onClick={handleDeleteClick}
+              disabled={deleting}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              {deleting ? "Deleting..." : confirmDelete ? "Are you sure?" : "Delete task"}
+            </Button>
+          </div>
+        )}
         {/* Cover image lightbox — inside DialogContent so Radix focus trap allows clicks */}
         {coverPreviewOpen && coverUrl && (
           <div

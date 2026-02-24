@@ -23,6 +23,9 @@ import {
   horizontalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
+import Link from "next/link";
+import { Eye, UserPlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { BoardColumn } from "./board-column";
 import { AddColumnButton } from "./add-column-button";
 import { BoardToolbar } from "./board-toolbar";
@@ -99,6 +102,7 @@ interface KanbanBoardProps {
   botProfiles?: BotProfile[];
   aiCredits?: AiCredits | null;
   coverImageUrls?: Record<string, string>;
+  isReadOnly?: boolean;
 }
 
 export function KanbanBoard({
@@ -115,6 +119,7 @@ export function KanbanBoard({
   botProfiles = [],
   aiCredits,
   coverImageUrls = {},
+  isReadOnly = false,
 }: KanbanBoardProps) {
   const [columns, setColumns] = useState(initialColumns);
   const columnsRef = useRef(columns);
@@ -432,15 +437,14 @@ export function KanbanBoard({
     showArchived,
   ]);
 
-  const sensors = useSensors(
-    useSensor(MouseSensor, {
-      activationConstraint: { distance: 8 },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 200, tolerance: 5 },
-    }),
-    useSensor(KeyboardSensor)
-  );
+  const mouseSensor = useSensor(MouseSensor, {
+    activationConstraint: { distance: 8 },
+  });
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: { delay: 200, tolerance: 5 },
+  });
+  const keyboardSensor = useSensor(KeyboardSensor);
+  const sensors = useSensors(mouseSensor, touchSensor, keyboardSensor);
 
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
@@ -694,6 +698,21 @@ export function KanbanBoard({
   return (
     <BoardOpsContext.Provider value={boardOps}>
     <div className="flex min-h-0 flex-1 flex-col">
+      {/* Guest banner */}
+      {isReadOnly && (
+        <div className="mb-3 flex items-center justify-between rounded-lg border border-border bg-muted/50 px-4 py-3">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Eye className="h-4 w-4" />
+            You&apos;re viewing this board as a guest
+          </div>
+          <Link href={`/ideas/${ideaId}`}>
+            <Button size="sm" className="gap-1.5">
+              <UserPlus className="h-3.5 w-3.5" />
+              Request to Collaborate
+            </Button>
+          </Link>
+        </div>
+      )}
       <BoardToolbar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
@@ -715,14 +734,15 @@ export function KanbanBoard({
         aiEnabled={aiEnabled}
         botProfiles={botProfiles}
         aiCredits={aiCredits}
+        isReadOnly={isReadOnly}
       />
       <DndContext
-        sensors={sensors}
+        sensors={isReadOnly ? [] : sensors}
         collisionDetection={multiContainerCollision}
         measuring={layoutMeasuring}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
+        onDragStart={isReadOnly ? undefined : handleDragStart}
+        onDragOver={isReadOnly ? undefined : handleDragOver}
+        onDragEnd={isReadOnly ? undefined : handleDragEnd}
       >
         <div className="relative min-h-0 flex-1">
           <div
@@ -753,20 +773,23 @@ export function KanbanBoard({
                     aiEnabled={aiEnabled}
                     aiCredits={aiCredits}
                     ideaDescription={ideaDescription}
+                    isReadOnly={isReadOnly}
                   />
                 );
               })}
             </SortableContext>
-            <AddColumnButton ideaId={ideaId} />
+            {!isReadOnly && <AddColumnButton ideaId={ideaId} />}
           </div>
           {/* Right-edge fade gradient — visible on mobile when more columns exist off-screen */}
           {canScrollRight && (
             <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-background to-transparent sm:hidden" />
           )}
         </div>
-        <DragOverlay dropAnimation={null}>
-          <OverlayContent activeTask={activeTask} activeColumn={activeColumn} />
-        </DragOverlay>
+        {!isReadOnly && (
+          <DragOverlay dropAnimation={null}>
+            <OverlayContent activeTask={activeTask} activeColumn={activeColumn} />
+          </DragOverlay>
+        )}
       </DndContext>
     </div>
     </BoardOpsContext.Provider>

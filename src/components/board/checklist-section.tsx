@@ -25,6 +25,7 @@ interface ChecklistSectionProps {
   taskId: string;
   ideaId: string;
   currentUserId?: string;
+  isReadOnly?: boolean;
 }
 
 export function ChecklistSection({
@@ -32,6 +33,7 @@ export function ChecklistSection({
   taskId,
   ideaId,
   currentUserId,
+  isReadOnly = false,
 }: ChecklistSectionProps) {
   const [localItems, setLocalItems] = useState<BoardChecklistItem[]>(items);
   const [newTitle, setNewTitle] = useState("");
@@ -158,7 +160,8 @@ export function ChecklistSection({
             >
               <Checkbox
                 checked={item.completed}
-                onCheckedChange={() => handleToggle(item.id)}
+                onCheckedChange={isReadOnly ? undefined : () => handleToggle(item.id)}
+                disabled={isReadOnly}
               />
               <span
                 className={`flex-1 text-sm ${
@@ -169,45 +172,49 @@ export function ChecklistSection({
               >
                 {item.title}
               </span>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                    onClick={() => handleDelete(item.id)}
-                  >
-                    <Trash2 className="h-3 w-3 text-muted-foreground" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Delete item</TooltipContent>
-              </Tooltip>
+              {!isReadOnly && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100"
+                      onClick={() => handleDelete(item.id)}
+                    >
+                      <Trash2 className="h-3 w-3 text-muted-foreground" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Delete item</TooltipContent>
+                </Tooltip>
+              )}
             </div>
           ))}
       </div>
 
-      <form onSubmit={handleAdd} className="flex gap-2">
-        <Input
-          value={newTitle}
-          onChange={(e) => setNewTitle(e.target.value)}
-          placeholder="Add an item..."
-          className="h-8 text-sm"
-        />
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              type="submit"
-              size="sm"
-              variant="outline"
-              className="h-8"
-              disabled={!newTitle.trim()}
-            >
-              <Plus className="h-3 w-3" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Add item</TooltipContent>
-        </Tooltip>
-      </form>
+      {!isReadOnly && (
+        <form onSubmit={handleAdd} className="flex gap-2">
+          <Input
+            value={newTitle}
+            onChange={(e) => setNewTitle(e.target.value)}
+            placeholder="Add an item..."
+            className="h-8 text-sm"
+          />
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                type="submit"
+                size="sm"
+                variant="outline"
+                className="h-8"
+                disabled={!newTitle.trim()}
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Add item</TooltipContent>
+          </Tooltip>
+        </form>
+      )}
     </div>
   );
 }

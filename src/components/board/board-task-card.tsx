@@ -35,6 +35,7 @@ interface BoardTaskCardProps {
   autoOpen?: boolean;
   userBots?: User[];
   initialCoverUrl?: string;
+  isReadOnly?: boolean;
 }
 
 function HighlightedText({
@@ -76,6 +77,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
   autoOpen = false,
   userBots = [],
   initialCoverUrl,
+  isReadOnly = false,
 }: BoardTaskCardProps) {
   const [detailOpen, setDetailOpen] = useState(autoOpen);
   const [initialTab, setInitialTab] = useState<string | undefined>(undefined);
@@ -135,7 +137,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
   } = useSortable({
     id: task.id,
     data: sortableData,
-    disabled: !!isArchived,
+    disabled: !!isArchived || isReadOnly,
     transition: {
       duration: 120,
       easing: "cubic-bezier(0.25, 1, 0.5, 1)",
@@ -180,7 +182,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
           </div>
         )}
         <div className="flex items-start gap-2 p-3">
-          {!isArchived && (
+          {!isArchived && !isReadOnly && (
             <button
               data-testid="task-drag-handle"
               className="mt-0.5 cursor-grab text-muted-foreground opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 active:cursor-grabbing touch-none"
@@ -195,17 +197,21 @@ export const BoardTaskCard = memo(function BoardTaskCard({
             {/* Labels */}
             {task.labels.length > 0 && (
               <div className="mb-1.5">
-                <LabelPicker
-                  boardLabels={boardLabels}
-                  taskLabels={task.labels}
-                  taskId={task.id}
-                  ideaId={ideaId}
-                  currentUserId={currentUserId}
-                >
-                  <div onClick={(e) => e.stopPropagation()} className="cursor-pointer">
-                    <TaskLabelBadges labels={task.labels} />
-                  </div>
-                </LabelPicker>
+                {isReadOnly ? (
+                  <TaskLabelBadges labels={task.labels} />
+                ) : (
+                  <LabelPicker
+                    boardLabels={boardLabels}
+                    taskLabels={task.labels}
+                    taskId={task.id}
+                    ideaId={ideaId}
+                    currentUserId={currentUserId}
+                  >
+                    <div onClick={(e) => e.stopPropagation()} className="cursor-pointer">
+                      <TaskLabelBadges labels={task.labels} />
+                    </div>
+                  </LabelPicker>
+                )}
               </div>
             )}
 
@@ -325,6 +331,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
           currentUserId={currentUserId}
           initialTab={initialTab}
           userBots={userBots}
+          isReadOnly={isReadOnly}
         />
       )}
       {/* Cover image lightbox */}
