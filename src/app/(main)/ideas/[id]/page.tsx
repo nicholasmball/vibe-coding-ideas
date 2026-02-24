@@ -41,9 +41,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!idea) return { title: "Idea Not Found" };
 
+  const description = idea.description?.substring(0, 160) || "An idea on VibeCodes";
+
   return {
-    title: `${idea.title} - VibeCodes`,
-    description: idea.description.substring(0, 160),
+    title: idea.title,
+    description,
+    openGraph: {
+      title: idea.title,
+      description,
+      type: "article",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: idea.title,
+      description,
+    },
   };
 }
 
