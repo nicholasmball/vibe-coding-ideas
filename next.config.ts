@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   async redirects() {
@@ -25,4 +26,18 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, {
+  // Suppress noisy Sentry build logs
+  silent: true,
+
+  // Upload source maps for readable stack traces
+  widenClientFileUpload: true,
+
+  // Hide source maps from users
+  sourcemaps: {
+    deleteSourcemapsAfterUpload: true,
+  },
+
+  // Tunnel Sentry events through the app to avoid ad blockers
+  tunnelRoute: "/monitoring",
+});

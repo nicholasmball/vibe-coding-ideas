@@ -18,6 +18,6 @@ export const config = {
      * - api/oauth (OAuth endpoints - handle their own auth)
      * - oauth (OAuth consent pages - handle their own auth)
      */
-    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|\\.well-known|api/mcp|api/oauth|oauth).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sw\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$|\\.well-known|api/mcp|api/oauth|oauth|monitoring).*)",
   ],
 };
