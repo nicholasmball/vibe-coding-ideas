@@ -2,24 +2,23 @@ import { test, expect } from "../fixtures/auth";
 
 test.describe("Navbar", () => {
   test("active nav state on current route", async ({ userAPage }) => {
-    await userAPage.goto("/dashboard");
-
-    // Dashboard button should have "secondary" variant (active state)
-    // Use getByRole to find the button directly (avoid logo link ambiguity)
-    const dashboardButton = userAPage
-      .locator("nav")
-      .getByRole("button", { name: /^dashboard$/i })
-      .first();
-    await expect(dashboardButton).toBeVisible({ timeout: 15_000 });
-
-    // Navigate to feed and check that Feed is now active
+    // Navigate to /feed — "Ideas" button should have active (secondary) variant
     await userAPage.goto("/feed");
 
-    const feedButton = userAPage
+    const ideasButton = userAPage
       .locator("nav")
-      .getByRole("button", { name: /^feed$/i })
+      .getByRole("button", { name: /^ideas$/i })
       .first();
-    await expect(feedButton).toBeVisible({ timeout: 15_000 });
+    await expect(ideasButton).toBeVisible({ timeout: 15_000 });
+
+    // Navigate to /agents and check that Agents is now active
+    await userAPage.goto("/agents");
+
+    const agentsButton = userAPage
+      .locator("nav")
+      .getByRole("button", { name: /^agents$/i })
+      .first();
+    await expect(agentsButton).toBeVisible({ timeout: 15_000 });
   });
 
   test("logo links to /dashboard when authenticated", async ({ userAPage }) => {
@@ -63,9 +62,18 @@ test.describe("Navbar", () => {
   test("theme toggle switches between dark and light", async ({ userAPage }) => {
     await userAPage.goto("/dashboard");
 
-    // Get the theme toggle button (has sr-only text "Toggle theme")
-    const themeToggle = userAPage.getByRole("button", { name: /toggle theme/i }).first();
-    await expect(themeToggle).toBeVisible({ timeout: 15_000 });
+    // For authenticated users, theme toggle is inside the user dropdown menu.
+    // Open the avatar dropdown first.
+    const avatarButton = userAPage
+      .locator("nav")
+      .locator("button")
+      .filter({ has: userAPage.locator("span.relative, [data-slot='avatar']") })
+      .first();
+    await expect(avatarButton).toBeVisible({ timeout: 15_000 });
+    await avatarButton.click();
+
+    const themeToggle = userAPage.getByRole("menuitem", { name: /toggle theme/i });
+    await expect(themeToggle).toBeVisible({ timeout: 5_000 });
 
     // Check current theme class on html element
     const initialTheme = await userAPage.evaluate(() =>
@@ -84,8 +92,11 @@ test.describe("Navbar", () => {
     );
     expect(newTheme).not.toBe(initialTheme);
 
-    // Toggle back to restore original state
-    await themeToggle.click();
+    // Re-open dropdown and toggle back to restore original state
+    await avatarButton.click();
+    const themeToggle2 = userAPage.getByRole("menuitem", { name: /toggle theme/i });
+    await expect(themeToggle2).toBeVisible({ timeout: 5_000 });
+    await themeToggle2.click();
     await userAPage.waitForTimeout(500);
 
     const restoredTheme = await userAPage.evaluate(() =>

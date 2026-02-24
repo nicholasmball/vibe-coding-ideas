@@ -25,8 +25,8 @@ test.describe("Mobile Navigation", () => {
     await menuButton.click();
 
     // Nav links should now be visible in the mobile menu
-    await expect(userAPage.getByRole("button", { name: /dashboard/i })).toBeVisible();
-    await expect(userAPage.getByRole("button", { name: /feed/i })).toBeVisible();
+    await expect(userAPage.getByRole("button", { name: /^ideas$/i })).toBeVisible();
+    await expect(userAPage.getByRole("button", { name: /^agents$/i })).toBeVisible();
 
     // Close menu by clicking hamburger again
     await menuButton.click();
@@ -51,7 +51,7 @@ test.describe("Mobile Navigation", () => {
     // Open menu
     await menuButton.click();
 
-    // Click "Feed" link in the mobile menu
+    // Click "Ideas" link in the mobile menu (href is still /feed)
     const feedLink = userAPage.locator("a[href='/feed']");
     await feedLink.click();
 
@@ -79,19 +79,19 @@ test.describe("Mobile Navigation", () => {
     // Verify all expected nav links are present in the mobile menu
     // The mobile menu uses <Link> wrapping <Button>, so we check for the button text
     await expect(
-      userAPage.getByRole("button", { name: /dashboard/i })
+      userAPage.getByRole("button", { name: /^ideas$/i })
     ).toBeVisible();
     await expect(
-      userAPage.getByRole("button", { name: /^feed$/i })
-    ).toBeVisible();
-    await expect(
-      userAPage.getByRole("button", { name: /members/i })
+      userAPage.getByRole("button", { name: /^agents$/i })
     ).toBeVisible();
     await expect(
       userAPage.getByRole("button", { name: /new idea/i })
     ).toBeVisible();
     await expect(
       userAPage.getByRole("button", { name: /guide/i })
+    ).toBeVisible();
+    await expect(
+      userAPage.getByRole("button", { name: /members/i })
     ).toBeVisible();
   });
 });
