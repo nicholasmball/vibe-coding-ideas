@@ -55,10 +55,9 @@ test.describe("Voting on idea detail page", () => {
     await expect(voteButton).toHaveClass(/border-primary/);
   });
 
-  test.fixme("click vote button again removes vote and decrements count", async ({
+  test("click vote button again removes vote and decrements count", async ({
     userAPage,
   }) => {
-    // APP BUG: useTransition isPending gets stuck after first vote, permanently disabling the vote button
     await userAPage.goto(`/ideas/${ideaId}`);
 
     const voteButton = userAPage.locator('[data-testid="vote-button"]');
@@ -91,8 +90,7 @@ test.describe("Voting on idea detail page", () => {
     await expect(voteButton).not.toHaveClass(/border-primary/);
   });
 
-  test.fixme("vote persists after page reload", async ({ userAPage }) => {
-    // APP BUG: useTransition isPending gets stuck after 2nd vote click, permanently disabling the vote button
+  test("vote persists after page reload", async ({ userAPage }) => {
     await userAPage.goto(`/ideas/${ideaId}`);
 
     const voteButton = userAPage.locator('[data-testid="vote-button"]');

@@ -187,10 +187,9 @@ test.describe("Inline Editing (Author)", () => {
   });
 
   test.describe("Escape key cancellation", () => {
-    test.fixme("should cancel title edit with Escape key and revert to original", async ({
+    test("should cancel title edit with Escape key and revert to original", async ({
       userAPage,
     }) => {
-      // APP BUG: Escape handler in inline-idea-header.tsx doesn't properly revert the title
       await userAPage.goto(`/ideas/${escapeIdeaId}`);
 
       const titleInput = userAPage.locator("main").locator("input").first();

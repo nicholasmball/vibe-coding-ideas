@@ -39,7 +39,7 @@ test.describe("Board Due Dates", () => {
     await cleanupTestData();
   });
 
-  test.fixme("set a due date via the date picker in task detail", async ({
+  test("set a due date via the date picker in task detail", async ({
     userAPage,
   }) => {
     const taskId = tasks[0].id;
@@ -57,7 +57,8 @@ test.describe("Board Due Dates", () => {
     await expect(taskCard).toBeVisible({ timeout: 15_000 });
     await taskCard.click();
 
-    const dialog = userAPage.getByRole("dialog");
+    // Use first() since calendar popover also creates a [role="dialog"]
+    const dialog = userAPage.getByRole("dialog").first();
     await expect(dialog).toBeVisible({ timeout: 10_000 });
 
     // Click the "Set due date" button to open the calendar popover
@@ -65,58 +66,32 @@ test.describe("Board Due Dates", () => {
     await expect(dueDateButton).toBeVisible({ timeout: 5_000 });
     await dueDateButton.click();
 
-    // The calendar popover should appear — look for a table-based calendar
+    // The shadcn Calendar should appear — wait for the calendar table
     const calendar = userAPage.locator("table").first();
     await expect(calendar).toBeVisible({ timeout: 10_000 });
 
-    // Navigate to next month to ensure we have clean days to select
-    const nextMonthButton = userAPage.getByRole("button", { name: /next month|chevron/i }).or(
-      userAPage.locator("button[name='next-month']")
-    ).or(userAPage.locator("button").filter({ has: userAPage.locator("svg") }).last());
+    // Click day 15 — accessible name is the full date e.g. "Sunday, February 15th, 2026"
+    // Use a button filter matching the visible text "15"
+    const dayButton = calendar.locator("button").filter({ hasText: /^15$/ }).first();
 
-    // Try clicking a day button with text "15" — a safe mid-month day
-    const dayButtons = calendar.locator("td button, td[role='gridcell'] button").or(
-      calendar.locator("button").filter({ hasText: /^\d{1,2}$/ })
-    );
-
-    // Find a clickable day (not disabled)
-    let clicked = false;
-    for (const target of [15, 20, 25, 10]) {
-      const dayButton = calendar.getByRole("gridcell", { name: String(target) }).or(
-        calendar.locator(`button:has-text("${target}")`)
-      ).first();
-      if (await dayButton.isVisible().catch(() => false)) {
-        const isDisabled = await dayButton.isDisabled().catch(() => true);
-        if (!isDisabled) {
-          await dayButton.click();
-          clicked = true;
-          break;
-        }
-      }
+    if (await dayButton.isVisible().catch(() => false)) {
+      await dayButton.click();
+    } else {
+      // If day 15 isn't visible (might be disabled), try 20
+      const fallback = calendar.locator("button").filter({ hasText: /^20$/ }).first();
+      await fallback.click();
     }
 
-    if (!clicked) {
-      // Fallback: click any visible enabled day
-      const allDays = calendar.locator("button").filter({ hasText: /^\d{1,2}$/ });
-      const count = await allDays.count();
-      for (let i = count - 1; i >= 0; i--) {
-        const day = allDays.nth(i);
-        if (await day.isEnabled()) {
-          await day.click();
-          break;
-        }
-      }
-    }
-
-    // After selecting a date, the button text should change
-    // from "Set due date" to a formatted date (e.g. "Feb 28")
+    // After selecting a date, the popover closes (setOpen(false)) and the button text changes
+    // Wait for the "Set due date" text to disappear from the task detail dialog
     await expect(
-      dialog.getByRole("button", { name: /set due date/i })
+      userAPage.getByRole("button", { name: /set due date/i })
     ).not.toBeVisible({ timeout: 15_000 });
 
-    // Close dialog and verify the due date badge appears on the card
-    await dialog.press("Escape");
-    await expect(dialog).not.toBeVisible({ timeout: 5_000 });
+    // Close the task detail dialog
+    await userAPage.keyboard.press("Escape");
+    // Wait for the dialog to close
+    await userAPage.waitForTimeout(500);
 
     // The card should now show a DueDateBadge
     const refreshedCard = userAPage.locator(
@@ -130,7 +105,7 @@ test.describe("Board Due Dates", () => {
     ).toBeVisible({ timeout: 10_000 });
   });
 
-  test.fixme("remove a due date", async ({ userAPage }) => {
+  test("remove a due date", async ({ userAPage }) => {
     const taskId = tasks[1].id;
 
     // Seed a due date on this task (must complete before navigating)
@@ -149,12 +124,12 @@ test.describe("Board Due Dates", () => {
     await expect(taskCard).toBeVisible({ timeout: 15_000 });
     await taskCard.click();
 
-    const dialog = userAPage.getByRole("dialog");
+    // Use first() since calendar popover also creates a [role="dialog"]
+    const dialog = userAPage.getByRole("dialog").first();
     await expect(dialog).toBeVisible({ timeout: 10_000 });
 
     // The due date button should show the formatted date (not "Set due date")
-    // Wait for the formatted date to appear — look for any button with a month-day pattern
-    // Formats could be "Feb 28", "Mar 1", etc. or even full date formats
+    // Wait for a button with a month-day pattern like "Mar 3"
     const dueDateButton = dialog.locator("button").filter({
       hasText: /(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s\d/,
     }).first();
@@ -163,23 +138,21 @@ test.describe("Board Due Dates", () => {
     // Click to open the calendar popover
     await dueDateButton.click();
 
-    // Click the "Remove due date" button or clear button
+    // Click the "Remove due date" button (from due-date-picker.tsx)
     const removeButton = userAPage.getByRole("button", {
-      name: /remove|clear/i,
-    }).filter({ hasText: /due date|clear/i }).first().or(
-      userAPage.getByText(/remove due date/i)
-    );
+      name: /remove due date/i,
+    });
     await expect(removeButton).toBeVisible({ timeout: 10_000 });
     await removeButton.click();
 
-    // The button should revert to "Set due date"
+    // The button should revert to "Set due date" (popover auto-closes)
     await expect(
-      dialog.getByRole("button", { name: /set due date/i })
+      userAPage.getByRole("button", { name: /set due date/i })
     ).toBeVisible({ timeout: 15_000 });
 
-    // Close dialog and verify badge is gone from the card
-    await dialog.press("Escape");
-    await expect(dialog).not.toBeVisible({ timeout: 5_000 });
+    // Close the task detail dialog
+    await userAPage.keyboard.press("Escape");
+    await userAPage.waitForTimeout(500);
 
     const refreshedCard = userAPage.locator(
       `[data-testid="task-card-${taskId}"]`

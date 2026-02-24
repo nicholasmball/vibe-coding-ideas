@@ -37,6 +37,11 @@ test.describe("Comments", () => {
     await cleanupTestData();
   });
 
+  // Clean up comments between tests to prevent accumulation/flakiness
+  test.beforeEach(async () => {
+    await supabaseAdmin.from("comments").delete().eq("idea_id", ideaId);
+  });
+
   test.describe("Posting comments", () => {
     test("post a comment with default type", async ({ userAPage }) => {
       await userAPage.goto(`/ideas/${ideaId}`);
@@ -66,11 +71,7 @@ test.describe("Comments", () => {
       ).toBeVisible();
     });
 
-    test.fixme("post a suggestion comment", async ({ userAPage }) => {
-      // APP BUG: useTransition isPending gets stuck after comment submission
-      // when the comment type is changed via the Select before posting.
-      // The form enters "Posting..." state and never resolves, preventing
-      // the comment from appearing in the thread.
+    test("post a suggestion comment", async ({ userAPage }) => {
       await userAPage.goto(`/ideas/${ideaId}`);
 
       const commentTextarea = userAPage.getByPlaceholder(/add a comment/i);
@@ -100,25 +101,31 @@ test.describe("Comments", () => {
 
       // Submit — button should now be enabled since textarea has content
       await expect(postButton).toBeEnabled({ timeout: 5_000 });
+
+      // Wait for the server action response
+      const actionPromise = userAPage.waitForResponse(
+        (resp) => resp.url().includes("ideas") && resp.request().method() === "POST",
+        { timeout: 15_000 }
+      );
       await postButton.click();
+      await actionPromise;
 
-      // Comment should appear
-      await expect(
-        userAPage.getByText(
-          "[E2E] This is a suggestion for improving the idea"
-        )
-      ).toBeVisible({ timeout: 15_000 });
+      // Reload for fresh server data
+      await userAPage.reload();
 
-      // The Suggestion badge should be visible (use data-slot=badge to avoid matching hidden <option>)
+      // Comment should appear after reload
+      const commentText = userAPage.getByText(
+        "[E2E] This is a suggestion for improving the idea"
+      );
+      await expect(commentText).toBeVisible({ timeout: 15_000 });
+
+      // The Suggestion badge should be visible near the comment
       await expect(
         userAPage.locator('[data-slot="badge"]').filter({ hasText: "Suggestion" }).first()
-      ).toBeVisible({ timeout: 10_000 });
+      ).toBeVisible({ timeout: 15_000 });
     });
 
-    test.fixme("post a question comment", async ({ userAPage }) => {
-      // APP BUG: useTransition isPending gets stuck after comment submission
-      // when the comment type is changed via the Select before posting.
-      // Same issue as the suggestion comment test above.
+    test("post a question comment", async ({ userAPage }) => {
       await userAPage.goto(`/ideas/${ideaId}`);
 
       const commentTextarea = userAPage.getByPlaceholder(/add a comment/i);
@@ -148,7 +155,17 @@ test.describe("Comments", () => {
 
       // Submit — button should now be enabled since textarea has content
       await expect(postButton).toBeEnabled({ timeout: 5_000 });
+
+      // Wait for the server action response
+      const actionPromise = userAPage.waitForResponse(
+        (resp) => resp.url().includes("ideas") && resp.request().method() === "POST",
+        { timeout: 15_000 }
+      );
       await postButton.click();
+      await actionPromise;
+
+      // Reload for fresh server data
+      await userAPage.reload();
 
       // Comment should appear with Question badge
       await expect(
@@ -157,10 +174,10 @@ test.describe("Comments", () => {
         )
       ).toBeVisible({ timeout: 15_000 });
 
-      // The Question badge should be visible (use data-slot=badge to avoid matching hidden <option>)
+      // The Question badge should be visible
       await expect(
         userAPage.locator('[data-slot="badge"]').filter({ hasText: "Question" }).first()
-      ).toBeVisible({ timeout: 10_000 });
+      ).toBeVisible({ timeout: 15_000 });
     });
 
     test("comment appears in thread with author name and content", async ({
@@ -215,12 +232,10 @@ test.describe("Comments", () => {
       const replyTextarea = userBPage.getByPlaceholder(/write a reply/i);
       await expect(replyTextarea).toBeVisible();
 
-      // Type and submit a reply
+      // Type and submit a reply — scope the Post button to the reply form
       await replyTextarea.fill("[E2E] This is a reply from User B");
-      await userBPage
-        .getByRole("button", { name: "Post" })
-        .last()
-        .click();
+      const replyForm = userBPage.locator("form").filter({ has: replyTextarea });
+      await replyForm.getByRole("button", { name: "Post" }).click();
 
       // The reply should appear (nested under the parent, indented via ml-6)
       await expect(
@@ -306,10 +321,9 @@ test.describe("Comments", () => {
   });
 
   test.describe("Incorporating suggestions", () => {
-    test.fixme("author marks suggestion as incorporated", async ({
+    test("author marks suggestion as incorporated", async ({
       userAPage,
     }) => {
-      // APP BUG: useTransition isPending gets stuck, permanently disabling the incorporate button
       // Seed a suggestion comment from User B
       await createTestComment(ideaId, userBId, {
         content: "[E2E] Suggestion to incorporate",

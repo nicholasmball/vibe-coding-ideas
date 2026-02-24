@@ -277,8 +277,7 @@ test.describe("Board Filters", () => {
     ).not.toBeVisible({ timeout: 10_000 });
   });
 
-  test.fixme("should toggle archived task visibility", async ({ userAPage }) => {
-    // TEST BUG: Archived toggle button selector is too fragile — the button text/role varies
+  test("should toggle archived task visibility", async ({ userAPage }) => {
     await userAPage.goto(`/ideas/${ideaId}/board`);
 
     // Wait for board to load
@@ -291,14 +290,12 @@ test.describe("Board Filters", () => {
       userAPage.getByText("[E2E] Archived old task")
     ).not.toBeVisible();
 
-    // Click the "Show archived" toggle/button on the toolbar
-    // It may be a button or a switch — look for text containing "archived"
+    // Click the "Show archived (N)" button on the toolbar
+    // The button only renders when archivedCount > 0, with text like "Show archived (1)"
     const showArchivedButton = userAPage
       .getByRole("button")
-      .filter({ hasText: /archived/i })
-      .first()
-      .or(userAPage.locator("button[role='switch']").filter({ hasText: /archived/i }).first())
-      .or(userAPage.getByLabel(/archived/i));
+      .filter({ hasText: /show archived/i })
+      .first();
     await expect(showArchivedButton).toBeVisible({ timeout: 10_000 });
     await showArchivedButton.click();
 
@@ -311,10 +308,14 @@ test.describe("Board Filters", () => {
     const archivedTaskCard = userAPage.locator(
       `[data-testid="task-card-${taskIds[3]}"]`
     );
-    await expect(archivedTaskCard.getByText("Archived")).toBeVisible();
+    await expect(archivedTaskCard.getByText("Archived", { exact: true })).toBeVisible();
 
-    // Toggle off — click the same button again
-    await showArchivedButton.click();
+    // Toggle off — click the button which now says "Hide archived (N)"
+    const hideArchivedButton = userAPage
+      .getByRole("button")
+      .filter({ hasText: /hide archived/i })
+      .first();
+    await hideArchivedButton.click();
 
     await expect(
       userAPage.getByText("[E2E] Archived old task")

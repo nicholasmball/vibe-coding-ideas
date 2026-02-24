@@ -68,8 +68,7 @@ test.describe("Board Checklist", () => {
     });
   });
 
-  test.fixme("toggle checklist item completion", async ({ userAPage }) => {
-    // TEST BUG: XPath ancestor::div selector for finding checklist item row is flaky
+  test("toggle checklist item completion", async ({ userAPage }) => {
     // Seed a checklist item for this test
     await supabaseAdmin.from("board_checklist_items").insert({
       task_id: taskId,
@@ -94,8 +93,9 @@ test.describe("Board Checklist", () => {
     await expect(itemText).toBeVisible();
 
     // Find the checkbox in the same row as the checklist item.
-    // The item row has: <Checkbox> <span>title</span> <button>delete</button>
-    const itemRow = itemText.locator("xpath=ancestor::div[contains(@class, 'group')]").first();
+    // The row structure is: div.group > [Checkbox, span(title), button(delete)]
+    // Navigate up from the text span to its parent row div
+    const itemRow = itemText.locator("..");
     const checkbox = itemRow.getByRole("checkbox");
     await expect(checkbox).toBeVisible();
 

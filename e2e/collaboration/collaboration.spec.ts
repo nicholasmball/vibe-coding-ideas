@@ -50,10 +50,9 @@ test.describe("Collaboration", () => {
   });
 
   test.describe("Self-join and leave (User B)", () => {
-    test.fixme("User B joins as collaborator by clicking the join button", async ({
+    test("User B joins as collaborator by clicking the join button", async ({
       userBPage,
     }) => {
-      // APP BUG: useTransition isPending gets stuck, permanently disabling the join button
       await userBPage.goto(`/ideas/${publicIdeaId}`);
 
       // The collaborator button should say "I want to build this" for non-collaborators
@@ -115,7 +114,7 @@ test.describe("Collaboration", () => {
   });
 
   test.describe("Author manages collaborators (User A)", () => {
-    test.fixme("Author adds collaborator via search popover", async ({
+    test("Author adds collaborator via search popover", async ({
       userAPage,
     }) => {
       // Remove User B if already a collaborator to start clean
@@ -128,7 +127,7 @@ test.describe("Collaboration", () => {
       await userAPage.goto(`/ideas/${publicIdeaId}`);
 
       // Click the "Add" button to open the collaborator search popover
-      const addButton = userAPage.getByRole("button", { name: "Add" });
+      const addButton = userAPage.getByRole("button", { name: "Add", exact: true });
       await expect(addButton).toBeVisible({ timeout: 15_000 });
       await addButton.click();
 
@@ -146,10 +145,20 @@ test.describe("Collaboration", () => {
       const userBResult = userAPage.getByRole("button").filter({ hasText: "Test User B" }).first();
       await expect(userBResult).toBeVisible({ timeout: 15_000 });
 
-      // Click the result to add User B
+      // Click the result to add User B and wait for the server action response
+      const actionPromise = userAPage.waitForResponse(
+        (resp) => resp.url().includes("ideas") && resp.request().method() === "POST",
+        { timeout: 15_000 }
+      );
       await userBResult.click();
+      await actionPromise;
 
-      // After adding, reload the page to verify the collaborator persisted
+      // Wait for revalidation to update the collaborator count
+      await expect(
+        userAPage.getByText(/Collaborators \(1\)/)
+      ).toBeVisible({ timeout: 15_000 });
+
+      // Reload the page to verify the collaborator persisted
       await userAPage.reload();
 
       // Verify User B appears in the collaborators section

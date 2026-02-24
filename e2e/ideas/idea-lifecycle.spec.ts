@@ -27,10 +27,9 @@ test.afterAll(async () => {
 
 test.describe("Idea Lifecycle", () => {
   test.describe("Status changes", () => {
-    test.fixme("should change status from Open to In Progress", async ({
+    test("should change status from Open to In Progress", async ({
       userAPage,
     }) => {
-      // APP BUG: useTransition isPending stuck on mount — status select permanently disabled
       const idea = await createTestIdea(userAId, {
         title: "[E2E] Status Open to InProgress",
         description: "[E2E] Testing status transition",
@@ -65,10 +64,9 @@ test.describe("Idea Lifecycle", () => {
       await expect(reloadedTrigger).toHaveText(/In Progress/, { timeout: 15_000 });
     });
 
-    test.fixme("should change status from In Progress to Completed", async ({
+    test("should change status from In Progress to Completed", async ({
       userAPage,
     }) => {
-      // APP BUG: useTransition isPending stuck on mount — status select permanently disabled
       const idea = await createTestIdea(userAId, {
         title: "[E2E] Status InProgress to Completed",
         description: "[E2E] Testing second status transition",
@@ -93,10 +91,9 @@ test.describe("Idea Lifecycle", () => {
       await expect(statusTrigger).toHaveText(/Completed/);
     });
 
-    test.fixme("should archive an idea via status dropdown", async ({
+    test("should archive an idea via status dropdown", async ({
       userAPage,
     }) => {
-      // APP BUG: useTransition isPending gets stuck, permanently disabling the status dropdown
       const idea = await createTestIdea(userAId, {
         title: "[E2E] Status to Archived",
         description: "[E2E] Testing archive transition",

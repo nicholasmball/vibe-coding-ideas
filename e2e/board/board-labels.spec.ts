@@ -97,8 +97,7 @@ test.describe("Board Labels", () => {
     ).toBeVisible({ timeout: 15_000 });
   });
 
-  test.fixme("should assign a label to a task", async ({ userAPage }) => {
-    // TEST BUG: Label picker checkbox selectors are fragile — Escape doesn't reliably close nested popovers
+  test("should assign a label to a task", async ({ userAPage }) => {
     // Ensure a label exists for this board
     const { data: existingLabels } = await supabaseAdmin
       .from("board_labels")
@@ -159,13 +158,11 @@ test.describe("Board Labels", () => {
     await expect(uncheckedCheckbox).toBeVisible({ timeout: 5_000 });
     await uncheckedCheckbox.click();
 
-    // Close the label picker
-    const closeButton = userAPage.getByRole("button", { name: "Close" });
-    if (await closeButton.isVisible()) {
-      await closeButton.click();
-    } else {
-      await userAPage.keyboard.press("Escape");
-    }
+    // Close the label picker by clicking its X button (aria-label="Close")
+    // Use getByLabel to target the label picker's close button specifically
+    const closeButton = userAPage.getByLabel("Close").first();
+    await expect(closeButton).toBeVisible({ timeout: 5_000 });
+    await closeButton.click();
 
     // Close the dialog
     await userAPage.keyboard.press("Escape");
@@ -176,8 +173,7 @@ test.describe("Board Labels", () => {
     });
   });
 
-  test.fixme("should remove a label from a task", async ({ userAPage }) => {
-    // TEST BUG: Label picker checkbox selectors are fragile — Escape doesn't reliably close nested popovers
+  test("should remove a label from a task", async ({ userAPage }) => {
     // Ensure task has a label assigned (create one if needed, then assign it)
     const { data: existingLabels } = await supabaseAdmin
       .from("board_labels")
@@ -245,13 +241,11 @@ test.describe("Board Labels", () => {
     await expect(checkedCheckbox).toBeVisible({ timeout: 5_000 });
     await checkedCheckbox.click();
 
-    // Close the picker
-    const closeButton = userAPage.getByRole("button", { name: "Close" });
-    if (await closeButton.isVisible()) {
-      await closeButton.click();
-    } else {
-      await userAPage.keyboard.press("Escape");
-    }
+    // Close the label picker by clicking its X button (aria-label="Close")
+    // Use getByLabel to target the label picker's close button specifically
+    const closeButton = userAPage.getByLabel("Close").first();
+    await expect(closeButton).toBeVisible({ timeout: 5_000 });
+    await closeButton.click();
 
     // Close the dialog
     await userAPage.keyboard.press("Escape");

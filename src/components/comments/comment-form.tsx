@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -27,18 +27,21 @@ export function CommentForm({
 }: CommentFormProps) {
   const [content, setContent] = useState("");
   const [type, setType] = useState<CommentType>("comment");
-  const [isPending, startTransition] = useTransition();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim()) return;
+    if (!content.trim() || isSubmitting) return;
 
-    startTransition(async () => {
+    setIsSubmitting(true);
+    try {
       await createComment(ideaId, content.trim(), type, parentCommentId);
       setContent("");
       setType("comment");
       onCancel?.();
-    });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -70,8 +73,8 @@ export function CommentForm({
               Cancel
             </Button>
           )}
-          <Button type="submit" disabled={isPending || !content.trim()}>
-            {isPending ? "Posting..." : "Post"}
+          <Button type="submit" disabled={isSubmitting || !content.trim()}>
+            {isSubmitting ? "Posting..." : "Post"}
           </Button>
         </div>
       </div>

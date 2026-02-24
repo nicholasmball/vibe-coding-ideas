@@ -61,19 +61,21 @@ test.afterAll(async () => {
 });
 
 test.describe("Board Basics", () => {
-  test.fixme("first visit auto-initializes default columns (To Do, In Progress, Done)", async ({
+  test("first visit auto-initializes default columns (To Do, In Progress, Done)", async ({
     userAPage,
   }) => {
     await userAPage.goto(`/ideas/${bareIdeaId}/board`);
 
     // Wait for columns to render — auto-init may take longer than pre-existing columns
     // because it triggers a server action to create them
+    // Use a regex that matches column-{uuid} but NOT column-drag-handle
+    const columnSelector = /^column-[0-9a-f]{8}-/;
     await expect(
-      userAPage.locator('[data-testid^="column-"]').first()
+      userAPage.locator("[data-testid]").filter({ has: userAPage.locator("h3") }).first()
     ).toBeVisible({ timeout: 30_000 });
 
-    // Should have exactly 3 default columns
-    const columns = userAPage.locator('[data-testid^="column-"]');
+    // Should have exactly 3 default columns — count headings with column titles
+    const columns = userAPage.locator("h3").filter({ hasText: /To Do|In Progress|Done/ });
     await expect(columns).toHaveCount(3, { timeout: 15_000 });
 
     // Verify their titles
@@ -100,7 +102,7 @@ test.describe("Board Basics", () => {
     ).toBeVisible();
   });
 
-  test.fixme("collaborator can access the board", async ({ userBPage }) => {
+  test("collaborator can access the board", async ({ userBPage }) => {
     // Add User B as collaborator
     await addCollaborator(accessIdeaId, userBId);
 
@@ -111,16 +113,16 @@ test.describe("Board Basics", () => {
 
     // Wait for columns to load -- confirms board rendered successfully
     // May redirect to idea detail if collaborator hasn't propagated yet — retry once
-    const firstColumn = userBPage.locator('[data-testid^="column-"]').first();
+    const firstHeading = userBPage.locator("h3").filter({ hasText: /To Do|In Progress|Done/ }).first();
     try {
-      await expect(firstColumn).toBeVisible({ timeout: 15_000 });
+      await expect(firstHeading).toBeVisible({ timeout: 15_000 });
     } catch {
       // If we got redirected to idea detail, try navigating again
       await userBPage.goto(`/ideas/${accessIdeaId}/board`);
-      await expect(firstColumn).toBeVisible({ timeout: 30_000 });
+      await expect(firstHeading).toBeVisible({ timeout: 30_000 });
     }
 
-    const columns = userBPage.locator('[data-testid^="column-"]');
+    const columns = userBPage.locator("h3").filter({ hasText: /To Do|In Progress|Done/ });
     await expect(columns).toHaveCount(3, { timeout: 15_000 });
   });
 

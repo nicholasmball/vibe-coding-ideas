@@ -103,8 +103,7 @@ test.describe("Dashboard", () => {
     await expect(tasksAssigned.locator("p.text-2xl")).toHaveText(/\d+/);
   });
 
-  test.fixme("welcome card shown for fresh user with 0 ideas", async ({ freshPage }) => {
-    // TEST BUG: freshPage auth is unreliable — session expires or doesn't establish
+  test("welcome card shown for fresh user with 0 ideas", async ({ freshPage }) => {
     await freshPage.goto("/dashboard");
 
     // Wait for the dashboard to load — freshPage may need extra time
@@ -121,19 +120,19 @@ test.describe("Dashboard", () => {
     // Wait for the dashboard heading to confirm page has loaded
     await expect(freshPage.getByRole("heading", { name: /dashboard/i })).toBeVisible({ timeout: 15_000 });
 
-    // Welcome card should be visible
+    // Welcome card should be visible (may render in both columns on desktop)
     await expect(
-      freshPage.getByText("Welcome to VibeCodes!")
+      freshPage.getByText("Welcome to VibeCodes!").first()
     ).toBeVisible({ timeout: 15_000 });
 
-    // Should have a "Create your first idea" button
+    // Should have a "Create your first idea" button (may appear in welcome card + My Ideas section)
     await expect(
-      freshPage.getByRole("link", { name: /create your first idea/i })
+      freshPage.getByRole("link", { name: /create your first idea/i }).first()
     ).toBeVisible();
 
-    // Should have a "Browse the feed" button
+    // Should have a "Browse the feed" button (may appear in multiple sections)
     await expect(
-      freshPage.getByRole("link", { name: /browse the feed/i })
+      freshPage.getByRole("link", { name: /browse the feed/i }).first()
     ).toBeVisible();
   });
 
@@ -196,18 +195,18 @@ test.describe("Dashboard", () => {
     ).toBeVisible();
   });
 
-  test.fixme("Recent Activity section shows notifications", async ({ userAPage }) => {
-    // TEST BUG: Activity feed content depends on notification seeding timing and format
+  test("Recent Activity section shows notifications", async ({ userAPage }) => {
     await userAPage.goto("/dashboard");
     await expect(userAPage.getByRole("heading", { name: /dashboard/i })).toBeVisible({ timeout: 15_000 });
 
-    const activitySection = userAPage.locator('[data-testid="section-recent-activity"]');
+    // Dashboard uses two-column layout; section may appear in both — use first()
+    const activitySection = userAPage.locator('[data-testid="section-recent-activity"]').first();
     await expect(activitySection).toBeVisible({ timeout: 15_000 });
 
     // The activity feed is populated from notifications.
-    // Should show the vote notification from User B
-    await expect(activitySection.getByText("Test User B")).toBeVisible({ timeout: 10_000 });
-    await expect(activitySection.getByText(/voted/i)).toBeVisible({ timeout: 10_000 });
+    // Should show notification(s) from Test User B (may be multiple from previous test runs)
+    await expect(activitySection.getByText("Test User B").first()).toBeVisible({ timeout: 10_000 });
+    await expect(activitySection.getByText(/voted/i).first()).toBeVisible({ timeout: 10_000 });
   });
 
   test("collapse and expand a section", async ({ userAPage }) => {

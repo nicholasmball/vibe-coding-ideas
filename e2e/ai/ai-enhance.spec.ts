@@ -56,7 +56,7 @@ test.describe("AI Enhance - Idea Detail", () => {
     await expect(enhanceButton.first()).toBeVisible({ timeout: 10_000 });
   });
 
-  test.fixme("hides enhance button when ai_enabled is false", async ({
+  test("hides enhance button when ai_enabled is false", async ({
     userAPage,
   }) => {
     // Disable AI for User A
@@ -67,15 +67,12 @@ test.describe("AI Enhance - Idea Detail", () => {
 
     await userAPage.goto(`/ideas/${testIdeaId}`);
 
-    // Wait for page to fully render — check both the title and an interactive element
-    await expect(userAPage.getByText("[E2E] AI Enhance Test Idea")).toBeVisible({
+    // Wait for page to fully render — the title is in an inline-edit input
+    await expect(userAPage.locator("input[value*='AI Enhance Test Idea']")).toBeVisible({
       timeout: 15_000,
     });
     // Wait for vote button to confirm the page is fully hydrated
     await expect(userAPage.locator('[data-testid="vote-button"]').first()).toBeVisible({ timeout: 10_000 });
-
-    // Wait a bit for client components to fully mount
-    await userAPage.waitForTimeout(2000);
 
     // The enhance button should not be present at all
     const enhanceButtons = userAPage.getByRole("button", { name: /enhance with ai/i });
