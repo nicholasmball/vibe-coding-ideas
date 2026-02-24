@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { UserPlus, UserMinus, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ interface CollaboratorButtonProps {
 
 export function CollaboratorButton({ ideaId, isCollaborator, isAuthor, pendingRequestId }: CollaboratorButtonProps) {
   const [isPending, startTransition] = useTransition();
+  const [optimisticState, setOptimisticState] = useState<"idle" | "requested" | "withdrawn">("idle");
 
   if (isAuthor) return null;
 
@@ -41,7 +42,9 @@ export function CollaboratorButton({ ideaId, isCollaborator, isAuthor, pendingRe
     );
   }
 
-  if (pendingRequestId) {
+  const showRequested = optimisticState === "requested" || (pendingRequestId && optimisticState !== "withdrawn");
+
+  if (showRequested) {
     return (
       <Button
         variant="outline"
@@ -49,6 +52,7 @@ export function CollaboratorButton({ ideaId, isCollaborator, isAuthor, pendingRe
           startTransition(async () => {
             try {
               await withdrawRequest(ideaId);
+              setOptimisticState("withdrawn");
               toast.success("Request withdrawn");
             } catch {
               toast.error("Failed to withdraw request");
@@ -72,8 +76,10 @@ export function CollaboratorButton({ ideaId, isCollaborator, isAuthor, pendingRe
         startTransition(async () => {
           try {
             await requestCollaboration(ideaId);
+            setOptimisticState("requested");
             toast.success("Collaboration request sent");
           } catch {
+            setOptimisticState("idle");
             toast.error("Failed to send request");
           }
         });
