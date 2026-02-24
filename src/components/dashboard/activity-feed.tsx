@@ -106,10 +106,9 @@ export function ActivityFeed({ notifications }: ActivityFeedProps) {
         }`;
 
         if (notification.idea_id) {
-          const href =
-            notification.type === "task_mention"
-              ? `/ideas/${notification.idea_id}/board${notification.task_id ? `?taskId=${notification.task_id}` : ""}`
-              : `/ideas/${notification.idea_id}`;
+          const href = notification.task_id
+            ? `/ideas/${notification.idea_id}/board?taskId=${notification.task_id}`
+            : `/ideas/${notification.idea_id}`;
           return (
             <Link key={notification.id} href={href} className={`block ${className}`}>
               {content}
