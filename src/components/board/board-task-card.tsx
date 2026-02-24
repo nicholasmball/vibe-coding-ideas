@@ -3,7 +3,15 @@
 import { useState, useMemo, useEffect, useCallback, useRef, memo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, CheckSquare, Paperclip, MessageSquare, Archive, X, Bot } from "lucide-react";
+import {
+  GripVertical,
+  CheckSquare,
+  Paperclip,
+  MessageSquare,
+  Archive,
+  X,
+  Bot,
+} from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
@@ -32,7 +40,10 @@ interface BoardTaskCardProps {
 function HighlightedText({ text, query }: { text: string; query: string }) {
   if (!query) return <>{text}</>;
 
-  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
+  const regex = new RegExp(
+    `(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`,
+    "gi",
+  );
   const parts = text.split(regex);
 
   return (
@@ -44,7 +55,7 @@ function HighlightedText({ text, query }: { text: string; query: string }) {
           </mark>
         ) : (
           part
-        )
+        ),
       )}
     </>
   );
@@ -66,7 +77,9 @@ export const BoardTaskCard = memo(function BoardTaskCard({
 }: BoardTaskCardProps) {
   const [detailOpen, setDetailOpen] = useState(autoOpen);
   const [initialTab, setInitialTab] = useState<string | undefined>(undefined);
-  const [coverUrl, setCoverUrl] = useState<string | null>(initialCoverUrl ?? null);
+  const [coverUrl, setCoverUrl] = useState<string | null>(
+    initialCoverUrl ?? null,
+  );
   const [coverPreviewOpen, setCoverPreviewOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -95,6 +108,22 @@ export const BoardTaskCard = memo(function BoardTaskCard({
       }
     }
   }, [detailOpen]);
+
+  // Update URL when dialog opens/closes
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      setDetailOpen(open);
+      const url = new URL(window.location.href);
+      if (open) {
+        url.searchParams.set("taskId", task.id);
+      } else {
+        url.searchParams.delete("taskId");
+      }
+      // Use replaceState to avoid polluting browser history
+      window.history.replaceState({}, "", url.toString());
+    },
+    [task.id],
+  );
 
   const isArchived = task.archived;
   const attachmentCount = task.attachment_count;
@@ -169,7 +198,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
         .map((n) => n[0])
         .join("")
         .toUpperCase() ?? null,
-    [task.assignee?.full_name]
+    [task.assignee?.full_name],
   );
 
   return (
@@ -186,7 +215,10 @@ export const BoardTaskCard = memo(function BoardTaskCard({
             ? "border-primary ring-2 ring-primary/50"
             : "border-border"
         } ${isDragging ? "opacity-50" : ""} ${isArchived ? "opacity-50" : ""}`}
-        onClick={() => { setInitialTab(undefined); setDetailOpen(true); }}
+        onClick={() => {
+          setInitialTab(undefined);
+          handleOpenChange(true);
+        }}
       >
         {coverUrl && (
           <div
@@ -276,7 +308,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
                         onClick={(e) => {
                           e.stopPropagation();
                           setInitialTab("files");
-                          setDetailOpen(true);
+                          handleOpenChange(true);
                         }}
                       >
                         <Paperclip className="h-3 w-3" />
@@ -294,7 +326,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
                         onClick={(e) => {
                           e.stopPropagation();
                           setInitialTab("comments");
-                          setDetailOpen(true);
+                          handleOpenChange(true);
                         }}
                       >
                         <MessageSquare className="h-3 w-3" />
@@ -331,7 +363,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
       {detailOpen && (
         <TaskDetailDialog
           open={detailOpen}
-          onOpenChange={setDetailOpen}
+          onOpenChange={handleOpenChange}
           task={task}
           ideaId={ideaId}
           boardLabels={boardLabels}

@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
-import { Tag, Trash2, Archive, ArchiveRestore, Pencil, X, Bot } from "lucide-react";
+import { Tag, Trash2, Archive, ArchiveRestore, Pencil, X, Bot, Link2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { TaskLabelBadges } from "./task-label-badges";
 import { LabelPicker } from "./label-picker";
 import { DueDatePicker } from "./due-date-picker";
@@ -351,6 +352,34 @@ export function TaskDetailDialog({
     };
   }, [localCoverPath]);
 
+  async function handleShare() {
+    const url = new URL(window.location.href);
+    url.searchParams.set("taskId", task.id);
+    const shareUrl = url.toString();
+
+    // Try native share API on mobile (if available and has share capability)
+    if (navigator.share && navigator.canShare?.({ url: shareUrl })) {
+      try {
+        await navigator.share({
+          title: task.title,
+          url: shareUrl,
+        });
+        return;
+      } catch (err) {
+        // User cancelled or share failed — fall through to clipboard
+        if ((err as Error).name === "AbortError") return;
+      }
+    }
+
+    // Fallback to clipboard
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Link copied to clipboard");
+    } catch {
+      toast.error("Failed to copy link");
+    }
+  }
+
   return (
     <Dialog
       open={open}
@@ -380,15 +409,45 @@ export function TaskDetailDialog({
         <DialogHeader className={`px-6 pb-0 ${coverUrl ? "pt-4" : "pt-6"}`}>
           <DialogTitle className="sr-only">Task Details</DialogTitle>
           {isReadOnly ? (
-            <p className="text-lg font-semibold">{task.title}</p>
+            <div className="flex items-center gap-2">
+              <p className="flex-1 text-lg font-semibold">{task.title}</p>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+                    onClick={handleShare}
+                  >
+                    <Link2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Copy link</TooltipContent>
+              </Tooltip>
+            </div>
           ) : (
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onBlur={handleTitleBlur}
-              className="border-none p-0 text-lg font-semibold shadow-none focus-visible:ring-0"
-              disabled={savingTitle}
-            />
+            <div className="flex items-center gap-2">
+              <Input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onBlur={handleTitleBlur}
+                className="flex-1 border-none p-0 text-lg font-semibold shadow-none focus-visible:ring-0"
+                disabled={savingTitle}
+              />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0 text-muted-foreground hover:text-foreground"
+                    onClick={handleShare}
+                  >
+                    <Link2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Copy link</TooltipContent>
+              </Tooltip>
+            </div>
           )}
         </DialogHeader>
 
