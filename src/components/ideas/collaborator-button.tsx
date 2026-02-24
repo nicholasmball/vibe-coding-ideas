@@ -32,6 +32,7 @@ export function CollaboratorButton({ ideaId, isCollaborator, isAuthor, pendingRe
           });
         }}
         disabled={isPending}
+        size="sm"
         className="gap-2"
       >
         <UserMinus className="h-4 w-4" />
@@ -55,6 +56,7 @@ export function CollaboratorButton({ ideaId, isCollaborator, isAuthor, pendingRe
           });
         }}
         disabled={isPending}
+        size="sm"
         className="gap-2 text-muted-foreground"
       >
         <Clock className="h-4 w-4" />

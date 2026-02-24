@@ -50,6 +50,7 @@ export async function requestCollaboration(ideaId: string) {
   }
 
   revalidatePath(`/ideas/${ideaId}`);
+  revalidatePath(`/ideas/${ideaId}/board`);
 }
 
 export async function withdrawRequest(ideaId: string) {
@@ -74,6 +75,7 @@ export async function withdrawRequest(ideaId: string) {
   }
 
   revalidatePath(`/ideas/${ideaId}`);
+  revalidatePath(`/ideas/${ideaId}/board`);
 }
 
 export async function respondToRequest(requestId: string, ideaId: string, accept: boolean) {
@@ -159,6 +161,7 @@ export async function respondToRequest(requestId: string, ideaId: string, accept
   }
 
   revalidatePath(`/ideas/${ideaId}`);
+  revalidatePath(`/ideas/${ideaId}/board`);
 }
 
 export async function leaveCollaboration(ideaId: string) {
@@ -174,6 +177,7 @@ export async function leaveCollaboration(ideaId: string) {
   await supabase.from("collaborators").delete().eq("idea_id", ideaId).eq("user_id", user.id);
 
   revalidatePath(`/ideas/${ideaId}`);
+  revalidatePath(`/ideas/${ideaId}/board`);
 }
 
 export async function addCollaborator(ideaId: string, userId: string) {

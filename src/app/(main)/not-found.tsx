@@ -1,32 +1,14 @@
-import Link from "next/link";
-import { SearchX, ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { SearchX } from "lucide-react";
+import { NotFoundPage } from "@/components/layout/not-found-page";
 
 export default function NotFound() {
   return (
-    <div className="flex h-full flex-col items-center justify-center px-4">
-      <div className="flex flex-col items-center gap-4 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted">
-          <SearchX className="h-8 w-8 text-muted-foreground" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">Page not found</h1>
-          <p className="mt-2 text-sm text-muted-foreground max-w-sm">
-            This page doesn&apos;t exist or you don&apos;t have permission to view it.
-          </p>
-        </div>
-        <div className="flex gap-3 mt-2">
-          <Button variant="outline" asChild>
-            <Link href="/feed" className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Browse ideas
-            </Link>
-          </Button>
-          <Button asChild>
-            <Link href="/dashboard">Dashboard</Link>
-          </Button>
-        </div>
-      </div>
-    </div>
+    <NotFoundPage
+      icon={SearchX}
+      title="Page not found"
+      description="This page doesn't exist or you don't have permission to view it."
+      backHref="/feed"
+      backLabel="Browse ideas"
+    />
   );
 }
