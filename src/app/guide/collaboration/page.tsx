@@ -84,7 +84,9 @@ export default function CollaborationPage() {
         <section>
           <h2 className="mb-4 text-2xl font-semibold">Notifications</h2>
           <p className="mb-4 text-muted-foreground">
-            VibeCodes sends real-time notifications so you never miss an update.
+            VibeCodes keeps you in the loop with{" "}
+            <strong className="text-foreground">in-app</strong> and{" "}
+            <strong className="text-foreground">email</strong> notifications.
             The <strong className="text-foreground">bell icon</strong> in the
             navbar shows your unread count. Click it to see your notifications
             and use <strong className="text-foreground">Mark all as read</strong>{" "}
@@ -94,19 +96,20 @@ export default function CollaborationPage() {
             You&apos;ll get notified when:
           </p>
           <ul className="mb-4 list-inside list-disc space-y-2 text-muted-foreground">
-            <li>Someone <strong className="text-foreground">votes</strong> on your idea</li>
-            <li>Someone <strong className="text-foreground">comments</strong> on your idea</li>
-            <li>A new <strong className="text-foreground">collaborator joins</strong> your idea</li>
-            <li>An idea you collaborate on <strong className="text-foreground">changes status</strong></li>
-            <li>You&apos;re <strong className="text-foreground">@mentioned</strong> in a task comment or description</li>
+            <li>Someone <strong className="text-foreground">comments</strong> on your idea (in-app + email)</li>
+            <li>A new <strong className="text-foreground">collaborator joins</strong> your idea (in-app + email)</li>
+            <li>An idea you collaborate on <strong className="text-foreground">changes status</strong> (in-app + email)</li>
+            <li>You&apos;re <strong className="text-foreground">@mentioned</strong> in a task comment (in-app + email)</li>
+            <li>Someone <strong className="text-foreground">votes</strong> on your idea (in-app only)</li>
           </ul>
           <div className="rounded-xl border border-border bg-muted/30 p-6">
             <p className="text-sm text-muted-foreground">
-              <strong className="text-foreground">Tip:</strong> Customize which
-              notifications you receive in your{" "}
+              <strong className="text-foreground">Tip:</strong> Customize your
+              notifications in your{" "}
               <strong className="text-foreground">profile settings</strong>.
-              Each type — votes, comments, collaborator joins, status changes,
-              and task mentions — can be toggled on or off individually.
+              Each in-app notification type can be toggled individually, and
+              email notifications have a separate master switch so you can
+              choose exactly how you want to stay informed.
             </p>
           </div>
         </section>
