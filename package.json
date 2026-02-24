@@ -14,7 +14,7 @@
     "test:e2e:headed": "playwright test --headed",
     "docker:down": "docker compose down",
     "docker:supabase": "docker compose up -d db auth rest realtime storage meta studio kong",
-    "docker:reset": "docker compose down -v && npm run docker:supabase && npm run docker:seed",
+    "docker:reset": "docker compose down -v && npm run docker:supabase; npm run docker:seed",
     "docker:seed": "./docker/seed.sh",
     "docker:studio": "open http://localhost:54323"
   },
