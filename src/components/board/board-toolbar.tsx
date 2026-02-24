@@ -3,27 +3,11 @@
 import { useState } from "react";
 import { Search, X, Upload, Sparkles, Archive, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { getLabelColorConfig } from "@/lib/utils";
 import { ImportDialog } from "./import-dialog";
 import { AiGenerateDialog } from "./ai-generate-dialog";
@@ -88,13 +72,9 @@ export function BoardToolbar({
     }
   }
 
-  const hasFilters =
-    searchQuery || assigneeFilter !== "all" || labelFilter.length > 0 || dueDateFilter !== "all";
+  const hasFilters = searchQuery || assigneeFilter !== "all" || labelFilter.length > 0 || dueDateFilter !== "all";
 
-  const activeFilterCount =
-    (assigneeFilter !== "all" ? 1 : 0) +
-    labelFilter.length +
-    (dueDateFilter !== "all" ? 1 : 0);
+  const activeFilterCount = (assigneeFilter !== "all" ? 1 : 0) + labelFilter.length + (dueDateFilter !== "all" ? 1 : 0);
 
   const filterControls = (
     <>
@@ -128,24 +108,17 @@ export function BoardToolbar({
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-52 p-2" align="start">
-            <p className="mb-2 text-xs font-medium text-muted-foreground">
-              Filter by labels
-            </p>
+            <p className="mb-2 text-xs font-medium text-muted-foreground">Filter by labels</p>
             <div className="space-y-1">
               {boardLabels.map((label) => {
                 const config = getLabelColorConfig(label.color);
                 return (
-                  <div
-                    key={label.id}
-                    className="flex items-center gap-2 rounded-md px-1 py-1 hover:bg-muted/50"
-                  >
+                  <div key={label.id} className="flex items-center gap-2 rounded-md px-1 py-1 hover:bg-muted/50">
                     <Checkbox
                       checked={labelFilter.includes(label.id)}
                       onCheckedChange={() => handleLabelToggle(label.id)}
                     />
-                    <span
-                      className={`h-3 w-3 shrink-0 rounded-sm ${config.swatchColor}`}
-                    />
+                    <span className={`h-3 w-3 shrink-0 rounded-sm ${config.swatchColor}`} />
                     <span className="text-xs font-medium">{label.name}</span>
                   </div>
                 );
@@ -230,16 +203,12 @@ export function BoardToolbar({
           <SheetHeader>
             <SheetTitle>Filters</SheetTitle>
           </SheetHeader>
-          <div className="mt-4 flex flex-col gap-3">
-            {filterControls}
-          </div>
+          <div className="mt-4 flex flex-col gap-3">{filterControls}</div>
         </SheetContent>
       </Sheet>
 
       {/* Desktop: inline filters */}
-      <div className="hidden md:contents">
-        {filterControls}
-      </div>
+      <div className="hidden md:contents">{filterControls}</div>
 
       {!isReadOnly && (
         <div className="ml-auto flex gap-2">

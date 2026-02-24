@@ -4,11 +4,7 @@ import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import { MessageSquare, Trash2, Send, Bot } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import { Markdown } from "@/components/ui/markdown";
 import { MentionAutocomplete } from "./mention-autocomplete";
@@ -41,16 +37,12 @@ export function TaskCommentsSection({
   const [submitting, setSubmitting] = useState(false);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionIndex, setMentionIndex] = useState(0);
-  const [mentionedUserIds, setMentionedUserIds] = useState<Set<string>>(
-    new Set()
-  );
+  const [mentionedUserIds, setMentionedUserIds] = useState<Set<string>>(new Set());
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const filteredMembers = useMemo(() => {
     if (mentionQuery === null) return [];
-    return teamMembers.filter((m) =>
-      m.full_name?.toLowerCase().includes(mentionQuery.toLowerCase())
-    );
+    return teamMembers.filter((m) => m.full_name?.toLowerCase().includes(mentionQuery.toLowerCase()));
   }, [teamMembers, mentionQuery]);
 
   const fetchComments = useCallback(async () => {
@@ -61,9 +53,7 @@ export function TaskCommentsSection({
       .eq("task_id", taskId)
       .order("created_at", { ascending: true });
 
-    setComments(
-      (data ?? []) as unknown as BoardTaskCommentWithAuthor[]
-    );
+    setComments((data ?? []) as unknown as BoardTaskCommentWithAuthor[]);
     setLoading(false);
   }, [taskId]);
 
@@ -97,10 +87,7 @@ export function TaskCommentsSection({
               if (prev.some((c) => c.id === comment.id)) return prev;
               // Replace optimistic temp entry from same author with real data
               const tempIdx = prev.findIndex(
-                (c) =>
-                  c.id.startsWith("temp-") &&
-                  c.author_id === comment.author_id &&
-                  c.content === comment.content
+                (c) => c.id.startsWith("temp-") && c.author_id === comment.author_id && c.content === comment.content
               );
               if (tempIdx !== -1) {
                 const updated = [...prev];
@@ -121,9 +108,7 @@ export function TaskCommentsSection({
           filter: `task_id=eq.${taskId}`,
         },
         (payload) => {
-          setComments((prev) =>
-            prev.filter((c) => c.id !== payload.old.id)
-          );
+          setComments((prev) => prev.filter((c) => c.id !== payload.old.id));
         }
       )
       .subscribe();
@@ -163,8 +148,7 @@ export function TaskCommentsSection({
     if (atIndex === -1) return;
 
     const name = user.full_name ?? user.email;
-    const newText =
-      textBeforeCursor.slice(0, atIndex) + `@${name} ` + textAfterCursor;
+    const newText = textBeforeCursor.slice(0, atIndex) + `@${name} ` + textAfterCursor;
     setContent(newText);
     setMentionQuery(null);
 
@@ -183,14 +167,10 @@ export function TaskCommentsSection({
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setMentionIndex((prev) =>
-        prev < filteredMembers.length - 1 ? prev + 1 : 0
-      );
+      setMentionIndex((prev) => (prev < filteredMembers.length - 1 ? prev + 1 : 0));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setMentionIndex((prev) =>
-        prev > 0 ? prev - 1 : filteredMembers.length - 1
-      );
+      setMentionIndex((prev) => (prev > 0 ? prev - 1 : filteredMembers.length - 1));
     } else if (e.key === "Enter") {
       e.preventDefault();
       handleMentionSelect(filteredMembers[mentionIndex]);
@@ -246,8 +226,7 @@ export function TaskCommentsSection({
               task_id: taskId,
             })
             .then(({ error }) => {
-              if (error)
-                console.error("Failed to send mention notification:", error.message);
+              if (error) console.error("Failed to send mention notification:", error.message);
             });
         }
       }
@@ -287,9 +266,7 @@ export function TaskCommentsSection({
     <div className="space-y-3">
       <div className="flex items-center gap-2">
         <MessageSquare className="h-4 w-4" />
-        <span className="text-sm font-medium">
-          Comments{comments.length > 0 ? ` (${comments.length})` : ""}
-        </span>
+        <span className="text-sm font-medium">Comments{comments.length > 0 ? ` (${comments.length})` : ""}</span>
       </div>
 
       {loading ? (
@@ -308,19 +285,13 @@ export function TaskCommentsSection({
               return (
                 <div key={comment.id} className="flex gap-2">
                   <Avatar className="h-6 w-6 shrink-0">
-                    <AvatarImage
-                      src={comment.author?.avatar_url ?? undefined}
-                    />
-                    <AvatarFallback className="text-[10px]">
-                      {initials}
-                    </AvatarFallback>
+                    <AvatarImage src={comment.author?.avatar_url ?? undefined} />
+                    <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="text-xs font-medium inline-flex items-center gap-1">
-                        {comment.author?.is_bot && (
-                          <Bot className="h-3 w-3 text-primary" />
-                        )}
+                        {comment.author?.is_bot && <Bot className="h-3 w-3 text-primary" />}
                         {comment.author?.full_name ?? "Unknown"}
                       </span>
                       <span className="text-[10px] text-muted-foreground">

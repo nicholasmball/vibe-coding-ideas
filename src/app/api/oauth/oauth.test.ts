@@ -3,7 +3,7 @@ import crypto from "crypto";
 
 // --- Mock setup ---
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 const { mockFrom, mockAuthGetUser, mockAuthRefreshSession, makeChain } = vi.hoisted(() => {
   const mockFrom = vi.fn();
   const mockAuthGetUser = vi.fn();

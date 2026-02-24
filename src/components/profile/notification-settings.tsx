@@ -29,6 +29,8 @@ const inAppLabels: Record<string, string> = {
   collaborators: "New collaborators",
   status_changes: "Idea status updates",
   task_mentions: "Task mentions",
+  collaboration_requests: "Collaboration requests",
+  collaboration_responses: "Collaboration request responses",
 };
 
 export function NotificationSettings({
@@ -79,9 +81,7 @@ export function NotificationSettings({
             <Bell className="h-5 w-5" />
             Notification Preferences
           </DialogTitle>
-          <DialogDescription>
-            Choose which notifications you want to receive.
-          </DialogDescription>
+          <DialogDescription>Choose which notifications you want to receive.</DialogDescription>
         </DialogHeader>
         <div className="space-y-5 py-2">
           {/* In-app notification toggles */}

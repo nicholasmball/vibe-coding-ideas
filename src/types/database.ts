@@ -1,10 +1,4 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[];
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type Database = {
   public: {
@@ -25,6 +19,8 @@ export type Database = {
             status_changes: boolean;
             task_mentions: boolean;
             email_notifications: boolean;
+            collaboration_requests: boolean;
+            collaboration_responses: boolean;
           };
           default_board_columns: { title: string; is_done_column: boolean }[] | null;
           is_admin: boolean;
@@ -51,6 +47,8 @@ export type Database = {
             status_changes: boolean;
             task_mentions: boolean;
             email_notifications: boolean;
+            collaboration_requests: boolean;
+            collaboration_responses: boolean;
           };
           default_board_columns?: { title: string; is_done_column: boolean }[] | null;
           is_admin?: boolean;
@@ -77,6 +75,8 @@ export type Database = {
             status_changes: boolean;
             task_mentions: boolean;
             email_notifications: boolean;
+            collaboration_requests: boolean;
+            collaboration_responses: boolean;
           };
           default_board_columns?: { title: string; is_done_column: boolean }[] | null;
           is_admin?: boolean;
@@ -711,10 +711,19 @@ export type Database = {
           id: string;
           user_id: string;
           actor_id: string;
-          type: "comment" | "vote" | "collaborator" | "user_deleted" | "status_change" | "task_mention";
+          type:
+            | "comment"
+            | "vote"
+            | "collaborator"
+            | "user_deleted"
+            | "status_change"
+            | "task_mention"
+            | "collaboration_request"
+            | "collaboration_response";
           idea_id: string | null;
           comment_id: string | null;
           task_id: string | null;
+          collaboration_request_id: string | null;
           read: boolean;
           created_at: string;
         };
@@ -722,10 +731,19 @@ export type Database = {
           id?: string;
           user_id: string;
           actor_id: string;
-          type: "comment" | "vote" | "collaborator" | "user_deleted" | "status_change" | "task_mention";
+          type:
+            | "comment"
+            | "vote"
+            | "collaborator"
+            | "user_deleted"
+            | "status_change"
+            | "task_mention"
+            | "collaboration_request"
+            | "collaboration_response";
           idea_id?: string | null;
           comment_id?: string | null;
           task_id?: string | null;
+          collaboration_request_id?: string | null;
           read?: boolean;
           created_at?: string;
         };
@@ -733,10 +751,19 @@ export type Database = {
           id?: string;
           user_id?: string;
           actor_id?: string;
-          type?: "comment" | "vote" | "collaborator" | "user_deleted" | "status_change" | "task_mention";
+          type?:
+            | "comment"
+            | "vote"
+            | "collaborator"
+            | "user_deleted"
+            | "status_change"
+            | "task_mention"
+            | "collaboration_request"
+            | "collaboration_response";
           idea_id?: string | null;
           comment_id?: string | null;
           task_id?: string | null;
+          collaboration_request_id?: string | null;
           read?: boolean;
           created_at?: string;
         };
@@ -774,6 +801,13 @@ export type Database = {
             columns: ["task_id"];
             isOneToOne: false;
             referencedRelation: "board_tasks";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_collaboration_request_id_fkey";
+            columns: ["collaboration_request_id"];
+            isOneToOne: false;
+            referencedRelation: "collaboration_requests";
             referencedColumns: ["id"];
           },
         ];
@@ -900,6 +934,48 @@ export type Database = {
           {
             foreignKeyName: "bot_profiles_owner_id_fkey";
             columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      collaboration_requests: {
+        Row: {
+          id: string;
+          idea_id: string;
+          requester_id: string;
+          status: "pending" | "accepted" | "declined";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          idea_id: string;
+          requester_id: string;
+          status?: "pending" | "accepted" | "declined";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          idea_id?: string;
+          requester_id?: string;
+          status?: "pending" | "accepted" | "declined";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "collaboration_requests_idea_id_fkey";
+            columns: ["idea_id"];
+            isOneToOne: false;
+            referencedRelation: "ideas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "collaboration_requests_requester_id_fkey";
+            columns: ["requester_id"];
             isOneToOne: false;
             referencedRelation: "users";
             referencedColumns: ["id"];
@@ -1037,7 +1113,16 @@ export type Database = {
       idea_visibility: "public" | "private";
       comment_type: "comment" | "suggestion" | "question";
       vote_type: "upvote" | "downvote";
-      notification_type: "comment" | "vote" | "collaborator" | "user_deleted" | "status_change" | "task_mention";
+      notification_type:
+        | "comment"
+        | "vote"
+        | "collaborator"
+        | "user_deleted"
+        | "status_change"
+        | "task_mention"
+        | "collaboration_request"
+        | "collaboration_response";
+      collaboration_request_status: "pending" | "accepted" | "declined";
     };
     CompositeTypes: {
       [_ in never]: never;

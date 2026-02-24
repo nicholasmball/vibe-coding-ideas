@@ -3,25 +3,14 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 import { Tag, Trash2, Archive, ArchiveRestore, Pencil, X, Bot } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TaskLabelBadges } from "./task-label-badges";
 import { LabelPicker } from "./label-picker";
 import { DueDatePicker } from "./due-date-picker";
@@ -35,12 +24,7 @@ import { updateBoardTask, deleteBoardTask } from "@/actions/board";
 import { useBoardOps } from "./board-context";
 import { createClient } from "@/lib/supabase/client";
 import { logTaskActivity } from "@/lib/activity";
-import type {
-  BoardTaskWithAssignee,
-  BoardLabel,
-  BoardChecklistItem,
-  User,
-} from "@/types";
+import type { BoardTaskWithAssignee, BoardLabel, BoardChecklistItem, User } from "@/types";
 
 interface TaskDetailDialogProps {
   open: boolean;
@@ -87,9 +71,7 @@ export function TaskDetailDialog({
 
   const filteredDescMembers = useMemo(() => {
     if (descMentionQuery === null) return [];
-    return teamMembers.filter((m) =>
-      m.full_name?.toLowerCase().includes(descMentionQuery.toLowerCase())
-    );
+    return teamMembers.filter((m) => m.full_name?.toLowerCase().includes(descMentionQuery.toLowerCase()));
   }, [teamMembers, descMentionQuery]);
 
   const [isArchived, setIsArchived] = useState(task.archived);
@@ -211,14 +193,10 @@ export function TaskDetailDialog({
 
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setDescMentionIndex((prev) =>
-        prev < filteredDescMembers.length - 1 ? prev + 1 : 0
-      );
+      setDescMentionIndex((prev) => (prev < filteredDescMembers.length - 1 ? prev + 1 : 0));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
-      setDescMentionIndex((prev) =>
-        prev > 0 ? prev - 1 : filteredDescMembers.length - 1
-      );
+      setDescMentionIndex((prev) => (prev > 0 ? prev - 1 : filteredDescMembers.length - 1));
     } else if (e.key === "Enter") {
       e.preventDefault();
       handleDescMentionSelect(filteredDescMembers[descMentionIndex]);
@@ -257,8 +235,7 @@ export function TaskDetailDialog({
               task_id: task.id,
             })
             .then(({ error }) => {
-              if (error)
-                console.error("Failed to send mention notification:", error.message);
+              if (error) console.error("Failed to send mention notification:", error.message);
             });
         }
       }
@@ -277,8 +254,7 @@ export function TaskDetailDialog({
     try {
       await updateBoardTask(task.id, ideaId, { assignee_id: assigneeId });
       if (assigneeId) {
-        const member = teamMembers.find((m) => m.id === assigneeId)
-          ?? userBots.find((b) => b.id === assigneeId);
+        const member = teamMembers.find((m) => m.id === assigneeId) ?? userBots.find((b) => b.id === assigneeId);
         logTaskActivity(task.id, ideaId, currentUserId, "assigned", {
           assignee_name: member?.full_name ?? "Unknown",
         });
@@ -297,12 +273,7 @@ export function TaskDetailDialog({
     setIsArchived(newArchived);
     try {
       await updateBoardTask(task.id, ideaId, { archived: newArchived });
-      logTaskActivity(
-        task.id,
-        ideaId,
-        currentUserId,
-        newArchived ? "archived" : "unarchived"
-      );
+      logTaskActivity(task.id, ideaId, currentUserId, newArchived ? "archived" : "unarchived");
     } catch {
       // Rollback
       setIsArchived(!newArchived);
@@ -336,9 +307,9 @@ export function TaskDetailDialog({
   }
 
   const localAssignee = localAssigneeId
-    ? teamMembers.find((m) => m.id === localAssigneeId)
-      ?? userBots.find((b) => b.id === localAssigneeId)
-      ?? task.assignee
+    ? (teamMembers.find((m) => m.id === localAssigneeId) ??
+      userBots.find((b) => b.id === localAssigneeId) ??
+      task.assignee)
     : null;
   const assigneeInitials =
     localAssignee?.full_name
@@ -375,11 +346,22 @@ export function TaskDetailDialog({
       .then(({ data }) => {
         if (!cancelled && data?.signedUrl) setCoverUrl(data.signedUrl);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [localCoverPath]);
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v && coverPreviewOpen) { setCoverPreviewOpen(false); return; } onOpenChange(v); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v && coverPreviewOpen) {
+          setCoverPreviewOpen(false);
+          return;
+        }
+        onOpenChange(v);
+      }}
+    >
       <DialogContent
         className="flex max-h-[85vh] flex-col gap-0 p-0 sm:max-w-lg"
         onOpenAutoFocus={(e) => e.preventDefault()}
@@ -390,11 +372,7 @@ export function TaskDetailDialog({
             className="h-40 w-full shrink-0 cursor-zoom-in overflow-hidden"
             onClick={() => setCoverPreviewOpen(true)}
           >
-            <img
-              src={coverUrl}
-              alt=""
-              className="h-full w-full object-cover"
-            />
+            <img src={coverUrl} alt="" className="h-full w-full object-cover" />
           </div>
         )}
 
@@ -423,17 +401,13 @@ export function TaskDetailDialog({
             <TabsTrigger value="comments" className="text-xs">
               Comments
               {!!commentCount && commentCount > 0 && (
-                <span className="ml-1 rounded-full bg-muted px-1.5 text-[10px]">
-                  {commentCount}
-                </span>
+                <span className="ml-1 rounded-full bg-muted px-1.5 text-[10px]">{commentCount}</span>
               )}
             </TabsTrigger>
             <TabsTrigger value="files" className="text-xs">
               Files
               {!!attachmentCount && attachmentCount > 0 && (
-                <span className="ml-1 rounded-full bg-muted px-1.5 text-[10px]">
-                  {attachmentCount}
-                </span>
+                <span className="ml-1 rounded-full bg-muted px-1.5 text-[10px]">{attachmentCount}</span>
               )}
             </TabsTrigger>
             <TabsTrigger value="activity" className="text-xs">
@@ -480,9 +454,7 @@ export function TaskDetailDialog({
                       <div className="relative">
                         <Avatar className="h-6 w-6">
                           <AvatarImage src={localAssignee.avatar_url ?? undefined} />
-                          <AvatarFallback className="text-[10px]">
-                            {assigneeInitials}
-                          </AvatarFallback>
+                          <AvatarFallback className="text-[10px]">{assigneeInitials}</AvatarFallback>
                         </Avatar>
                         {localAssignee.is_bot && (
                           <Bot className="absolute -bottom-0.5 -right-0.5 h-3 w-3 text-primary" />
@@ -556,7 +528,25 @@ export function TaskDetailDialog({
 
               {/* Description */}
               <div className="space-y-2">
-                <span className="text-sm font-medium">Description</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Description</span>
+                  {!isReadOnly && !editingDescription && description && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 gap-1 text-xs text-muted-foreground"
+                      onClick={() => {
+                        setEditingDescription(true);
+                        requestAnimationFrame(() => {
+                          descriptionTextareaRef.current?.focus();
+                        });
+                      }}
+                    >
+                      <Pencil className="h-3 w-3" />
+                      Edit
+                    </Button>
+                  )}
+                </div>
                 {isReadOnly ? (
                   description ? (
                     <div className="rounded-md px-3 py-2 text-sm">
@@ -565,74 +555,52 @@ export function TaskDetailDialog({
                   ) : (
                     <p className="text-xs text-muted-foreground">No description</p>
                   )
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between">
-                      {!editingDescription && description && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 gap-1 text-xs text-muted-foreground"
-                          onClick={() => {
-                            setEditingDescription(true);
-                            requestAnimationFrame(() => {
-                              descriptionTextareaRef.current?.focus();
-                            });
-                          }}
-                        >
-                          <Pencil className="h-3 w-3" />
-                          Edit
-                        </Button>
-                      )}
-                    </div>
-                    {editingDescription ? (
-                      <div className="relative">
-                        {descMentionQuery !== null && (
-                          <MentionAutocomplete
-                            filteredMembers={filteredDescMembers}
-                            selectedIndex={descMentionIndex}
-                            onSelect={handleDescMentionSelect}
-                          />
-                        )}
-                        <Textarea
-                          ref={descriptionTextareaRef}
-                          value={description}
-                          onChange={handleDescInputChange}
-                          onKeyDown={handleDescKeyDown}
-                          onBlur={handleDescriptionBlur}
-                          placeholder="Add a description... (@ to mention, supports markdown)"
-                          rows={6}
-                          className="text-sm"
-                          disabled={savingDesc}
-                          autoFocus
-                        />
-                      </div>
-                    ) : description ? (
-                      <div
-                        className="cursor-pointer rounded-md border border-transparent px-3 py-2 text-sm transition-colors hover:border-border hover:bg-muted/50"
-                        onClick={() => {
-                          setEditingDescription(true);
-                          requestAnimationFrame(() => {
-                            descriptionTextareaRef.current?.focus();
-                          });
-                        }}
-                      >
-                        <Markdown>{description}</Markdown>
-                      </div>
-                    ) : (
-                      <div
-                        className="cursor-pointer rounded-md border border-dashed border-border px-3 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted/50"
-                        onClick={() => {
-                          setEditingDescription(true);
-                          requestAnimationFrame(() => {
-                            descriptionTextareaRef.current?.focus();
-                          });
-                        }}
-                      >
-                        Add a description...
-                      </div>
+                ) : editingDescription ? (
+                  <div className="relative">
+                    {descMentionQuery !== null && (
+                      <MentionAutocomplete
+                        filteredMembers={filteredDescMembers}
+                        selectedIndex={descMentionIndex}
+                        onSelect={handleDescMentionSelect}
+                      />
                     )}
-                  </>
+                    <Textarea
+                      ref={descriptionTextareaRef}
+                      value={description}
+                      onChange={handleDescInputChange}
+                      onKeyDown={handleDescKeyDown}
+                      onBlur={handleDescriptionBlur}
+                      placeholder="Add a description... (@ to mention, supports markdown)"
+                      rows={6}
+                      className="text-sm"
+                      disabled={savingDesc}
+                      autoFocus
+                    />
+                  </div>
+                ) : description ? (
+                  <div
+                    className="cursor-pointer rounded-md border border-transparent px-3 py-2 text-sm transition-colors hover:border-border hover:bg-muted/50"
+                    onClick={() => {
+                      setEditingDescription(true);
+                      requestAnimationFrame(() => {
+                        descriptionTextareaRef.current?.focus();
+                      });
+                    }}
+                  >
+                    <Markdown>{description}</Markdown>
+                  </div>
+                ) : (
+                  <div
+                    className="cursor-pointer rounded-md border border-dashed border-border px-3 py-3 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:bg-muted/50"
+                    onClick={() => {
+                      setEditingDescription(true);
+                      requestAnimationFrame(() => {
+                        descriptionTextareaRef.current?.focus();
+                      });
+                    }}
+                  >
+                    Add a description...
+                  </div>
                 )}
               </div>
 
@@ -721,7 +689,10 @@ export function TaskDetailDialog({
               variant="ghost"
               size="icon"
               className="absolute right-4 top-4 text-white hover:bg-white/20"
-              onClick={(e) => { e.stopPropagation(); setCoverPreviewOpen(false); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setCoverPreviewOpen(false);
+              }}
             >
               <X className="h-5 w-5" />
             </Button>

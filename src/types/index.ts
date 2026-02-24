@@ -101,5 +101,12 @@ export type AiCredits = {
   isByok: boolean;
 };
 
+// Collaboration request types
+export type CollaborationRequest = Database["public"]["Tables"]["collaboration_requests"]["Row"];
+export type CollaborationRequestStatus = Database["public"]["Enums"]["collaboration_request_status"];
+export type CollaborationRequestWithRequester = CollaborationRequest & {
+  requester: User;
+};
+
 // Sort options
 export type SortOption = "newest" | "popular" | "discussed";

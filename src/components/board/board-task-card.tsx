@@ -5,23 +5,14 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, CheckSquare, Paperclip, MessageSquare, Archive, X, Bot } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { TaskLabelBadges } from "./task-label-badges";
 import { LabelPicker } from "./label-picker";
 import { DueDateBadge } from "./due-date-badge";
 import { TaskDetailDialog } from "./task-detail-dialog";
 import { createClient } from "@/lib/supabase/client";
-import type {
-  BoardTaskWithAssignee,
-  BoardLabel,
-  BoardChecklistItem,
-  User,
-} from "@/types";
+import type { BoardTaskWithAssignee, BoardLabel, BoardChecklistItem, User } from "@/types";
 
 interface BoardTaskCardProps {
   task: BoardTaskWithAssignee;
@@ -38,13 +29,7 @@ interface BoardTaskCardProps {
   isReadOnly?: boolean;
 }
 
-function HighlightedText({
-  text,
-  query,
-}: {
-  text: string;
-  query: string;
-}) {
+function HighlightedText({ text, query }: { text: string; query: string }) {
   if (!query) return <>{text}</>;
 
   const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi");
@@ -147,7 +132,9 @@ export const BoardTaskCard = memo(function BoardTaskCard({
       .then(({ data }) => {
         if (!cancelled && data?.signedUrl) setCoverUrl(data.signedUrl);
       });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [coverImagePath]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sortableData = useMemo(
@@ -204,13 +191,12 @@ export const BoardTaskCard = memo(function BoardTaskCard({
         {coverUrl && (
           <div
             className="h-32 w-full cursor-zoom-in"
-            onClick={(e) => { e.stopPropagation(); setCoverPreviewOpen(true); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCoverPreviewOpen(true);
+            }}
           >
-            <img
-              src={coverUrl}
-              alt=""
-              className="h-full w-full object-cover"
-            />
+            <img src={coverUrl} alt="" className="h-full w-full object-cover" />
           </div>
         )}
         <div className="flex items-start gap-2 p-3">
@@ -248,23 +234,12 @@ export const BoardTaskCard = memo(function BoardTaskCard({
             )}
 
             <p className="text-sm font-medium leading-snug">
-              {highlightQuery ? (
-                <HighlightedText text={task.title} query={highlightQuery} />
-              ) : (
-                task.title
-              )}
+              {highlightQuery ? <HighlightedText text={task.title} query={highlightQuery} /> : task.title}
             </p>
 
             {task.description && (
               <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
-                {highlightQuery ? (
-                  <HighlightedText
-                    text={task.description}
-                    query={highlightQuery}
-                  />
-                ) : (
-                  task.description
-                )}
+                {highlightQuery ? <HighlightedText text={task.description} query={highlightQuery} /> : task.description}
               </p>
             )}
 
@@ -283,9 +258,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
                     <TooltipTrigger asChild>
                       <span
                         className={`inline-flex items-center gap-1 text-[10px] font-medium ${
-                          task.checklist_done === task.checklist_total
-                            ? "text-emerald-400"
-                            : "text-muted-foreground"
+                          task.checklist_done === task.checklist_total ? "text-emerald-400" : "text-muted-foreground"
                         }`}
                       >
                         <CheckSquare className="h-3 w-3" />
@@ -300,7 +273,11 @@ export const BoardTaskCard = memo(function BoardTaskCard({
                     <TooltipTrigger asChild>
                       <span
                         className="inline-flex cursor-pointer items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-foreground"
-                        onClick={(e) => { e.stopPropagation(); setInitialTab("files"); setDetailOpen(true); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setInitialTab("files");
+                          setDetailOpen(true);
+                        }}
                       >
                         <Paperclip className="h-3 w-3" />
                         {attachmentCount}
@@ -314,7 +291,11 @@ export const BoardTaskCard = memo(function BoardTaskCard({
                     <TooltipTrigger asChild>
                       <span
                         className="inline-flex cursor-pointer items-center gap-1 text-[10px] font-medium text-muted-foreground hover:text-foreground"
-                        onClick={(e) => { e.stopPropagation(); setInitialTab("comments"); setDetailOpen(true); }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setInitialTab("comments");
+                          setDetailOpen(true);
+                        }}
                       >
                         <MessageSquare className="h-3 w-3" />
                         {commentCount}
@@ -329,12 +310,8 @@ export const BoardTaskCard = memo(function BoardTaskCard({
                   <TooltipTrigger asChild>
                     <div className="relative">
                       <Avatar className="h-5 w-5">
-                        <AvatarImage
-                          src={task.assignee.avatar_url ?? undefined}
-                        />
-                        <AvatarFallback className="text-[10px]">
-                          {assigneeInitials}
-                        </AvatarFallback>
+                        <AvatarImage src={task.assignee.avatar_url ?? undefined} />
+                        <AvatarFallback className="text-[10px]">{assigneeInitials}</AvatarFallback>
                       </Avatar>
                       {task.assignee.is_bot && (
                         <Bot className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 text-primary" />

@@ -7,17 +7,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { logTaskActivity } from "@/lib/activity";
-import {
-  createChecklistItem,
-  toggleChecklistItem,
-  deleteChecklistItem,
-} from "@/actions/board";
+import { createChecklistItem, toggleChecklistItem, deleteChecklistItem } from "@/actions/board";
 import type { BoardChecklistItem } from "@/types";
 
 interface ChecklistSectionProps {
@@ -93,9 +85,7 @@ export function ChecklistSection({
 
     // Optimistic: toggle immediately
     const newCompleted = !item.completed;
-    setLocalItems((prev) =>
-      prev.map((i) => (i.id === itemId ? { ...i, completed: newCompleted } : i))
-    );
+    setLocalItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, completed: newCompleted } : i)));
 
     pendingOps.current++;
     try {
@@ -107,11 +97,7 @@ export function ChecklistSection({
       }
     } catch {
       // Rollback
-      setLocalItems((prev) =>
-        prev.map((i) =>
-          i.id === itemId ? { ...i, completed: !newCompleted } : i
-        )
-      );
+      setLocalItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, completed: !newCompleted } : i)));
       toast.error("Failed to update checklist item");
     } finally {
       pendingOps.current--;

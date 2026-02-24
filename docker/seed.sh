@@ -77,6 +77,28 @@ else
 fi
 
 echo ""
-echo "Done! You can now log in with:"
-echo "  Email: admin@example.com"
-echo "  Password: AdminPass123"
+echo "Creating guest user (non-admin, for testing visibility)..."
+RESULT2=$(curl -sf -X POST "$API_URL/auth/v1/admin/users" \
+  -H "apikey: $SERVICE_KEY" \
+  -H "Authorization: Bearer $SERVICE_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "guest@example.com", "password": "GuestPass123", "email_confirm": true}' 2>/dev/null || echo '{"error":"failed"}')
+
+if echo "$RESULT2" | grep -q '"id"'; then
+  GUEST_ID=$(echo "$RESULT2" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+  echo "  Created user: guest@example.com (ID: $GUEST_ID)"
+
+  # Set display name
+  docker exec "$CONTAINER" psql -U supabase_admin -d postgres -c \
+    "UPDATE public.users SET full_name = 'Guest User' WHERE id = '$GUEST_ID';" -q 2>/dev/null
+elif echo "$RESULT2" | grep -q "email_exists"; then
+  echo "  User guest@example.com already exists"
+else
+  echo "  Warning: Could not create guest user"
+fi
+
+echo ""
+echo "Done! You can log in with:"
+echo ""
+echo "  Admin:  admin@example.com / AdminPass123"
+echo "  Guest:  guest@example.com / GuestPass123"
