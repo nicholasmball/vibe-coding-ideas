@@ -5,13 +5,11 @@ import Link from "next/link";
 import {
   X,
   Lightbulb,
-  Rss,
-  BookOpen,
   Bot,
-  Sparkles,
-  LayoutDashboard,
-  Wand2,
   Cable,
+  Sparkles,
+  BookOpen,
+  ArrowRight,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
@@ -25,63 +23,20 @@ const gettingStarted = [
     description: "Share a concept and get feedback",
   },
   {
-    href: "/feed",
-    icon: Rss,
-    iconColor: "text-blue-400",
-    iconBg: "bg-blue-400/10",
-    title: "Browse the feed",
-    description: "Discover and vote on ideas",
-  },
-  {
-    href: "/guide",
-    icon: BookOpen,
-    iconColor: "text-emerald-400",
-    iconBg: "bg-emerald-400/10",
-    title: "Read the guide",
-    description: "Learn how VibeCodes works",
-  },
-];
-
-const uniqueFeatures = [
-  {
-    href: "/guide/ai-agent-teams",
+    href: "/agents",
     icon: Bot,
     iconColor: "text-purple-400",
     iconBg: "bg-purple-400/10",
-    borderAccent: "hover:border-purple-400/40",
-    title: "AI Agent Teams",
-    description:
-      "Create AI personas that join your board as team members — assign tasks, track activity, and ship together.",
-  },
-  {
-    href: "/guide/kanban-boards",
-    icon: LayoutDashboard,
-    iconColor: "text-blue-400",
-    iconBg: "bg-blue-400/10",
-    borderAccent: "hover:border-blue-400/40",
-    title: "Kanban Per Idea",
-    description:
-      "Every idea gets its own project board with drag-and-drop, labels, due dates, checklists, and file attachments.",
-  },
-  {
-    href: "/guide/ideas-and-voting",
-    icon: Wand2,
-    iconColor: "text-amber-400",
-    iconBg: "bg-amber-400/10",
-    borderAccent: "hover:border-amber-400/40",
-    title: "AI-Powered Enhancement",
-    description:
-      "Claude refines your rough ideas, asks clarifying questions, and auto-generates a full task board to get you started.",
+    title: "Set up your AI team",
+    description: "Create agent personas to help build your ideas",
   },
   {
     href: "/guide/mcp-integration",
     icon: Cable,
     iconColor: "text-emerald-400",
     iconBg: "bg-emerald-400/10",
-    borderAccent: "hover:border-emerald-400/40",
-    title: "MCP Integration",
-    description:
-      "Connect Claude Code directly — your AI reads the board, picks up tasks, files bugs, and writes code in real time.",
+    title: "Connect Claude Code",
+    description: "Link your AI assistant via MCP to manage tasks",
   },
 ];
 
@@ -145,7 +100,7 @@ export function WelcomeExperience() {
         </div>
 
         {/* Getting started actions */}
-        <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {gettingStarted.map((item) => (
             <Link key={item.href} href={item.href} className="group">
               <div className="flex flex-col items-center gap-2 rounded-xl border border-border/60 bg-card/60 px-4 py-5 text-center transition-all hover:border-primary/30 hover:bg-card">
@@ -165,39 +120,23 @@ export function WelcomeExperience() {
           ))}
         </div>
 
-        {/* Divider with label */}
-        <div className="mb-5 flex items-center gap-3">
-          <div className="h-px flex-1 bg-border/60" />
-          <span className="text-xs font-medium tracking-wide text-muted-foreground/70 uppercase">
-            What makes VibeCodes different
-          </span>
-          <div className="h-px flex-1 bg-border/60" />
-        </div>
-
-        {/* Unique feature highlights */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {uniqueFeatures.map((feature) => (
-            <Link key={feature.href} href={feature.href} className="group">
-              <div
-                className={`flex gap-3 rounded-xl border border-border/60 bg-card/60 p-4 transition-all ${feature.borderAccent} hover:bg-card`}
-              >
-                <div
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${feature.iconBg}`}
-                >
-                  <feature.icon
-                    className={`h-4.5 w-4.5 ${feature.iconColor}`}
-                  />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">{feature.title}</p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                    {feature.description}
-                  </p>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+        {/* Guide teaser */}
+        <Link
+          href="/guide/getting-started"
+          className="group mt-4 flex items-center gap-3 rounded-xl border border-border/40 bg-card/30 px-4 py-3 transition-all hover:border-primary/30 hover:bg-card/60"
+        >
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-400/10">
+            <BookOpen className="h-4 w-4 text-emerald-400" />
+          </div>
+          <p className="flex-1 text-sm text-muted-foreground">
+            <span className="font-medium text-foreground">
+              New to VibeCodes?
+            </span>{" "}
+            Discover how AI agents, project boards, and real-time collaboration
+            work together.
+          </p>
+          <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground/50 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground" />
+        </Link>
       </div>
     </Card>
   );
