@@ -131,13 +131,21 @@ export async function respondToRequest(requestId: string, ideaId: string, accept
     throw new Error("Request not found");
   }
 
-  // Already handled — mark any stale notifications as read and return silently
+  // Already handled — mark stale notifications as read, ensure collaborator exists if accepted
   if (request.status !== "pending") {
     await supabase
       .from("notifications")
       .update({ read: true })
       .eq("collaboration_request_id", requestId)
       .eq("type", "collaboration_request");
+
+    // If the request was accepted but the collaborator insert failed previously, fix it now
+    if (request.status === "accepted") {
+      await supabase
+        .from("collaborators")
+        .upsert({ idea_id: ideaId, user_id: request.requester_id }, { onConflict: "idea_id,user_id", ignoreDuplicates: true });
+    }
+
     revalidatePath(`/ideas/${ideaId}`);
     revalidatePath(`/ideas/${ideaId}/board`);
     return;
