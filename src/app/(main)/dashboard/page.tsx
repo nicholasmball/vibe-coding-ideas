@@ -5,19 +5,17 @@ import {
   ArrowRight,
   Bell,
   Bot,
-  BookOpen,
   CheckSquare,
   LayoutDashboard,
   Lightbulb,
   Plus,
-  Rss,
-  Sparkles,
   Users,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getDueDateStatus } from "@/lib/utils";
 import { DEFAULT_PANEL_ORDER } from "@/lib/dashboard-order";
 import { StatsCards } from "@/components/dashboard/stats-cards";
+import { WelcomeExperience } from "@/components/dashboard/welcome-experience";
 import { ActiveBoards } from "@/components/dashboard/active-boards";
 import type { ActiveBoard } from "@/components/dashboard/active-boards";
 import { MyBots } from "@/components/dashboard/my-bots";
@@ -507,39 +505,9 @@ export default async function DashboardPage() {
     <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8 sm:px-6 lg:px-8">
       <h1 className="mb-4 sm:mb-6 text-2xl sm:text-3xl font-bold">Dashboard</h1>
 
-      {/* Welcome card for first-time users */}
+      {/* Welcome experience for first-time users */}
       {ideasCount === 0 && collaborationsCount === 0 && (
-        <div className="mb-6 rounded-xl border border-primary/30 bg-gradient-to-br from-primary/5 via-transparent to-purple-500/5 p-6">
-          <div className="flex items-start gap-3">
-            <Sparkles className="mt-0.5 h-6 w-6 shrink-0 text-primary" />
-            <div className="flex-1">
-              <h2 className="text-lg font-semibold">Welcome to VibeCodes!</h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Get started by sharing your first idea, exploring what others are building, or reading the guide.
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <Link href="/ideas/new">
-                  <Button size="sm" className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Create your first idea
-                  </Button>
-                </Link>
-                <Link href="/feed">
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Rss className="h-4 w-4" />
-                    Browse the feed
-                  </Button>
-                </Link>
-                <Link href="/guide">
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <BookOpen className="h-4 w-4" />
-                    Read the guide
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
+        <WelcomeExperience />
       )}
 
       {/* Stats — full width */}
