@@ -62,12 +62,16 @@ export async function withdrawRequest(ideaId: string) {
     throw new Error("Not authenticated");
   }
 
-  await supabase
+  const { error } = await supabase
     .from("collaboration_requests")
     .delete()
     .eq("idea_id", ideaId)
     .eq("requester_id", user.id)
     .eq("status", "pending");
+
+  if (error) {
+    throw new Error(error.message);
+  }
 
   revalidatePath(`/ideas/${ideaId}`);
 }
@@ -103,11 +107,12 @@ export async function respondToRequest(requestId: string, ideaId: string, accept
 
   const newStatus = accept ? "accepted" : "declined";
 
-  // Update request status
+  // Update request status (guard against concurrent responses)
   const { error: updateError } = await supabase
     .from("collaboration_requests")
     .update({ status: newStatus })
-    .eq("id", requestId);
+    .eq("id", requestId)
+    .eq("status", "pending");
 
   if (updateError) {
     throw new Error(updateError.message);

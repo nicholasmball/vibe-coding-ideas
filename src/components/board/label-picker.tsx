@@ -300,23 +300,22 @@ export function LabelPicker({
     "z-50 w-64 rounded-md border bg-popover p-2 text-popover-foreground shadow-md outline-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95";
 
   return (
-    <></>
-    // <Popover open={open} onOpenChange={setOpen}>
-    //   <PopoverTrigger asChild>{children}</PopoverTrigger>
-    //   {inDialog ? (
-    //     <PopoverPrimitive.Content
-    //       align="start"
-    //       sideOffset={4}
-    //       className={popoverContentClass}
-    //       onOpenAutoFocus={(e) => e.preventDefault()}
-    //     >
-    //       {pickerContent}
-    //     </PopoverPrimitive.Content>
-    //   ) : (
-    //     <PopoverContent className="w-64 p-2" align="start">
-    //       {pickerContent}
-    //     </PopoverContent>
-    //   )}
-    // </Popover>
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>{children}</PopoverTrigger>
+      {inDialog ? (
+        <PopoverPrimitive.Content
+          align="start"
+          sideOffset={4}
+          className={popoverContentClass}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          {pickerContent}
+        </PopoverPrimitive.Content>
+      ) : (
+        <PopoverContent className="w-64 p-2" align="start">
+          {pickerContent}
+        </PopoverContent>
+      )}
+    </Popover>
   );
 }

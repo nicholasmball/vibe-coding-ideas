@@ -225,5 +225,10 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 2h. Enable Realtime
+-- 2h. Auto-update updated_at on collaboration_requests
+CREATE TRIGGER collaboration_requests_updated_at
+  BEFORE UPDATE ON public.collaboration_requests
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+-- 2i. Enable Realtime
 ALTER PUBLICATION supabase_realtime ADD TABLE public.collaboration_requests;

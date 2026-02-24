@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { toast } from "sonner";
 import { Check, Ban } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { respondToRequest } from "@/actions/collaborators";
@@ -23,7 +24,7 @@ export function RequestActionButtons({ notificationId, requestId, ideaId, onHand
         await respondToRequest(requestId, ideaId, accept);
         onHandled(notificationId);
       } catch {
-        // swallow
+        toast.error("Failed to respond to request");
       }
     });
   };

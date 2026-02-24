@@ -351,14 +351,6 @@ export function TaskDetailDialog({
     };
   }, [localCoverPath]);
 
-  console.log({
-    boardLabels,
-    taskLabels: task.labels,
-    taskId: task.id,
-    ideaId,
-    currentUserId,
-  });
-
   return (
     <Dialog
       open={open}
