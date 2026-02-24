@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { Sparkles, Plus, LogOut, User as UserIcon, Menu, LayoutDashboard, BookOpen, Users, Rss, Shield, Bot } from "lucide-react";
+import { Sparkles, Plus, LogOut, User as UserIcon, Menu, BookOpen, Users, Shield, Bot, Lightbulb, Moon, Sun, MessageSquarePlus } from "lucide-react";
+import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -17,7 +18,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ThemeToggle } from "./theme-toggle";
 import { NotificationBell } from "./notification-bell";
 import { FeedbackDialog } from "./feedback-dialog";
 import { useUser } from "@/hooks/use-user";
@@ -28,8 +28,10 @@ export function Navbar() {
   const { user, loading } = useUser();
   const router = useRouter();
   const pathname = usePathname();
+  const { theme, setTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
@@ -77,34 +79,16 @@ export function Navbar() {
           <div className="hidden items-center gap-4 md:flex">
             {user && (
               <>
-                <Link href="/dashboard">
-                  <Button variant={isActive("/dashboard") ? "secondary" : "ghost"} className="gap-2">
-                    <LayoutDashboard className="h-4 w-4" />
-                    Dashboard
-                  </Button>
-                </Link>
                 <Link href="/feed">
                   <Button variant={isActive("/feed") ? "secondary" : "ghost"} className="gap-2">
-                    <Rss className="h-4 w-4" />
-                    Feed
-                  </Button>
-                </Link>
-                <Link href="/members">
-                  <Button variant={isActive("/members") ? "secondary" : "ghost"} className="gap-2">
-                    <Users className="h-4 w-4" />
-                    Members
+                    <Lightbulb className="h-4 w-4" />
+                    Ideas
                   </Button>
                 </Link>
                 <Link href="/agents">
                   <Button variant={isActive("/agents") ? "secondary" : "ghost"} className="gap-2">
                     <Bot className="h-4 w-4" />
                     Agents
-                  </Button>
-                </Link>
-                <Link href="/ideas/new">
-                  <Button variant={isActive("/ideas/new") ? "secondary" : "ghost"} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    New Idea
                   </Button>
                 </Link>
                 {isAdmin && (
@@ -123,8 +107,14 @@ export function Navbar() {
                 Guide
               </Button>
             </Link>
-            <ThemeToggle />
-            {user && <FeedbackDialog />}
+            {user && (
+              <Link href="/ideas/new">
+                <Button className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  New Idea
+                </Button>
+              </Link>
+            )}
             {user && <NotificationBell />}
             {loading ? (
               <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
@@ -165,6 +155,31 @@ export function Navbar() {
                       Profile
                     </Link>
                   </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/members"
+                      className="flex items-center gap-2"
+                    >
+                      <Users className="h-4 w-4" />
+                      Members
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    className="flex items-center gap-2"
+                  >
+                    <Sun className="h-4 w-4 dark:hidden" />
+                    <Moon className="hidden h-4 w-4 dark:block" />
+                    Toggle Theme
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setFeedbackOpen(true)}
+                    className="flex items-center gap-2"
+                  >
+                    <MessageSquarePlus className="h-4 w-4" />
+                    Send Feedback
+                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleSignOut}
@@ -177,6 +192,20 @@ export function Navbar() {
               </DropdownMenu>
             ) : (
               <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    >
+                      <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                      <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                      <span className="sr-only">Toggle theme</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Toggle theme</TooltipContent>
+                </Tooltip>
                 <Link href="/login">
                   <Button variant="ghost">Log In</Button>
                 </Link>
@@ -189,8 +218,6 @@ export function Navbar() {
 
           {/* Mobile menu button */}
           <div className="flex items-center gap-2 md:hidden">
-            <ThemeToggle />
-            {user && <FeedbackDialog />}
             {user && <NotificationBell />}
             <Tooltip>
               <TooltipTrigger asChild>
@@ -221,30 +248,12 @@ export function Navbar() {
               ) : user ? (
                 <>
                   <Link
-                    href="/dashboard"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Button variant={isActive("/dashboard") ? "secondary" : "ghost"} className="w-full justify-start gap-2">
-                      <LayoutDashboard className="h-4 w-4" />
-                      Dashboard
-                    </Button>
-                  </Link>
-                  <Link
                     href="/feed"
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <Button variant={isActive("/feed") ? "secondary" : "ghost"} className="w-full justify-start gap-2">
-                      <Rss className="h-4 w-4" />
-                      Feed
-                    </Button>
-                  </Link>
-                  <Link
-                    href="/members"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    <Button variant={isActive("/members") ? "secondary" : "ghost"} className="w-full justify-start gap-2">
-                      <Users className="h-4 w-4" />
-                      Members
+                      <Lightbulb className="h-4 w-4" />
+                      Ideas
                     </Button>
                   </Link>
                   <Link
@@ -260,7 +269,7 @@ export function Navbar() {
                     href="/ideas/new"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <Button variant={isActive("/ideas/new") ? "secondary" : "ghost"} className="w-full justify-start gap-2">
+                    <Button className="w-full justify-start gap-2">
                       <Plus className="h-4 w-4" />
                       New Idea
                     </Button>
@@ -277,6 +286,16 @@ export function Navbar() {
                     </Link>
                   )}
                   <Link
+                    href="/guide"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Button variant={isActive("/guide") ? "secondary" : "ghost"} className="w-full justify-start gap-2">
+                      <BookOpen className="h-4 w-4" />
+                      Guide
+                    </Button>
+                  </Link>
+                  <div className="my-1 border-t border-border" />
+                  <Link
                     href={`/profile/${user.id}`}
                     onClick={() => setMobileMenuOpen(false)}
                   >
@@ -286,14 +305,35 @@ export function Navbar() {
                     </Button>
                   </Link>
                   <Link
-                    href="/guide"
+                    href="/members"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <Button variant={isActive("/guide") ? "secondary" : "ghost"} className="w-full justify-start gap-2">
-                      <BookOpen className="h-4 w-4" />
-                      Guide
+                    <Button variant={isActive("/members") ? "secondary" : "ghost"} className="w-full justify-start gap-2">
+                      <Users className="h-4 w-4" />
+                      Members
                     </Button>
                   </Link>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    className="w-full justify-start gap-2"
+                  >
+                    <Sun className="h-4 w-4 dark:hidden" />
+                    <Moon className="hidden h-4 w-4 dark:block" />
+                    Toggle Theme
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      setFeedbackOpen(true);
+                    }}
+                    className="w-full justify-start gap-2"
+                  >
+                    <MessageSquarePlus className="h-4 w-4" />
+                    Send Feedback
+                  </Button>
+                  <div className="my-1 border-t border-border" />
                   <Button
                     variant="ghost"
                     onClick={handleSignOut}
@@ -311,6 +351,16 @@ export function Navbar() {
                       Guide
                     </Button>
                   </Link>
+                  <Button
+                    variant="ghost"
+                    onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                    className="w-full justify-start gap-2"
+                  >
+                    <Sun className="h-4 w-4 dark:hidden" />
+                    <Moon className="hidden h-4 w-4 dark:block" />
+                    Toggle Theme
+                  </Button>
+                  <div className="my-1 border-t border-border" />
                   <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
                     <Button variant="ghost" className="w-full">
                       Log In
@@ -325,6 +375,9 @@ export function Navbar() {
           </div>
         )}
       </div>
+
+      {/* Feedback dialog (controlled from dropdown/mobile menu) */}
+      {user && <FeedbackDialog open={feedbackOpen} onOpenChange={setFeedbackOpen} />}
     </nav>
   );
 }
