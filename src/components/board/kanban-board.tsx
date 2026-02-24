@@ -693,6 +693,32 @@ export function KanbanBoard({
     [ideaId]
   );
 
+  // Detect when initialTaskId exists but is filtered out
+  useEffect(() => {
+    if (!initialTaskId) return;
+    const existsInFull = columns.some((col) =>
+      col.tasks.some((t) => t.id === initialTaskId)
+    );
+    if (!existsInFull) return; // Task doesn't exist on this board at all
+    const visibleInFiltered = filteredColumns.some((col) =>
+      col.tasks.some((t) => t.id === initialTaskId)
+    );
+    if (!visibleInFiltered) {
+      toast.info("The linked task is hidden by current filters", {
+        action: {
+          label: "Clear filters",
+          onClick: () => {
+            setSearchQuery("");
+            setAssigneeFilter("all");
+            setLabelFilter([]);
+            setDueDateFilter("all");
+            setShowArchived(true);
+          },
+        },
+      });
+    }
+  }, [initialTaskId, columns, filteredColumns]);
+
   const columnIds = useMemo(() => columns.map((c) => c.id), [columns]);
 
   return (

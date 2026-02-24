@@ -83,6 +83,25 @@ export const BoardTaskCard = memo(function BoardTaskCard({
   const [initialTab, setInitialTab] = useState<string | undefined>(undefined);
   const [coverUrl, setCoverUrl] = useState<string | null>(initialCoverUrl ?? null);
   const [coverPreviewOpen, setCoverPreviewOpen] = useState(false);
+  const [highlighted, setHighlighted] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const wasAutoOpenRef = useRef(autoOpen);
+
+  // When the auto-opened detail dialog closes, scroll into view and highlight
+  useEffect(() => {
+    if (wasAutoOpenRef.current && !detailOpen) {
+      wasAutoOpenRef.current = false;
+      const el = cardRef.current;
+      if (el) {
+        // Small delay to let the dialog unmount and DOM settle
+        requestAnimationFrame(() => {
+          el.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+          setHighlighted(true);
+          setTimeout(() => setHighlighted(false), 2000);
+        });
+      }
+    }
+  }, [detailOpen]);
 
   const isArchived = task.archived;
   const attachmentCount = task.attachment_count;
@@ -161,12 +180,17 @@ export const BoardTaskCard = memo(function BoardTaskCard({
   return (
     <>
       <div
-        ref={setNodeRef}
+        ref={(node) => {
+          setNodeRef(node);
+          (cardRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+        }}
         style={style}
         data-testid={`task-card-${task.id}`}
-        className={`group cursor-pointer overflow-hidden rounded-md border border-border bg-background shadow-sm ${
-          isDragging ? "opacity-50" : ""
-        } ${isArchived ? "opacity-50" : ""}`}
+        className={`group cursor-pointer overflow-hidden rounded-md border bg-background shadow-sm transition-all duration-500 ${
+          highlighted
+            ? "border-primary ring-2 ring-primary/50"
+            : "border-border"
+        } ${isDragging ? "opacity-50" : ""} ${isArchived ? "opacity-50" : ""}`}
         onClick={() => { setInitialTab(undefined); setDetailOpen(true); }}
       >
         {coverUrl && (
