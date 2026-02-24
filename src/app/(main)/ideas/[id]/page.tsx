@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Users, Pencil, LayoutDashboard } from "lucide-react";
+import { Users, Pencil, LayoutDashboard, Trash2, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -13,21 +13,14 @@ import { CommentThread } from "@/components/comments/comment-thread";
 import { IdeaDetailRealtime } from "@/components/ideas/idea-detail-realtime";
 import { DeleteIdeaButton } from "@/components/ideas/delete-idea-button";
 import { EnhanceIdeaButton } from "@/components/ideas/enhance-idea-button";
-import { IdeaMobileActions } from "@/components/ideas/idea-mobile-actions";
+import { IdeaActionsMenu } from "@/components/ideas/idea-actions-menu";
 import { AddCollaboratorPopover } from "@/components/ideas/add-collaborator-popover";
 import { RemoveCollaboratorButton } from "@/components/ideas/remove-collaborator-button";
 import { InlineIdeaHeader } from "@/components/ideas/inline-idea-header";
 import { InlineIdeaBody } from "@/components/ideas/inline-idea-body";
 import { InlineIdeaTags } from "@/components/ideas/inline-idea-tags";
 import { formatRelativeTime } from "@/lib/utils";
-import { PendingRequests } from "@/components/ideas/pending-requests";
-import type {
-  CommentWithAuthor,
-  CollaboratorWithUser,
-  CollaborationRequestWithRequester,
-  BotProfile,
-  AiCredits,
-} from "@/types";
+import type { CommentWithAuthor, CollaboratorWithUser, BotProfile, AiCredits } from "@/types";
 import type { Metadata } from "next";
 
 export const maxDuration = 120;
@@ -39,7 +32,11 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   const supabase = await createClient();
-  const { data: idea } = await supabase.from("ideas").select("title, description").eq("id", id).single();
+  const { data: idea } = await supabase
+    .from("ideas")
+    .select("title, description")
+    .eq("id", id)
+    .single();
 
   if (!idea) return { title: "Idea Not Found" };
 
@@ -123,33 +120,6 @@ export default async function IdeaDetailPage({ params }: PageProps) {
     isCollaborator = !!collab;
   }
 
-  // Fetch pending collaboration request for non-author, non-collaborator users
-  let pendingRequestId: string | null = null;
-  let pendingRequests: CollaborationRequestWithRequester[] = [];
-
-  if (user && !isCollaborator && user.id !== idea.author_id) {
-    // Fetch own pending request
-    const { data: ownRequest } = await supabase
-      .from("collaboration_requests")
-      .select("id")
-      .eq("idea_id", id)
-      .eq("requester_id", user.id)
-      .eq("status", "pending")
-      .maybeSingle();
-    pendingRequestId = ownRequest?.id ?? null;
-  }
-
-  if (user && user.id === idea.author_id) {
-    // Author: fetch all pending requests
-    const { data: requests } = await supabase
-      .from("collaboration_requests")
-      .select("*, requester:users!collaboration_requests_requester_id_fkey(*)")
-      .eq("idea_id", id)
-      .eq("status", "pending")
-      .order("created_at", { ascending: true });
-    pendingRequests = (requests ?? []) as unknown as CollaborationRequestWithRequester[];
-  }
-
   // Check if user is admin and has AI access
   let isAdmin = false;
   let aiEnabled = false;
@@ -210,9 +180,18 @@ export default async function IdeaDetailPage({ params }: PageProps) {
       <IdeaDetailRealtime ideaId={idea.id} />
       {/* Header */}
       <div className="flex items-start gap-4">
-        <VoteButton ideaId={idea.id} upvotes={idea.upvotes} hasVoted={hasVoted} />
+        <VoteButton
+          ideaId={idea.id}
+          upvotes={idea.upvotes}
+          hasVoted={hasVoted}
+        />
         <div className="flex-1">
-          <InlineIdeaHeader ideaId={idea.id} title={idea.title} visibility={idea.visibility} isAuthor={isAuthor} />
+          <InlineIdeaHeader
+            ideaId={idea.id}
+            title={idea.title}
+            visibility={idea.visibility}
+            isAuthor={isAuthor}
+          />
           <div className="mt-3 flex items-center gap-3">
             <Link
               href={`/profile/${idea.author_id}`}
@@ -220,11 +199,15 @@ export default async function IdeaDetailPage({ params }: PageProps) {
             >
               <Avatar className="h-5 w-5">
                 <AvatarImage src={author.avatar_url ?? undefined} />
-                <AvatarFallback className="text-[10px]">{authorInitials}</AvatarFallback>
+                <AvatarFallback className="text-[10px]">
+                  {authorInitials}
+                </AvatarFallback>
               </Avatar>
               {author.full_name ?? "Anonymous"}
             </Link>
-            <span className="text-sm text-muted-foreground">{formatRelativeTime(idea.created_at)}</span>
+            <span className="text-sm text-muted-foreground">
+              {formatRelativeTime(idea.created_at)}
+            </span>
           </div>
         </div>
       </div>
@@ -241,10 +224,9 @@ export default async function IdeaDetailPage({ params }: PageProps) {
             ideaId={idea.id}
             isCollaborator={isCollaborator}
             isAuthor={isAuthor}
-            pendingRequestId={pendingRequestId}
           />
         )}
-        {(isAuthor || isCollaborator || idea.visibility === "public") && (
+        {(isAuthor || isCollaborator) && (
           <Link href={`/ideas/${idea.id}/board`}>
             <Button variant="outline" size="sm" className="gap-2">
               <LayoutDashboard className="h-4 w-4" />
@@ -279,14 +261,14 @@ export default async function IdeaDetailPage({ params }: PageProps) {
         )}
         {/* Mobile: "More" dropdown for Edit, Enhance, Delete */}
         {(isAuthor || canDelete) && (
-          <IdeaMobileActions
+          <IdeaActionsMenu
             ideaId={idea.id}
             ideaTitle={idea.title}
-            ideaDescription={idea.description}
+            currentDescription={idea.description}
             isAuthor={isAuthor}
             canDelete={canDelete}
             aiEnabled={aiEnabled}
-            userBots={userBots}
+            bots={userBots}
             aiCredits={aiCredits}
           />
         )}
@@ -305,9 +287,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
               <AddCollaboratorPopover
                 ideaId={idea.id}
                 authorId={idea.author_id}
-                existingCollaboratorIds={
-                  (collaborators as unknown as CollaboratorWithUser[])?.map((c) => c.user_id) ?? []
-                }
+                existingCollaboratorIds={(collaborators as unknown as CollaboratorWithUser[])?.map((c) => c.user_id) ?? []}
               />
             )}
           </h3>
@@ -324,10 +304,15 @@ export default async function IdeaDetailPage({ params }: PageProps) {
                   key={collab.id}
                   className="flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-sm transition-colors hover:border-primary"
                 >
-                  <Link href={`/profile/${collab.user_id}`} className="flex items-center gap-1.5">
+                  <Link
+                    href={`/profile/${collab.user_id}`}
+                    className="flex items-center gap-1.5"
+                  >
                     <Avatar className="h-5 w-5">
                       <AvatarImage src={collab.user.avatar_url ?? undefined} />
-                      <AvatarFallback className="text-[10px]">{collabInitials}</AvatarFallback>
+                      <AvatarFallback className="text-[10px]">
+                        {collabInitials}
+                      </AvatarFallback>
                     </Avatar>
                     {collab.user.full_name ?? "Anonymous"}
                   </Link>
@@ -342,13 +327,17 @@ export default async function IdeaDetailPage({ params }: PageProps) {
               );
             })}
           </div>
-          {isAuthor && <PendingRequests ideaId={idea.id} requests={pendingRequests} />}
         </div>
       )}
 
       {/* Description + GitHub URL */}
       <Separator className="mt-8 mb-6" />
-      <InlineIdeaBody ideaId={idea.id} description={idea.description} githubUrl={idea.github_url} isAuthor={isAuthor} />
+      <InlineIdeaBody
+        ideaId={idea.id}
+        description={idea.description}
+        githubUrl={idea.github_url}
+        isAuthor={isAuthor}
+      />
 
       {/* Comments */}
       <Separator className="my-6" />

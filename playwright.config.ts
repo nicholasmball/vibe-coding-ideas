@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 import dotenv from "dotenv";
 import path from "path";
 
-dotenv.config({ path: path.resolve(__dirname, ".env.test") });
+dotenv.config({ path: path.resolve(__dirname, ".env.test"), override: true });
 
 export default defineConfig({
   testDir: "./e2e",
@@ -38,7 +38,7 @@ export default defineConfig({
     },
     {
       name: "Mobile Chrome",
-      use: { ...devices["iPhone 14"] },
+      use: { ...devices["Pixel 7"] },
       dependencies: ["setup"],
     },
   ],
@@ -47,7 +47,9 @@ export default defineConfig({
     command: "npm run build && npm start",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 180_000,
+    stdout: "pipe",
+    stderr: "pipe",
     env: {
       ...process.env,
       NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL!,

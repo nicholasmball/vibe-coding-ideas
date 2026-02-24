@@ -111,8 +111,13 @@ test.describe("Voting on idea detail page", () => {
     const initialText = await voteButton.innerText();
     const initialCount = parseInt(initialText.replace(/\D/g, ""), 10) || 0;
 
-    // Vote
+    // Vote and wait for server action to complete
+    const actionPromise = userAPage.waitForResponse(
+      (resp) => resp.url().includes("ideas") && resp.request().method() === "POST",
+      { timeout: 15_000 }
+    );
     await voteButton.click();
+    await actionPromise;
     await expect(voteButton).toContainText(String(initialCount + 1));
     await expect(voteButton).toHaveClass(/border-primary/);
 
