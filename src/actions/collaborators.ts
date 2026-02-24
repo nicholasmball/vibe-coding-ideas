@@ -122,14 +122,25 @@ export async function respondToRequest(requestId: string, ideaId: string, accept
   // Fetch the request to get requester_id (verify it belongs to this idea)
   const { data: request } = await supabase
     .from("collaboration_requests")
-    .select("requester_id")
+    .select("requester_id, status")
     .eq("id", requestId)
     .eq("idea_id", ideaId)
-    .eq("status", "pending")
-    .single();
+    .maybeSingle();
 
   if (!request) {
-    throw new Error("Request not found or already handled");
+    throw new Error("Request not found");
+  }
+
+  // Already handled — mark any stale notifications as read and return silently
+  if (request.status !== "pending") {
+    await supabase
+      .from("notifications")
+      .update({ read: true })
+      .eq("collaboration_request_id", requestId)
+      .eq("type", "collaboration_request");
+    revalidatePath(`/ideas/${ideaId}`);
+    revalidatePath(`/ideas/${ideaId}/board`);
+    return;
   }
 
   const newStatus = accept ? "accepted" : "declined";
