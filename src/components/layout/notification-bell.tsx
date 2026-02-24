@@ -2,17 +2,47 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { Bell, MessageSquare, ChevronUp, Users, Check, Trash2, ArrowRightLeft, AtSign } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Bell,
+  MessageSquare,
+  ChevronUp,
+  Users,
+  Check,
+  Trash2,
+  ArrowRightLeft,
+  AtSign,
+  UserPlus,
+  UserCheck,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { createClient } from "@/lib/supabase/client";
 import { markAllNotificationsRead, markNotificationsRead } from "@/actions/notifications";
+import { RequestActionButtons } from "@/components/layout/request-action-buttons";
 import { formatRelativeTime } from "@/lib/utils";
 import type { NotificationWithDetails } from "@/types";
+
+const iconMap = {
+  comment: MessageSquare,
+  vote: ChevronUp,
+  collaborator: Users,
+  user_deleted: Trash2,
+  status_change: ArrowRightLeft,
+  task_mention: AtSign,
+  collaboration_request: UserPlus,
+  collaboration_response: UserCheck,
+};
+
+const messageMap = {
+  comment: "commented on",
+  vote: "voted on",
+  collaborator: "joined as collaborator on",
+  user_deleted: "removed an idea you were collaborating on",
+  status_change: "updated the status of",
+  task_mention: "mentioned you in a task on",
+  collaboration_request: "requested to collaborate on",
+  collaboration_response: "responded to your collaboration request on",
+};
 
 export function NotificationBell() {
   const [notifications, setNotifications] = useState<NotificationWithDetails[]>([]);
@@ -24,7 +54,9 @@ export function NotificationBell() {
     const supabase = createClient();
     const { data } = await supabase
       .from("notifications")
-      .select("*, actor:users!notifications_actor_id_fkey(id, full_name, avatar_url, email, bio, github_username, created_at, updated_at), idea:ideas!notifications_idea_id_fkey(id, title)")
+      .select(
+        "*, actor:users!notifications_actor_id_fkey(id, full_name, avatar_url, email, bio, github_username, created_at, updated_at), idea:ideas!notifications_idea_id_fkey(id, title)"
+      )
       .order("created_at", { ascending: false })
       .limit(20);
 
@@ -40,11 +72,7 @@ export function NotificationBell() {
     const supabase = createClient();
     const channel = supabase
       .channel("notifications-bell")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications" },
-        () => fetchNotifications()
-      )
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "notifications" }, () => fetchNotifications())
       .subscribe();
 
     return () => {
@@ -60,22 +88,10 @@ export function NotificationBell() {
     });
   };
 
-  const iconMap = {
-    comment: MessageSquare,
-    vote: ChevronUp,
-    collaborator: Users,
-    user_deleted: Trash2,
-    status_change: ArrowRightLeft,
-    task_mention: AtSign,
-  };
-
-  const messageMap = {
-    comment: "commented on",
-    vote: "voted on",
-    collaborator: "joined as collaborator on",
-    user_deleted: "removed an idea you were collaborating on",
-    status_change: "updated the status of",
-    task_mention: "mentioned you in a task on",
+  const handleRequestHandled = (notificationId: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n)));
+    setUnreadCount((prev) => Math.max(0, prev - 1));
+    markNotificationsRead([notificationId]);
   };
 
   return (
@@ -109,37 +125,38 @@ export function NotificationBell() {
         </div>
         <div className="max-h-80 overflow-y-auto">
           {notifications.length === 0 ? (
-            <div className="px-3 py-6 text-center text-sm text-muted-foreground">
-              No notifications yet
-            </div>
+            <div className="px-3 py-6 text-center text-sm text-muted-foreground">No notifications yet</div>
           ) : (
             notifications.map((notification) => {
-              const Icon = iconMap[notification.type];
+              const Icon = iconMap[notification.type as keyof typeof iconMap] ?? Bell;
               const content = (
                 <>
                   <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm">
-                      <span className="font-medium">
-                        {notification.actor.full_name ?? "Someone"}
-                      </span>{" "}
-                      {messageMap[notification.type]}
+                      <span className="font-medium">{notification.actor.full_name ?? "Someone"}</span>{" "}
+                      {messageMap[notification.type as keyof typeof messageMap] ?? "interacted with"}
                       {notification.idea && (
                         <>
                           {" "}
-                          <span className="font-medium truncate">
-                            {notification.idea.title}
-                          </span>
+                          <span className="font-medium truncate">{notification.idea.title}</span>
                         </>
                       )}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {formatRelativeTime(notification.created_at)}
-                    </p>
+                    {notification.type === "collaboration_request" &&
+                      notification.collaboration_request_id &&
+                      notification.idea_id &&
+                      !notification.read && (
+                        <RequestActionButtons
+                          notificationId={notification.id}
+                          requestId={notification.collaboration_request_id}
+                          ideaId={notification.idea_id}
+                          onHandled={handleRequestHandled}
+                        />
+                      )}
+                    <p className="text-xs text-muted-foreground">{formatRelativeTime(notification.created_at)}</p>
                   </div>
-                  {!notification.read && (
-                    <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />
-                  )}
+                  {!notification.read && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" />}
                 </>
               );
 
@@ -159,14 +176,10 @@ export function NotificationBell() {
                     onClick={() => {
                       setOpen(false);
                       if (!notification.read) {
-                        // Optimistic update
                         setNotifications((prev) =>
-                          prev.map((n) =>
-                            n.id === notification.id ? { ...n, read: true } : n
-                          )
+                          prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n))
                         );
                         setUnreadCount((prev) => Math.max(0, prev - 1));
-                        // Fire-and-forget server action
                         markNotificationsRead([notification.id]);
                       }
                     }}

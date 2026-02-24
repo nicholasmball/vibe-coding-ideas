@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { initializeBoardColumns } from "@/actions/board";
 import { KanbanBoard } from "@/components/board/kanban-board";
 import { BoardRealtime } from "@/components/board/board-realtime";
+import { GuestBoardBanner } from "@/components/board/guest-board-banner";
 import { Button } from "@/components/ui/button";
 import type {
   BoardColumnWithTasks,
@@ -27,11 +28,7 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   const supabase = await createClient();
-  const { data: idea } = await supabase
-    .from("ideas")
-    .select("title")
-    .eq("id", id)
-    .single();
+  const { data: idea } = await supabase.from("ideas").select("title").eq("id", id).single();
 
   if (!idea) return { title: "Board - Not Found" };
 
@@ -51,10 +48,10 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
 
   if (!user) redirect("/login");
 
-  // Fetch idea
+  // Fetch idea (include visibility for access control)
   const { data: idea } = await supabase
     .from("ideas")
-    .select("id, title, description, author_id")
+    .select("id, title, description, author_id, visibility")
     .eq("id", id)
     .single();
 
@@ -74,6 +71,25 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
   }
 
   const isTeamMember = isAuthor || isCollaborator;
+  const isReadOnly = !isTeamMember;
+
+  // Non-team-members can only view public idea boards
+  if (isReadOnly && idea.visibility !== "public") {
+    notFound();
+  }
+
+  // Check if guest has a pending collaboration request
+  let hasRequested = false;
+  if (isReadOnly) {
+    const { data: pendingRequest } = await supabase
+      .from("collaboration_requests")
+      .select("id")
+      .eq("idea_id", id)
+      .eq("requester_id", user.id)
+      .eq("status", "pending")
+      .maybeSingle();
+    hasRequested = !!pendingRequest;
+  }
 
   // Only initialize columns for team members (guests see what exists)
   if (isTeamMember) {
@@ -91,11 +107,7 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
     { data: rawUserBots },
     { data: userProfile },
   ] = await Promise.all([
-    supabase
-      .from("board_columns")
-      .select("*")
-      .eq("idea_id", id)
-      .order("position", { ascending: true }),
+    supabase.from("board_columns").select("*").eq("idea_id", id).order("position", { ascending: true }),
     supabase
       .from("board_tasks")
       .select("*, assignee:users!board_tasks_assignee_id_fkey(*)")
@@ -120,6 +132,7 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
       .select("*")
       .eq("id", idea.author_id)
       .single(),
+    // Write-only fetches — skip for read-only guests
     isTeamMember
       ? supabase
           .from("bot_profiles")
@@ -193,11 +206,11 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
     });
   }
 
-  const aiEnabled = userProfile?.ai_enabled ?? false;
+  const aiEnabled = isReadOnly ? false : (userProfile?.ai_enabled ?? false);
 
-  // Compute AI credits
+  // Compute AI credits (only for team members)
   let aiCredits: AiCredits | null = null;
-  if (aiEnabled && userProfile) {
+  if (!isReadOnly && aiEnabled && userProfile) {
     const isByok = !!userProfile.encrypted_anthropic_key;
     if (isByok) {
       aiCredits = { used: 0, limit: null, remaining: null, isByok: true };
@@ -212,19 +225,20 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
         .gte("created_at", todayUTC.toISOString());
       const used = count ?? 0;
       const limit = userProfile.ai_daily_limit;
-      aiCredits = { used, limit, remaining: Math.max(0, limit - used), isByok: false };
+      aiCredits = {
+        used,
+        limit,
+        remaining: Math.max(0, limit - used),
+        isByok: false,
+      };
     }
   }
 
   // Batch-create signed URLs for cover images (single API call instead of N)
-  const coverPaths = (rawTasks ?? [])
-    .map((t) => t.cover_image_path)
-    .filter((p): p is string => !!p);
+  const coverPaths = (rawTasks ?? []).map((t) => t.cover_image_path).filter((p): p is string => !!p);
   const coverImageUrls: Record<string, string> = {};
   if (coverPaths.length > 0) {
-    const { data: signedUrls } = await supabase.storage
-      .from("task-attachments")
-      .createSignedUrls(coverPaths, 3600);
+    const { data: signedUrls } = await supabase.storage.from("task-attachments").createSignedUrls(coverPaths, 3600);
     if (signedUrls) {
       for (const entry of signedUrls) {
         if (entry.signedUrl && entry.path) {
@@ -261,6 +275,13 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
         <h1 className="text-xl font-bold">{idea.title} — Board</h1>
       </div>
 
+      {/* Guest banner */}
+      {isReadOnly && (
+        <div className="mb-4 shrink-0">
+          <GuestBoardBanner ideaId={id} hasRequested={hasRequested} />
+        </div>
+      )}
+
       {/* Kanban Board */}
       <KanbanBoard
         columns={columns}
@@ -276,7 +297,7 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
         botProfiles={userBotProfiles}
         aiCredits={aiCredits}
         coverImageUrls={coverImageUrls}
-        isReadOnly={!isTeamMember}
+        isReadOnly={isReadOnly}
       />
     </div>
   );

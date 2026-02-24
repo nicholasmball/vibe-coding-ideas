@@ -57,8 +57,8 @@ export default async function MembersPage({
 
   // Fetch idea and collaboration counts for all members
   const memberIds = (members ?? []).map((m) => m.id);
-  let ideaCounts: Record<string, number> = {};
-  let collabCounts: Record<string, number> = {};
+  const ideaCounts: Record<string, number> = {};
+  const collabCounts: Record<string, number> = {};
 
   if (memberIds.length > 0) {
     const [ideasResult, collabsResult] = await Promise.all([

@@ -4,10 +4,7 @@ import { useState, useMemo, memo } from "react";
 import { toast } from "sonner";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { MoreHorizontal, Plus, Pencil, Trash2, GripVertical, CircleCheckBig, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,11 +13,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { BoardTaskCard } from "./board-task-card";
 import { TaskEditDialog } from "./task-edit-dialog";
 import { ColumnEditDialog } from "./column-edit-dialog";
@@ -91,6 +84,7 @@ export const BoardColumn = memo(function BoardColumn({
   } = useSortable({
     id: column.id,
     data: sortableData,
+    disabled: isReadOnly,
     transition: {
       duration: 120,
       easing: "cubic-bezier(0.25, 1, 0.5, 1)",
@@ -164,9 +158,7 @@ export const BoardColumn = memo(function BoardColumn({
             )}
             <h3 className="flex items-center gap-1 text-sm font-semibold">
               {column.title}
-              {column.is_done_column && (
-                <CircleCheckBig className="h-3.5 w-3.5 text-emerald-500" />
-              )}
+              {column.is_done_column && <CircleCheckBig className="h-3.5 w-3.5 text-emerald-500" />}
               <span className="text-muted-foreground">({totalTaskCount})</span>
             </h3>
           </div>
@@ -207,10 +199,7 @@ export const BoardColumn = memo(function BoardColumn({
 
         {/* Task list */}
         <div className="min-h-[60px] flex-1 space-y-2 overflow-y-auto p-2">
-          <SortableContext
-            items={taskIds}
-            strategy={verticalListSortingStrategy}
-          >
+          <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
             {column.tasks.length === 0 && (
               <div className="flex items-center justify-center rounded-md border border-dashed border-border py-8 text-center">
                 <p className="text-xs text-muted-foreground">

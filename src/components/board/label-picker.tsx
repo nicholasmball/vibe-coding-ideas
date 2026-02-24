@@ -4,11 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
 import { Popover as PopoverPrimitive } from "radix-ui";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -52,15 +48,19 @@ export function LabelPicker({
   const [saving, setSaving] = useState(false);
 
   // Optimistic local state for assigned label IDs
-  const [localLabelIds, setLocalLabelIds] = useState<Set<string>>(
-    () => new Set(taskLabels.map((l) => l.id))
-  );
+  const [localLabelIds, setLocalLabelIds] = useState<Set<string>>(() => new Set(taskLabels.map((l) => l.id)));
 
   // Sync with props when they change (after Realtime refresh)
-  const [lastTaskLabelsKey, setLastTaskLabelsKey] = useState(
-    () => taskLabels.map((l) => l.id).sort().join(",")
+  const [lastTaskLabelsKey, setLastTaskLabelsKey] = useState(() =>
+    taskLabels
+      .map((l) => l.id)
+      .sort()
+      .join(",")
   );
-  const currentKey = taskLabels.map((l) => l.id).sort().join(",");
+  const currentKey = taskLabels
+    .map((l) => l.id)
+    .sort()
+    .join(",");
   if (currentKey !== lastTaskLabelsKey) {
     setLocalLabelIds(new Set(taskLabels.map((l) => l.id)));
     setLastTaskLabelsKey(currentKey);
@@ -88,13 +88,9 @@ export function LabelPicker({
       }
       if (currentUserId) {
         const label = boardLabels.find((l) => l.id === labelId);
-        logTaskActivity(
-          taskId,
-          ideaId,
-          currentUserId,
-          isCurrentlyAssigned ? "label_removed" : "label_added",
-          { label_name: label?.name ?? "Unknown" }
-        );
+        logTaskActivity(taskId, ideaId, currentUserId, isCurrentlyAssigned ? "label_removed" : "label_added", {
+          label_name: label?.name ?? "Unknown",
+        });
       }
     } catch {
       toast.error("Failed to update label");
@@ -132,7 +128,10 @@ export function LabelPicker({
 
     setSaving(true);
     try {
-      await updateBoardLabel(labelId, ideaId, { name: newName.trim(), color: newColor });
+      await updateBoardLabel(labelId, ideaId, {
+        name: newName.trim(),
+        color: newColor,
+      });
       setEditingId(null);
       setNewName("");
       setNewColor("blue");
@@ -170,12 +169,9 @@ export function LabelPicker({
   }
 
   const pickerContent = (
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
     <div onClick={(e) => e.stopPropagation()}>
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-xs font-medium text-muted-foreground">
-          Labels
-        </p>
+        <p className="text-xs font-medium text-muted-foreground">Labels</p>
         <button
           className="cursor-pointer rounded-sm p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
           onClick={() => setOpen(false)}
@@ -203,9 +199,7 @@ export function LabelPicker({
                     <button
                       key={c.value}
                       className={`h-5 w-5 rounded-sm ${c.swatchColor} ${
-                        newColor === c.value
-                          ? "ring-2 ring-primary ring-offset-1 ring-offset-background"
-                          : ""
+                        newColor === c.value ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : ""
                       }`}
                       onClick={() => setNewColor(c.value)}
                       type="button"
@@ -230,12 +224,7 @@ export function LabelPicker({
                   >
                     <Trash2 className="h-3 w-3" />
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-6 text-xs"
-                    onClick={() => setEditingId(null)}
-                  >
+                  <Button size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setEditingId(null)}>
                     Cancel
                   </Button>
                 </div>
@@ -245,18 +234,10 @@ export function LabelPicker({
 
           const config = getLabelColorConfig(label.color);
           return (
-            <div
-              key={label.id}
-              className="group flex items-center gap-2 rounded-md px-1 py-1 hover:bg-muted/50"
-            >
-              <Checkbox
-                checked={localLabelIds.has(label.id)}
-                onCheckedChange={() => handleToggleLabel(label.id)}
-              />
+            <div key={label.id} className="group flex items-center gap-2 rounded-md px-1 py-1 hover:bg-muted/50">
+              <Checkbox checked={localLabelIds.has(label.id)} onCheckedChange={() => handleToggleLabel(label.id)} />
               <span className={`h-3 w-3 shrink-0 rounded-sm ${config.swatchColor}`} />
-              <span className="flex-1 text-xs font-medium">
-                {label.name}
-              </span>
+              <span className="flex-1 text-xs font-medium">{label.name}</span>
               <button
                 className="cursor-pointer text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100"
                 onClick={() => startEdit(label)}
@@ -283,9 +264,7 @@ export function LabelPicker({
               <button
                 key={c.value}
                 className={`h-5 w-5 rounded-sm ${c.swatchColor} ${
-                  newColor === c.value
-                    ? "ring-2 ring-primary ring-offset-1 ring-offset-background"
-                    : ""
+                  newColor === c.value ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : ""
                 }`}
                 onClick={() => setNewColor(c.value)}
                 type="button"
@@ -293,22 +272,11 @@ export function LabelPicker({
             ))}
           </div>
           <div className="flex gap-1">
-            <Button
-              type="submit"
-              size="sm"
-              className="h-6 flex-1 text-xs"
-              disabled={saving || !newName.trim()}
-            >
+            <Button type="submit" size="sm" className="h-6 flex-1 text-xs" disabled={saving || !newName.trim()}>
               <Check className="mr-1 h-3 w-3" />
               Create
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="ghost"
-              className="h-6 text-xs"
-              onClick={() => setCreating(false)}
-            >
+            <Button type="button" size="sm" variant="ghost" className="h-6 text-xs" onClick={() => setCreating(false)}>
               Cancel
             </Button>
           </div>
@@ -328,25 +296,27 @@ export function LabelPicker({
   );
 
   // When inside a Dialog, render without Portal to avoid focus trap conflicts
-  const popoverContentClass = "z-50 w-64 rounded-md border bg-popover p-2 text-popover-foreground shadow-md outline-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95";
+  const popoverContentClass =
+    "z-50 w-64 rounded-md border bg-popover p-2 text-popover-foreground shadow-md outline-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95";
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>{children}</PopoverTrigger>
-      {inDialog ? (
-        <PopoverPrimitive.Content
-          align="start"
-          sideOffset={4}
-          className={popoverContentClass}
-          onOpenAutoFocus={(e) => e.preventDefault()}
-        >
-          {pickerContent}
-        </PopoverPrimitive.Content>
-      ) : (
-        <PopoverContent className="w-64 p-2" align="start">
-          {pickerContent}
-        </PopoverContent>
-      )}
-    </Popover>
+    <></>
+    // <Popover open={open} onOpenChange={setOpen}>
+    //   <PopoverTrigger asChild>{children}</PopoverTrigger>
+    //   {inDialog ? (
+    //     <PopoverPrimitive.Content
+    //       align="start"
+    //       sideOffset={4}
+    //       className={popoverContentClass}
+    //       onOpenAutoFocus={(e) => e.preventDefault()}
+    //     >
+    //       {pickerContent}
+    //     </PopoverPrimitive.Content>
+    //   ) : (
+    //     <PopoverContent className="w-64 p-2" align="start">
+    //       {pickerContent}
+    //     </PopoverContent>
+    //   )}
+    // </Popover>
   );
 }
