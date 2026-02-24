@@ -20,7 +20,8 @@ import { InlineIdeaHeader } from "@/components/ideas/inline-idea-header";
 import { InlineIdeaBody } from "@/components/ideas/inline-idea-body";
 import { InlineIdeaTags } from "@/components/ideas/inline-idea-tags";
 import { formatRelativeTime } from "@/lib/utils";
-import type { CommentWithAuthor, CollaboratorWithUser, BotProfile, AiCredits } from "@/types";
+import { PendingRequests } from "@/components/ideas/pending-requests";
+import type { CommentWithAuthor, CollaboratorWithUser, CollaborationRequestWithRequester, BotProfile, AiCredits } from "@/types";
 import type { Metadata } from "next";
 
 export const maxDuration = 120;
@@ -118,6 +119,31 @@ export default async function IdeaDetailPage({ params }: PageProps) {
       .eq("user_id", user.id)
       .maybeSingle();
     isCollaborator = !!collab;
+  }
+
+  // Fetch pending collaboration request for non-author, non-collaborator users
+  let pendingRequestId: string | null = null;
+  let pendingRequests: CollaborationRequestWithRequester[] = [];
+
+  if (user && !isCollaborator && user.id !== idea.author_id) {
+    const { data: ownRequest } = await supabase
+      .from("collaboration_requests")
+      .select("id")
+      .eq("idea_id", id)
+      .eq("requester_id", user.id)
+      .eq("status", "pending")
+      .maybeSingle();
+    pendingRequestId = ownRequest?.id ?? null;
+  }
+
+  if (user && user.id === idea.author_id) {
+    const { data: requests } = await supabase
+      .from("collaboration_requests")
+      .select("*, requester:users!collaboration_requests_requester_id_fkey(*)")
+      .eq("idea_id", id)
+      .eq("status", "pending")
+      .order("created_at", { ascending: true });
+    pendingRequests = (requests ?? []) as unknown as CollaborationRequestWithRequester[];
   }
 
   // Check if user is admin and has AI access
@@ -224,9 +250,10 @@ export default async function IdeaDetailPage({ params }: PageProps) {
             ideaId={idea.id}
             isCollaborator={isCollaborator}
             isAuthor={isAuthor}
+            pendingRequestId={pendingRequestId}
           />
         )}
-        {(isAuthor || isCollaborator) && (
+        {(isAuthor || isCollaborator || idea.visibility === "public") && (
           <Link href={`/ideas/${idea.id}/board`}>
             <Button variant="outline" size="sm" className="gap-2">
               <LayoutDashboard className="h-4 w-4" />
@@ -327,6 +354,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
               );
             })}
           </div>
+          {isAuthor && <PendingRequests ideaId={idea.id} requests={pendingRequests} />}
         </div>
       )}
 
