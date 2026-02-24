@@ -22,15 +22,6 @@ export function Footer() {
           <Link href="/privacy" className="px-1 hover:text-foreground">
             Privacy Policy
           </Link>
-          <span className="text-border">&middot;</span>
-          <a
-            href="https://github.com/NickBall/vibe-coding-ideas"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-1 hover:text-foreground"
-          >
-            GitHub
-          </a>
         </div>
       </div>
     </footer>
