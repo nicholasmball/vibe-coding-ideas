@@ -24,7 +24,7 @@ export async function requestCollaboration(ideaId: string) {
     .single();
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error("Failed to submit collaboration request");
   }
 
   // Notify the idea author (respects preferences)
@@ -71,7 +71,7 @@ export async function withdrawRequest(ideaId: string) {
     .eq("status", "pending");
 
   if (error) {
-    throw new Error(error.message);
+    throw new Error("Failed to withdraw collaboration request");
   }
 
   revalidatePath(`/ideas/${ideaId}`);
@@ -95,11 +95,12 @@ export async function respondToRequest(requestId: string, ideaId: string, accept
     throw new Error("Only the idea author can respond to requests");
   }
 
-  // Fetch the request to get requester_id
+  // Fetch the request to get requester_id (verify it belongs to this idea)
   const { data: request } = await supabase
     .from("collaboration_requests")
     .select("requester_id")
     .eq("id", requestId)
+    .eq("idea_id", ideaId)
     .eq("status", "pending")
     .single();
 
@@ -117,7 +118,7 @@ export async function respondToRequest(requestId: string, ideaId: string, accept
     .eq("status", "pending");
 
   if (updateError) {
-    throw new Error(updateError.message);
+    throw new Error("Failed to update collaboration request");
   }
 
   // Mark the collaboration_request notification as read (so it doesn't stay
@@ -136,7 +137,7 @@ export async function respondToRequest(requestId: string, ideaId: string, accept
 
     // Ignore unique constraint violation (already a collaborator)
     if (collabError && collabError.code !== "23505") {
-      throw new Error(collabError.message);
+      throw new Error("Failed to add collaborator");
     }
   }
 
@@ -174,7 +175,11 @@ export async function leaveCollaboration(ideaId: string) {
     throw new Error("Not authenticated");
   }
 
-  await supabase.from("collaborators").delete().eq("idea_id", ideaId).eq("user_id", user.id);
+  const { error } = await supabase.from("collaborators").delete().eq("idea_id", ideaId).eq("user_id", user.id);
+
+  if (error) {
+    throw new Error("Failed to leave collaboration");
+  }
 
   revalidatePath(`/ideas/${ideaId}`);
   revalidatePath(`/ideas/${ideaId}/board`);
