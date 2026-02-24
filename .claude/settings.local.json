@@ -94,7 +94,21 @@
       "WebFetch(domain:vibecodes.co.uk)",
       "mcp__vercel__list_teams",
       "mcp__vercel__list_deployments",
-      "mcp__vercel__deploy_to_vercel"
+      "mcp__vercel__deploy_to_vercel",
+      "Bash(echo CI=$CI:*)",
+      "Bash(netstat -ano)",
+      "Bash(xargs -I{} taskkill //PID {} //F)",
+      "Bash(cd:*)",
+      "Bash(tail:*)",
+      "Bash(echo === $dir ===:*)",
+      "Bash(head:*)",
+      "mcp__plugin_playwright_playwright__browser_take_screenshot",
+      "Bash(tasklist:*)",
+      "Bash(taskkill:*)",
+      "mcp__vibecodes__set_agent_identity",
+      "mcp__vibecodes__list_agents",
+      "Bash(strings /c/Users/nicho/Projects/vibe-coding-ideas/.next/server/edge/chunks/*e1605b4e*.js 2>/dev/null | grep -o \"supabase.co\" | head -3 || echo \"Not found in edge bundle\")",
+      "mcp__vibecodes-remote__set_agent_identity"
     ]
   },
   "enableAllProjectMcpServers": true,

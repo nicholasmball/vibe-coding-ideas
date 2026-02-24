@@ -3,9 +3,11 @@
 ## Quick Reference
 
 - **Dev server**: `npm run dev` (http://localhost:3000)
-- **Build**: `npm run build` (uses Turbopack)
+- **Build**: `npm run build`
 - **Lint**: `npm run lint`
 - **Test**: `npm run test` (Vitest, single run) / `npm run test:watch` (watch mode)
+- **E2E**: `npm run test:e2e` (Playwright) / `npm run test:e2e:ui` (UI mode) / `npm run test:e2e:headed` (headed)
+- **Docker**: `npm run docker:supabase` (start local Supabase) / `npm run docker:reset` (reset volumes) / `npm run docker:seed` (seed data)
 
 ## Tech Stack
 
@@ -17,7 +19,7 @@
 - **Markdown**: react-markdown + remark-gfm (idea descriptions, comments)
 - **Drag & Drop**: @dnd-kit/core, @dnd-kit/sortable (kanban board)
 - **Notifications**: sonner (toasts)
-- **Testing**: Vitest + @testing-library/react + jsdom
+- **Testing**: Vitest + @testing-library/react + jsdom (unit), Playwright (e2e)
 - **PWA**: Manual service worker + Next.js manifest (Turbopack-compatible, zero runtime deps)
 - **AI**: Vercel AI SDK (`ai` + `@ai-sdk/anthropic`) for idea enhancement and board generation
 - **Remote MCP**: mcp-handler (Vercel MCP adapter) + OAuth 2.1 + PKCE
@@ -49,15 +51,17 @@ src/
 │   ├── oauth/               # OAuth consent UI
 │   │   ├── authorize/       # Login + consent page
 │   │   └── callback/        # OAuth provider callback
+│   ├── privacy/            # Privacy policy page (public)
 │   ├── guide/              # Public guide pages (no auth required)
 │   │   ├── layout.tsx      # Navbar + scrollable content + footer
-│   │   ├── page.tsx        # Hub with 5 section cards
+│   │   ├── page.tsx        # Hub with 7 section cards
 │   │   ├── getting-started/
 │   │   ├── ideas-and-voting/
 │   │   ├── collaboration/
 │   │   ├── kanban-boards/
 │   │   ├── mcp-integration/
-│   │   └── ai-agent-teams/
+│   │   ├── ai-agent-teams/
+│   │   └── admin/
 │   └── (main)/             # Authenticated routes (with navbar)
 │       ├── layout.tsx      # Navbar wrapper
 │       ├── dashboard/      # Personal dashboard (reorderable two-column grid, collapsible sections, bounded lists)
@@ -71,38 +75,44 @@ src/
 │       ├── members/        # User directory with search/sort/pagination
 │       └── profile/[id]    # User profile with tabs
 ├── actions/                # Server Actions (all use server-side validation)
-│   ├── ideas.ts            # create, update, updateStatus, delete
+│   ├── ideas.ts            # create, update, updateStatus, delete, updateIdeaFields
 │   ├── board.ts            # initializeColumns, create/update/delete columns & tasks, reorder, move, labels (CRUD + assign/remove), checklists (CRUD + toggle), task comments (create/delete)
-│   ├── bots.ts             # createBot, updateBot, deleteBot, listMyBots
+│   ├── bots.ts             # createBot, updateBot, deleteBot, listMyBots (agent management)
 │   ├── votes.ts            # toggleVote
 │   ├── comments.ts         # create, incorporate, delete
 │   ├── collaborators.ts    # toggleCollaborator, addCollaborator, removeCollaborator
 │   ├── notifications.ts    # markRead, markAllRead, updateNotificationPreferences
 │   ├── profile.ts          # updateProfile (including avatar_url)
 │   ├── users.ts            # deleteUser (admin only)
-│   ├── ai.ts               # enhanceIdeaDescription, applyEnhancedDescription, generateBoardTasks, getAiRemainingCredits + rate limiting + usage logging
-│   └── admin.ts            # toggleAiEnabled, setUserAiDailyLimit (admin only)
+│   ├── ai.ts               # enhanceIdeaDescription, generateClarifyingQuestions, enhanceIdeaWithContext, applyEnhancedDescription, generateBoardTasks, enhanceTaskDescription, getAiRemainingCredits + rate limiting + usage logging
+│   ├── admin.ts            # toggleAiEnabled, setUserAiDailyLimit (admin only)
+│   ├── prompt-templates.ts # listPromptTemplates, createPromptTemplate, deletePromptTemplate
+│   └── feedback.ts         # submitFeedback
 ├── components/
 │   ├── ui/                 # shadcn/ui (don't edit manually, except markdown.tsx)
-│   ├── layout/             # navbar, theme-toggle, notification-bell
-│   ├── auth/               # oauth-buttons
-│   ├── ideas/              # card, feed, form, edit-form, vote-button, collaborator-button, add-collaborator-popover, remove-collaborator-button, enhance-idea-button, enhance-idea-dialog, inline-idea-header, inline-idea-body, inline-idea-tags
+│   ├── layout/             # navbar, theme-toggle, notification-bell, feedback-dialog
+│   ├── auth/               # oauth-buttons, email-auth-form
+│   ├── ideas/              # card, feed, form, edit-form, vote-button, collaborator-button, add-collaborator-popover, remove-collaborator-button, enhance-idea-button, enhance-idea-dialog, inline-idea-header, inline-idea-body, inline-idea-tags, status-select, delete-idea-button, idea-detail-realtime, idea-status-badge, tag-input
 │   ├── board/              # kanban-board, board-context, board-column, board-task-card, board-toolbar, task-edit-dialog, task-detail-dialog, column-edit-dialog, add-column-button, board-realtime, label-picker, due-date-picker, due-date-badge, task-label-badges, checklist-section, activity-timeline, task-comments-section, task-attachments-section, mention-autocomplete, import-dialog, import-csv-tab, import-json-tab, import-bulk-text-tab, import-column-mapper, import-preview-table, ai-generate-dialog
+│   ├── ai/                 # prompt-template-selector, ai-progress-steps
 │   ├── admin/              # ai-usage-dashboard, ai-user-management-row
-│   ├── dashboard/          # collapsible-section, dashboard-grid, stats-cards, active-boards, my-bots, bot-activity-dialog, my-tasks-list, activity-feed
+│   ├── dashboard/          # collapsible-section, dashboard-grid, stats-cards, active-boards, my-agents, agent-activity-dialog, my-tasks-list, activity-feed
 │   ├── members/            # member-directory, member-card
 │   ├── comments/           # thread, item, form, type-badge
 │   ├── pwa/                # service-worker-register, install-prompt
-│   └── profile/            # header, tabs, delete-user-button, edit-profile-dialog, notification-settings, complete-profile-banner, bot-management, create-bot-dialog, edit-bot-dialog
+│   └── profile/            # header, tabs, delete-user-button, edit-profile-dialog, notification-settings, complete-profile-banner, agent-management, create-agent-dialog, edit-agent-dialog, prompt-builder, api-key-settings, board-column-settings, profile-settings-menu
 ├── hooks/
 │   ├── use-user.ts         # Client-side auth state
 │   └── use-realtime.ts     # Supabase realtime subscription
 ├── lib/
 │   ├── activity.ts         # logTaskActivity() — client-side fire-and-forget activity logging
 │   ├── activity-format.ts  # formatActivityDetails(), groupIntoSessions() — shared activity rendering helpers
-│   ├── constants.ts        # Status/comment type configs, sort options, tags, board defaults, LABEL_COLORS, ACTIVITY_ACTIONS, BOT_ROLE_TEMPLATES
+│   ├── constants.ts        # Status/comment type configs, sort options, tags, board defaults, LABEL_COLORS, ACTIVITY_ACTIONS, AGENT_ROLE_TEMPLATES
 │   ├── dashboard-order.ts  # Panel reordering utils (PanelPlacement, DEFAULT_PANEL_ORDER, move/reconcile/localStorage helpers)
+│   ├── encryption.ts       # AES-256-GCM encryption for BYOK API keys
 │   ├── import.ts           # CSV/JSON/bulk-text parsers, auto-mapping, executeBulkImport()
+│   ├── prompt-builder.ts   # Structured prompt generation for AI features
+│   ├── undo-toast.ts       # Undoable toast actions with rollback
 │   ├── validation.ts       # Server-side input validation (title, description, comment, tags, GitHub URL, label name/color, bio, avatar URL)
 │   ├── utils.ts            # cn(), formatRelativeTime(), getDueDateStatus(), formatDueDate(), getLabelColorConfig()
 │   └── supabase/
@@ -125,14 +135,40 @@ public/
 ├── apple-touch-icon.png    # Apple touch icon (180x180)
 └── icons/                  # PWA icons (192, 512, maskable-512)
 scripts/generate-icons.mjs  # One-time icon generation script (requires sharp)
-supabase/migrations/        # 44 SQL migration files (run in order)
+supabase/migrations/        # 49 SQL migration files (run in order)
+docker-compose.yml          # Local Supabase dev environment
+docker/                     # Docker config (kong.yml, seed.sh)
+playwright.config.ts        # Playwright E2E test config
+e2e/                        # Playwright E2E tests (37 spec files across 16 categories)
+├── fixtures/               # Auth fixtures, Supabase admin client, test data
+├── helpers/                # Selectors, DnD helpers, wait helpers
+├── global-setup.ts         # Global test setup
+├── admin/                  # Admin page tests
+├── ai/                     # AI enhance + generate tests
+├── auth/                   # Login, signup, password reset, middleware tests
+├── board/                  # Board basics, DnD, tasks, columns, labels, filters, checklists, due dates, comments, attachments, import, realtime
+├── collaboration/          # Collaboration tests
+├── comments/               # Comment tests
+├── dashboard/              # Dashboard + reorder tests
+├── feed/                   # Feed + filter tests
+├── ideas/                  # Idea detail, lifecycle, inline edit, create tests
+├── landing/                # Landing page tests
+├── members/                # Members directory tests
+├── mobile/                 # Mobile board + nav tests
+├── navbar/                 # Navbar tests
+├── notifications/          # Notification tests
+├── profile/                # Profile, edit, agent management tests
+├── pwa/                    # PWA tests
+└── voting/                 # Voting tests
 mcp-server/                 # MCP server for Claude Code integration
 ├── package.json            # ESM, separate deps
 ├── tsconfig.json           # noEmit, includes ../src/types
 ├── .env.example
 └── src/
     ├── index.ts            # McpServer entry point (stdio transport)
-    ├── supabase.ts         # Service-role client + BOT_USER_ID + constants
+    ├── supabase.ts         # Service-role client + AGENT_USER_ID + constants
+    ├── constants.ts        # Extracted constants (avoids module-level throws in Turbopack)
+    ├── context.ts          # McpContext interface definition
     ├── activity.ts         # logActivity() helper
     └── tools/
         ├── ideas.ts        # list_ideas, get_idea, update_idea_description, create_idea, delete_idea, update_idea_status, update_idea_tags
@@ -204,7 +240,7 @@ Move tasks to "Blocked/Requires User Input" when blocked for any reason (depende
 - Profile picture upload: edit-profile-dialog uploads to `avatars` bucket client-side, saves public URL (with cache-bust `?t=`) to `users.avatar_url` via `updateProfile` server action; supports upload, replace, and remove
 
 ### Database
-- 18 tables: users, ideas, comments, collaborators, votes, notifications, board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items, board_task_activity, board_task_comments, board_task_attachments, mcp_oauth_clients, mcp_oauth_codes, bot_profiles, ai_usage_log
+- 20 tables: users, ideas, comments, collaborators, votes, notifications, board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items, board_task_activity, board_task_comments, board_task_attachments, mcp_oauth_clients, mcp_oauth_codes, bot_profiles (agent profiles), ai_usage_log, ai_prompt_templates, feedback
 - Denormalized counts on ideas (upvotes, comment_count, collaborator_count) maintained by triggers
 - Users auto-created from auth.users via trigger
 - Notifications auto-created via triggers on comments/votes/collaborators (respect user preferences)
@@ -233,8 +269,8 @@ Move tasks to "Blocked/Requires User Input" when blocked for any reason (depende
 - All dashboard sections wrapped in `CollapsibleSection` (client component): chevron toggle, item count badge, collapse state persisted in `localStorage` (`dashboard-collapsed-{sectionId}`), all expanded by default
 - My Tasks and Recent Activity bounded to 5 items with "Show all (N)" toggle (session-only, not persisted)
 - Dashboard "Active Boards" section shows up to 5 most recently active boards (by task `updated_at`) for ideas the user owns or collaborates on, with per-column task counts
-- Dashboard "My Agents" section (conditionally rendered if user has bots): shows each bot's name, role badge, MCP Active badge (if `users.active_bot_id` matches), current task assignment (most recent non-done, non-archived task), last activity action + relative time; inactive bots dimmed; clicking a bot opens bot activity dialog
-- Bot activity dialog: assigned tasks, merged activity+comments feed grouped by session (30-min gap), activity details rendered from JSONB (e.g. "moved to In Progress", "added a label "Bug""), comment previews with markdown rendering
+- Dashboard "My Agents" section (conditionally rendered if user has agents): shows each agent's name, role badge, MCP Active badge (if `users.active_bot_id` matches), current task assignment (most recent non-done, non-archived task), last activity action + relative time; inactive agents dimmed; clicking an agent opens agent activity dialog
+- Agent activity dialog: assigned tasks, merged activity+comments feed grouped by session (30-min gap), activity details rendered from JSONB (e.g. "moved to In Progress", "added a label "Bug""), comment previews with markdown rendering
 - Idea card board icon (`LayoutDashboard`) is a `<Link>` to `/ideas/[id]/board` (shown when `taskCount > 0`)
 - Idea detail page uses inline editing for authors: title (borderless input, save on blur), description (click-to-edit markdown, save on blur), tags (TagInput with 300ms debounce auto-save), GitHub URL (click-to-edit), visibility (badge toggle). Non-authors see read-only. Edit page kept as fallback.
 - `updateIdeaFields` server action in `src/actions/ideas.ts` — partial updates (any subset of title/description/tags/github_url/visibility), author-only, no redirect
@@ -264,20 +300,20 @@ Move tasks to "Blocked/Requires User Input" when blocked for any reason (depende
   - Max 500 tasks per import, inserted in batches of 50
   - Creates labels/columns on-the-fly, resolves assignees by name/email
 
-### Multi-Bot Support
-- `users.is_bot` (boolean) distinguishes bot users from human users
-- `users.active_bot_id` (UUID, FK to bot_profiles, ON DELETE SET NULL) persists the active bot identity across sessions
-- `bot_profiles` table stores bot metadata: name, role, system_prompt, avatar_url, is_active, owner_id
-- `create_bot_user` and `delete_bot_user` SECURITY DEFINER RPCs handle atomic bot creation/deletion
-- Bots get their own `users` row for FK compatibility (assignee_id, actor_id, author_id)
+### Multi-Agent Support
+- `users.is_bot` (boolean) distinguishes agent users from human users
+- `users.active_bot_id` (UUID, FK to bot_profiles, ON DELETE SET NULL) persists the active agent identity across sessions
+- `bot_profiles` table stores agent metadata: name, role, system_prompt, avatar_url, is_active, owner_id
+- `create_bot_user`, `update_bot_user`, and `delete_bot_user` SECURITY DEFINER RPCs handle atomic agent creation/update/deletion
+- Agents get their own `users` row for FK compatibility (assignee_id, actor_id, author_id)
 - Agent management UI on dedicated `/agents` page: create, edit, toggle active/inactive, delete
-- `BOT_ROLE_TEMPLATES` in constants provide starter templates (Developer, UX Designer, BA, QA Tester)
+- `AGENT_ROLE_TEMPLATES` in constants provide starter templates (Developer, UX Designer, BA, QA Tester)
 - Assignee picker in task detail dialog includes "My Agents" section below team members
-- Bot indicators (Bot icon) shown in activity timeline, task comments, task cards, and assignee avatars
-- Auto-collaborator: assigning a bot to a task automatically adds it as collaborator on the idea
+- Agent indicators (Bot icon) shown in activity timeline, task comments, task cards, and assignee avatars
+- Auto-collaborator: assigning an agent to a task automatically adds it as collaborator on the idea
 - MCP `set_agent_identity` tool persists identity to DB (`users.active_bot_id`) — survives reconnections, restarts, and context compaction
 - `VIBECODES_BOT_ID` env var overrides DB-persisted identity on local MCP startup
-- `McpContext.ownerUserId` distinguishes the real human from the active bot identity (for ownership validation)
+- `McpContext.ownerUserId` distinguishes the real human from the active agent identity (for ownership validation)
 
 ### AI Features (Idea Enhancement & Board Generation)
 - **Dependencies**: `ai` (Vercel AI SDK) + `@ai-sdk/anthropic` (Claude provider)
@@ -289,19 +325,26 @@ Move tasks to "Blocked/Requires User Input" when blocked for any reason (depende
 - **Model**: Claude Sonnet 4.5 (`claude-sonnet-4-5-20250929`)
 - **Server actions** in `src/actions/ai.ts`:
   - `enhanceIdeaDescription(ideaId, prompt, personaPrompt?)` — calls `generateText()`, returns original + enhanced
+  - `generateClarifyingQuestions(ideaId, prompt, personaPrompt?)` — generates follow-up questions to refine ideas
+  - `enhanceIdeaWithContext(ideaId, prompt, answers, personaPrompt?)` — enhances with user-provided context from clarifying questions
   - `applyEnhancedDescription(ideaId, description)` — updates idea description (author-only)
   - `generateBoardTasks(ideaId, prompt, personaPrompt?)` — calls `generateObject()` with Zod schema, returns `ImportTask[]`
+  - `enhanceTaskDescription(taskId, ideaId, prompt, personaPrompt?)` — AI-enhance a single task's description
   - `getAiRemainingCredits()` — returns `AiCredits` for current user
+- **Prompt templates** in `src/actions/prompt-templates.ts`:
+  - `listPromptTemplates(type?)` — list user's saved prompt templates
+  - `createPromptTemplate(name, promptText, type)` — save a reusable prompt template
+  - `deletePromptTemplate(templateId)` — delete a prompt template
 - **Admin actions** in `src/actions/admin.ts`:
   - `toggleAiEnabled(userId, enabled)` — toggle AI access for a user
   - `setUserAiDailyLimit(userId, limit)` — set per-user daily cap (null = unlimited)
 - **Admin page** at `/admin` — AI usage analytics dashboard with stats cards (total calls, tokens, est. cost, platform vs BYOK), filter bar (date range, action type), user management table (toggle ai_enabled, edit daily limit), recent activity log
 - **Enhance flow**: Idea detail page → "Enhance with AI" button (author + ai_enabled) → dialog with persona selector, editable prompt, original vs enhanced comparison → Apply/Try Again/Cancel
 - **Generate flow**: Board toolbar → "AI Generate" button (team member + ai_enabled) → dialog with persona selector, prompt, add/replace mode → preview table → Apply All
-- **Persona selector**: Uses user's active bot profiles as AI personas (system_prompt injected into AI call)
+- **Persona selector**: Uses user's active agent profiles as AI personas (system_prompt injected into AI call)
 - **Board generation**: Structured output via `generateObject()` with Zod schema → parsed into `ImportTask[]` → fed into existing `executeBulkImport()` pipeline
 - **Replace mode**: Deletes all existing tasks before applying AI-generated ones (with destructive warning)
-- **Components**: `enhance-idea-button.tsx`, `enhance-idea-dialog.tsx` (ideas), `ai-generate-dialog.tsx` (board), `ai-usage-dashboard.tsx`, `ai-user-management-row.tsx` (admin)
+- **Components**: `enhance-idea-button.tsx`, `enhance-idea-dialog.tsx` (ideas), `ai-generate-dialog.tsx` (board), `ai-usage-dashboard.tsx`, `ai-user-management-row.tsx` (admin), `prompt-template-selector.tsx`, `ai-progress-steps.tsx` (ai)
 
 ### PWA (Progressive Web App)
 - **Installable** from browser on Android, iOS, and desktop ("Add to Home Screen")
@@ -325,9 +368,10 @@ Move tasks to "Blocked/Requires User Input" when blocked for any reason (depende
 - **Framework**: Vitest + jsdom + @testing-library/react
 - **Config**: `vitest.config.ts` (react plugin, `@/` alias, `src/test/setup.ts`)
 - **Test files**: Co-located as `*.test.ts` next to source (e.g., `utils.test.ts`, `import.test.ts`)
-- **Coverage**: 265 tests across 12 files — utils, validation, types, import parsers, constants integrity, prompt builder, dashboard-order, activity-format, OAuth endpoints (PKCE, registration, authorization, token exchange), well-known metadata, MCP register-tools (incl. bot identity persistence), bot-identity context (human vs bot ID correctness)
+- **Coverage**: 306 tests across 15 files — utils, validation, types, import parsers, constants integrity, prompt builder, dashboard-order, activity-format, encryption, activity logging, undo-toast, OAuth endpoints (PKCE, registration, authorization, token exchange), well-known metadata, MCP register-tools (incl. agent identity persistence), agent-identity context (human vs agent ID correctness)
+- **E2E**: 37 Playwright spec files across 16 categories (admin, ai, auth, board, collaboration, comments, dashboard, feed, ideas, landing, members, mobile, navbar, notifications, profile, pwa, voting)
 - **Convention**: Write tests for all new pure logic, validators, parsers, and utility functions. Component/UI changes are verified via build + manual testing.
-- **Run**: `npm run test` (single run) or `npm run test:watch` (watch mode)
+- **Run**: `npm run test` (single run) / `npm run test:watch` (watch mode) / `npm run test:e2e` (Playwright)
 
 ### Input Validation
 - `src/lib/validation.ts` provides server-side validators with `ValidationError` class
@@ -344,6 +388,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_xxx
 NEXT_PUBLIC_APP_URL=https://vibecodes.co.uk               # For OAuth discovery endpoints (production)
 SUPABASE_SERVICE_ROLE_KEY=eyJ...                   # For OAuth admin operations (Vercel only)
 ANTHROPIC_API_KEY=sk-ant-...                       # For AI features (Vercel only, server-side)
+API_KEY_ENCRYPTION_KEY=...                         # AES-256-GCM key for BYOK API key encryption
 ```
 
 ## Adding New Database Tables
@@ -365,12 +410,12 @@ Components go into `src/components/ui/` — don't edit these manually.
 
 ### Overview
 The MCP server has two modes:
-1. **Local (stdio)**: `mcp-server/src/index.ts` — launched as subprocess, uses service-role client + bot user, bypasses RLS
+1. **Local (stdio)**: `mcp-server/src/index.ts` — launched as subprocess, uses service-role client + agent user, bypasses RLS
 2. **Remote (HTTP)**: `src/app/api/mcp/[[...transport]]/route.ts` — hosted on Vercel, uses OAuth 2.1 + PKCE, per-user Supabase client with RLS
 
 Both modes share the same 38 tools via `mcp-server/src/register-tools.ts` with dependency injection (`McpContext`).
 
-### Bot User
+### Default Agent User
 - **ID**: `a0000000-0000-4000-a000-000000000001`
 - **Email**: `bot@vibecodes.local`
 - Cannot log in (empty password) — only used by MCP server
@@ -380,7 +425,7 @@ Both modes share the same 38 tools via `mcp-server/src/register-tools.ts` with d
 - **Type check**: `cd mcp-server && npx tsc --noEmit`
 - **Config**: `.mcp.json` in project root (gitignored, contains service role key)
 - **Transport**: stdio (launched by Claude Code as subprocess via `npx tsx mcp-server/src/index.ts`)
-- **Env vars**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `VIBECODES_BOT_USER_ID`, `VIBECODES_BOT_ID` (optional, override active bot identity on startup)
+- **Env vars**: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `VIBECODES_BOT_USER_ID`, `VIBECODES_BOT_ID` (optional, override active agent identity on startup)
 
 ### 38 MCP Tools
 
@@ -390,7 +435,7 @@ Both modes share the same 38 tools via `mcp-server/src/register-tools.ts` with d
 | `get_idea` | Read | Full idea detail + comments + collaborators + board summary |
 | `get_board` | Read | Complete board: columns, tasks, labels (auto-initializes columns) |
 | `get_task` | Read | Single task + checklist + comments + activity + attachments |
-| `get_my_tasks` | Read | Tasks assigned to bot, grouped by idea |
+| `get_my_tasks` | Read | Tasks assigned to agent, grouped by idea |
 | `list_attachments` | Read | List task attachments with 1-hour signed download URLs |
 | `create_task` | Write | Create task on a board column |
 | `update_task` | Write | Update task fields (title, description, assignee, due date, archived) |
@@ -413,9 +458,9 @@ Both modes share the same 38 tools via `mcp-server/src/register-tools.ts` with d
 | `reorder_columns` | Write | Reorder columns by providing IDs in desired order |
 | `manage_labels` | Write | Create labels, add/remove from tasks |
 | `manage_checklist` | Write | Add/toggle/delete checklist items |
-| `add_idea_comment` | Write | Comment on an idea (as bot) |
-| `add_task_comment` | Write | Comment on a board task (as bot) |
-| `report_bug` | Write | Create task with red "Bug" label, assigned to bot |
+| `add_idea_comment` | Write | Comment on an idea (as agent) |
+| `add_task_comment` | Write | Comment on a board task (as agent) |
+| `report_bug` | Write | Create task with red "Bug" label, assigned to agent |
 | `list_notifications` | Read | List notifications with optional unread-only filter |
 | `mark_notification_read` | Write | Mark a single notification as read |
 | `mark_all_notifications_read` | Write | Mark all unread notifications as read |
@@ -429,11 +474,11 @@ Both modes share the same 38 tools via `mcp-server/src/register-tools.ts` with d
 - `mcp-server/src/context.ts` defines `McpContext` interface: `{ supabase, userId, ownerUserId? }`
 - All tool handler functions accept `ctx: McpContext` as first parameter
 - `mcp-server/src/register-tools.ts` wires tools to MCP server via `getContext(extra)` callback (sync or async)
-- Local mode: mutable context (service-role + bot user, identity switchable via `set_agent_identity`); reads persisted `active_bot_id` from DB on startup if no `VIBECODES_BOT_ID` env var
+- Local mode: mutable context (service-role + agent user, identity switchable via `set_agent_identity`); reads persisted `active_bot_id` from DB on startup if no `VIBECODES_BOT_ID` env var
 - Remote mode: per-request context (user JWT + user ID from auth, `ownerUserId` tracks real human); lazily reads persisted `active_bot_id` from DB on first tool call per connection
 
 ### Key Details
-- All write tools log to `board_task_activity` with `actor_id` from context (bot or real user)
+- All write tools log to `board_task_activity` with `actor_id` from context (agent or real user)
 - `get_board` auto-initializes default columns (To Do, In Progress, Done) if none exist
 - Position calculation: `MAX(position) + 1000` in target column
 - Board changes propagate to UI via Realtime (no revalidatePath needed)
@@ -448,5 +493,5 @@ Both modes share the same 38 tools via `mcp-server/src/register-tools.ts` with d
 - **Authorization**: Per-request Supabase client with user's JWT → existing RLS policies enforced
 - **OAuth routes**: `/api/oauth/register` (DCR), `/api/oauth/authorize`, `/api/oauth/token`, `/api/oauth/code`
 - **Discovery**: `/.well-known/oauth-authorization-server` (RFC 8414), `/.well-known/oauth-protected-resource` (RFC 9728)
-- **DB tables**: `mcp_oauth_clients` (DCR), `mcp_oauth_codes` (auth codes, 10-min TTL), `bot_profiles` (multi-bot support), `ai_usage_log` (AI usage tracking)
+- **DB tables**: `mcp_oauth_clients` (DCR), `mcp_oauth_codes` (auth codes, 10-min TTL), `bot_profiles` (multi-agent support), `ai_usage_log` (AI usage tracking)
 - **Env vars** (Vercel): `NEXT_PUBLIC_APP_URL`, `SUPABASE_SERVICE_ROLE_KEY`

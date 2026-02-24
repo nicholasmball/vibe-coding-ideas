@@ -76,7 +76,7 @@ export function CollapsibleSection({
   );
 
   return (
-    <Card className="py-3 gap-3 sm:py-6 sm:gap-6 overflow-hidden">
+    <Card data-testid={`section-${sectionId}`} className="py-3 gap-3 sm:py-6 sm:gap-6 overflow-hidden">
       <CardHeader className="px-4 sm:px-6">
         {header}
       </CardHeader>

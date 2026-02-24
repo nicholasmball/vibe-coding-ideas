@@ -47,6 +47,15 @@ describe("formatRelativeTime", () => {
   it("returns days for < 30 days", () => {
     expect(formatRelativeTime("2025-06-10T12:00:00Z")).toBe("5d ago");
   });
+
+  it("returns months for < 1 year", () => {
+    // 3 months ago = ~90 days
+    expect(formatRelativeTime("2025-03-15T12:00:00Z")).toBe("3mo ago");
+  });
+
+  it("returns years for >= 1 year", () => {
+    expect(formatRelativeTime("2023-06-15T12:00:00Z")).toBe("2y ago");
+  });
 });
 
 describe("getDueDateStatus", () => {
@@ -84,9 +93,9 @@ describe("getLabelColorConfig", () => {
     expect(config.value).toBe("blue");
   });
 
-  it("returns default (blue) for unknown color", () => {
+  it("returns default blue for unknown color", () => {
     const config = getLabelColorConfig("nonexistent");
-    expect(config).toBeDefined();
+    expect(config.value).toBe("blue");
   });
 });
 
@@ -116,5 +125,37 @@ describe("stripMarkdown", () => {
     expect(stripMarkdown("text ![alt](img.png) more").trim()).toContain("text");
     expect(stripMarkdown("text ![alt](img.png) more").trim()).toContain("more");
     expect(stripMarkdown("text ![alt](img.png) more").trim()).not.toContain("img.png");
+  });
+
+  it("removes strikethrough syntax", () => {
+    expect(stripMarkdown("~~deleted~~")).toBe("deleted");
+  });
+
+  it("removes heading lines", () => {
+    expect(stripMarkdown("# Heading\nParagraph")).toBe("Paragraph");
+  });
+
+  it("removes unordered list markers", () => {
+    expect(stripMarkdown("- item one\n- item two")).toBe("item one item two");
+  });
+
+  it("removes ordered list markers", () => {
+    expect(stripMarkdown("1. first\n2. second")).toBe("first second");
+  });
+
+  it("removes blockquote markers", () => {
+    expect(stripMarkdown("> quoted text")).toBe("quoted text");
+  });
+
+  it("collapses multiple newlines and spaces", () => {
+    expect(stripMarkdown("a\n\n\nb")).toBe("a b");
+  });
+
+  it("returns empty string for empty input", () => {
+    expect(stripMarkdown("")).toBe("");
+  });
+
+  it("removes bold italic combined syntax", () => {
+    expect(stripMarkdown("***bold italic***")).toBe("bold italic");
   });
 });

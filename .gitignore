@@ -49,3 +49,9 @@ next-env.d.ts
 # MCP server build output + deps
 mcp-server/dist
 mcp-server/node_modules
+
+# Playwright
+e2e/.auth/
+test-results/
+playwright-report/
+.env.test

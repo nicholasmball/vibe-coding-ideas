@@ -6,6 +6,9 @@ import {
   ACTIVITY_ACTIONS,
   DEFAULT_BOARD_COLUMNS,
   POSITION_GAP,
+  SORT_OPTIONS,
+  BOT_ROLE_TEMPLATES,
+  SUGGESTED_TAGS,
 } from "./constants";
 import type { IdeaStatus, CommentType } from "@/types";
 
@@ -130,5 +133,68 @@ describe("DEFAULT_BOARD_COLUMNS", () => {
     for (let i = 1; i < DEFAULT_BOARD_COLUMNS.length; i++) {
       expect(DEFAULT_BOARD_COLUMNS[i].position).toBe(i * POSITION_GAP);
     }
+  });
+});
+
+// ── SORT_OPTIONS ──────────────────────────────────────────────────────
+
+describe("SORT_OPTIONS", () => {
+  it("has at least one option", () => {
+    expect(SORT_OPTIONS.length).toBeGreaterThan(0);
+  });
+
+  it("each option has a value and label", () => {
+    for (const option of SORT_OPTIONS) {
+      expect(option.value).toBeTruthy();
+      expect(option.label).toBeTruthy();
+    }
+  });
+
+  it("has no duplicate values", () => {
+    const values = SORT_OPTIONS.map((o) => o.value);
+    expect(new Set(values).size).toBe(values.length);
+  });
+});
+
+// ── BOT_ROLE_TEMPLATES ───────────────────────────────────────────────
+
+describe("BOT_ROLE_TEMPLATES", () => {
+  it("has at least one template", () => {
+    expect(BOT_ROLE_TEMPLATES.length).toBeGreaterThan(0);
+  });
+
+  it("each template has role, prompt, and structured fields", () => {
+    for (const template of BOT_ROLE_TEMPLATES) {
+      expect(template.role).toBeTruthy();
+      expect(template.prompt).toBeTruthy();
+      expect(template.structured).toBeDefined();
+      expect(template.structured.goal).toBeTruthy();
+      expect(template.structured.constraints).toBeTruthy();
+      expect(template.structured.approach).toBeTruthy();
+    }
+  });
+
+  it("has no duplicate roles", () => {
+    const roles = BOT_ROLE_TEMPLATES.map((t) => t.role);
+    expect(new Set(roles).size).toBe(roles.length);
+  });
+});
+
+// ── SUGGESTED_TAGS ───────────────────────────────────────────────────
+
+describe("SUGGESTED_TAGS", () => {
+  it("has at least one tag", () => {
+    expect(SUGGESTED_TAGS.length).toBeGreaterThan(0);
+  });
+
+  it("all tags are non-empty strings", () => {
+    for (const tag of SUGGESTED_TAGS) {
+      expect(typeof tag).toBe("string");
+      expect(tag.trim().length).toBeGreaterThan(0);
+    }
+  });
+
+  it("has no duplicate tags", () => {
+    expect(new Set(SUGGESTED_TAGS).size).toBe(SUGGESTED_TAGS.length);
   });
 });

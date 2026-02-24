@@ -44,7 +44,7 @@ export function StatsCards({
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
       {stats.map((stat) => (
-        <Card key={stat.label}>
+        <Card key={stat.label} data-testid={`stats-${stat.label.toLowerCase().replace(/\s+/g, "-")}`}>
           <CardContent className="flex items-center gap-3 p-4">
             <stat.icon className={`h-8 w-8 shrink-0 ${stat.color}`} />
             <div>

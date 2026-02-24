@@ -28,7 +28,7 @@ export function IdeaCard({ idea, hasVoted, taskCount }: IdeaCardProps) {
       .toUpperCase() ?? "?";
 
   return (
-    <Card className="group/card relative transition-colors hover:border-primary/30">
+    <Card data-testid={`idea-card-${idea.id}`} className="group/card relative transition-colors hover:border-primary/30">
       {/* Full-card clickable overlay */}
       <Link
         href={`/ideas/${idea.id}`}

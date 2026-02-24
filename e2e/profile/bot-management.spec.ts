@@ -37,8 +37,8 @@ test.describe("Agent management", () => {
   test("create a new agent", async ({ userAPage }) => {
     await userAPage.goto("/agents");
 
-    // The "My Agents" section should be visible
-    await expect(userAPage.getByText("My Agents")).toBeVisible({ timeout: 15_000 });
+    // The "My Agents" h1 heading should be visible (h2 sidebar also matches, so use locator("h1"))
+    await expect(userAPage.locator("h1").filter({ hasText: "My Agents" })).toBeVisible({ timeout: 15_000 });
 
     // Click "Create Agent"
     const createButton = userAPage.getByRole("button", { name: /create agent/i });
