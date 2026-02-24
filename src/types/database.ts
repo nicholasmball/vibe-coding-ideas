@@ -24,6 +24,7 @@ export type Database = {
             collaborators: boolean;
             status_changes: boolean;
             task_mentions: boolean;
+            email_notifications: boolean;
           };
           default_board_columns: { title: string; is_done_column: boolean }[] | null;
           is_admin: boolean;
@@ -49,6 +50,7 @@ export type Database = {
             collaborators: boolean;
             status_changes: boolean;
             task_mentions: boolean;
+            email_notifications: boolean;
           };
           default_board_columns?: { title: string; is_done_column: boolean }[] | null;
           is_admin?: boolean;
@@ -74,6 +76,7 @@ export type Database = {
             collaborators: boolean;
             status_changes: boolean;
             task_mentions: boolean;
+            email_notifications: boolean;
           };
           default_board_columns?: { title: string; is_done_column: boolean }[] | null;
           is_admin?: boolean;
