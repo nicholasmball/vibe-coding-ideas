@@ -34,9 +34,17 @@ const CATEGORIES: {
   { value: "other", label: "Other", icon: MoreHorizontal },
 ];
 
-export function FeedbackDialog() {
+interface FeedbackDialogProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+}
+
+export function FeedbackDialog({ open: controlledOpen, onOpenChange }: FeedbackDialogProps = {}) {
   const pathname = usePathname();
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = isControlled ? (onOpenChange ?? (() => {})) : setInternalOpen;
   const [category, setCategory] = useState<FeedbackCategory>("suggestion");
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -59,16 +67,18 @@ export function FeedbackDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <DialogTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <MessageSquarePlus className="h-5 w-5" />
-            </Button>
-          </DialogTrigger>
-        </TooltipTrigger>
-        <TooltipContent>Send Feedback</TooltipContent>
-      </Tooltip>
+      {!isControlled && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MessageSquarePlus className="h-5 w-5" />
+              </Button>
+            </DialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>Send Feedback</TooltipContent>
+        </Tooltip>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Send Feedback</DialogTitle>
