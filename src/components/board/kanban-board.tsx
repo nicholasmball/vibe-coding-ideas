@@ -75,21 +75,21 @@ const layoutMeasuring = {
   droppable: { strategy: MeasuringStrategy.WhileDragging },
 };
 
-// Memoized overlay — prevents parent re-renders from cascading on every drag frame
-const OverlayContent = React.memo(function OverlayContent({
+// Overlay content — intentionally NOT wrapped in React.memo because DragOverlay's
+// portal mounts lazily on first drag. React.memo can prevent the overlay from
+// rendering the task on the initial mount when the portal and setActiveTask batch together.
+function OverlayContent({
   activeTask,
   activeColumn,
   targetColumnName,
-  isCompact,
 }: {
   activeTask: BoardTaskWithAssignee | null;
   activeColumn: BoardColumnWithTasks | null;
   targetColumnName?: string | null;
-  isCompact?: boolean;
 }) {
   if (activeTask) {
     return (
-      <div className={`${isCompact ? "w-[170px]" : "w-[280px]"} rounded-md border border-primary bg-background p-3 shadow-lg`}>
+      <div className="w-[280px] rounded-md border border-primary bg-background p-3 shadow-lg">
         <p className="text-sm font-medium line-clamp-2">{activeTask.title}</p>
         {targetColumnName && (
           <p className="mt-1 text-xs text-primary">
@@ -110,7 +110,7 @@ const OverlayContent = React.memo(function OverlayContent({
     );
   }
   return null;
-});
+}
 
 interface KanbanBoardProps {
   columns: BoardColumnWithTasks[];
@@ -321,17 +321,6 @@ export function KanbanBoard({
   // Dwell-based column scroll — only fires on touch, only after a deliberate pause
   const isDragging = !!(activeTask || activeColumn);
   useDwellEdgeScroll(scrollContainerRef, isDragging, isTouchDrag);
-
-  // Defer compact mode by one frame so column resize doesn't stutter the drag-start paint
-  const [renderCompact, setRenderCompact] = useState(false);
-  useEffect(() => {
-    if (isDragging && isTouchDrag) {
-      const id = requestAnimationFrame(() => setRenderCompact(true));
-      return () => cancelAnimationFrame(id);
-    } else {
-      setRenderCompact(false);
-    }
-  }, [isDragging, isTouchDrag]);
 
   // Update columns when server data changes (via realtime refresh)
   const serverKey = useMemo(
@@ -926,7 +915,6 @@ export function KanbanBoard({
                     hasApiKey={hasApiKey}
                     ideaDescription={ideaDescription}
                     isReadOnly={isReadOnly}
-                    isCompact={renderCompact}
                   />
                 );
               })}
@@ -956,7 +944,7 @@ export function KanbanBoard({
         </div>
         {!isReadOnly && (
           <DragOverlay dropAnimation={null}>
-            <OverlayContent activeTask={activeTask} activeColumn={activeColumn} targetColumnName={dragTargetColumnName} isCompact={renderCompact} />
+            <OverlayContent activeTask={activeTask} activeColumn={activeColumn} targetColumnName={dragTargetColumnName} />
           </DragOverlay>
         )}
       </DndContext>
