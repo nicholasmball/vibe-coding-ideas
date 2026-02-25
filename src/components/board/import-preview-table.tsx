@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Loader2 } from "lucide-react";
 import type { ImportTask, ColumnMapping } from "@/lib/import";
 import type { BoardColumnWithTasks } from "@/types";
 
@@ -10,6 +12,8 @@ interface ImportPreviewTableProps {
   columns: BoardColumnWithTasks[];
   columnMapping: ColumnMapping;
   defaultColumnId: string;
+  /** When true, auto-scrolls to bottom as new tasks appear and shows a streaming indicator */
+  streaming?: boolean;
 }
 
 export function ImportPreviewTable({
@@ -17,7 +21,19 @@ export function ImportPreviewTable({
   columns,
   columnMapping,
   defaultColumnId,
+  streaming,
 }: ImportPreviewTableProps) {
+  const scrollEndRef = useRef<HTMLDivElement>(null);
+  const prevCountRef = useRef(0);
+
+  // Auto-scroll to bottom when new tasks arrive during streaming
+  useEffect(() => {
+    if (streaming && tasks.length > prevCountRef.current) {
+      scrollEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+    prevCountRef.current = tasks.length;
+  }, [tasks.length, streaming]);
+
   function resolveColumnName(task: ImportTask): string {
     if (!task.columnName) {
       const col = columns.find((c) => c.id === defaultColumnId);
@@ -29,15 +45,22 @@ export function ImportPreviewTable({
     return col?.title ?? task.columnName;
   }
 
-  if (tasks.length === 0) return null;
+  if (tasks.length === 0 && !streaming) return null;
 
   const displayed = tasks.slice(0, 100);
   const hasMore = tasks.length > 100;
 
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium">
-        Preview ({tasks.length} task{tasks.length !== 1 ? "s" : ""})
+      <p className="text-sm font-medium flex items-center gap-2">
+        {streaming ? (
+          <>
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            Generating{tasks.length > 0 ? ` (${tasks.length} task${tasks.length !== 1 ? "s" : ""})` : "..."}
+          </>
+        ) : (
+          <>Preview ({tasks.length} task{tasks.length !== 1 ? "s" : ""})</>
+        )}
       </p>
       {tasks.length > 500 && (
         <p className="text-xs text-amber-400">
@@ -46,7 +69,7 @@ export function ImportPreviewTable({
       )}
       <ScrollArea className="h-56 rounded-md border">
         <table className="w-full text-xs">
-          <thead className="sticky top-0 bg-muted">
+          <thead className="sticky top-0 bg-muted z-10">
             <tr className="border-b">
               <th className="px-2 py-1.5 text-left font-medium">#</th>
               <th className="px-2 py-1.5 text-left font-medium">Title</th>
@@ -100,6 +123,7 @@ export function ImportPreviewTable({
             ... and {tasks.length - 100} more
           </p>
         )}
+        <div ref={scrollEndRef} />
       </ScrollArea>
     </div>
   );

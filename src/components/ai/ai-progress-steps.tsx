@@ -11,9 +11,11 @@ interface ProgressStep {
 
 interface AiProgressStepsProps {
   steps: ProgressStep[];
-  /** Thresholds in seconds for advancing to next step (e.g. [10, 30] for 3 steps) */
+  /** Thresholds in seconds for advancing to next step (e.g. [10, 30] for 3 steps). Ignored when activeStep is set. */
   advanceAt: number[];
   active: boolean;
+  /** Externally controlled active step index. Overrides time-based advancement when provided. */
+  activeStep?: number;
   onCancel?: () => void;
 }
 
@@ -21,6 +23,7 @@ export function AiProgressSteps({
   steps,
   advanceAt,
   active,
+  activeStep,
   onCancel,
 }: AiProgressStepsProps) {
   const [elapsed, setElapsed] = useState(0);
@@ -43,15 +46,20 @@ export function AiProgressSteps({
     };
   }, [active]);
 
-  // Determine active step index based on elapsed time
-  let activeIndex = 0;
-  for (let i = 0; i < advanceAt.length; i++) {
-    if (elapsed >= advanceAt[i]) {
-      activeIndex = i + 1;
+  // Determine active step index — use external override if provided, else time-based
+  let activeIndex: number;
+  if (activeStep != null) {
+    activeIndex = Math.min(activeStep, steps.length - 1);
+  } else {
+    activeIndex = 0;
+    for (let i = 0; i < advanceAt.length; i++) {
+      if (elapsed >= advanceAt[i]) {
+        activeIndex = i + 1;
+      }
     }
+    // Clamp to last step
+    if (activeIndex >= steps.length) activeIndex = steps.length - 1;
   }
-  // Clamp to last step
-  if (activeIndex >= steps.length) activeIndex = steps.length - 1;
 
   const minutes = Math.floor(elapsed / 60);
   const seconds = elapsed % 60;
