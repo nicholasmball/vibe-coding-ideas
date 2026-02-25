@@ -148,9 +148,9 @@ test.describe("Guest Board — Read-Only Access", () => {
     await expect(dialog).toBeVisible({ timeout: 10_000 });
 
     // Title should be displayed as plain text (not editable input)
-    // In read-only mode, the title is rendered as an h2 instead of an input
-    const titleHeading = dialog.locator("h2").filter({ hasText: /\[E2E\] Task/ });
-    await expect(titleHeading).toBeVisible({ timeout: 5_000 });
+    // In read-only mode, the title is rendered as a <p> instead of an input
+    const titleText = dialog.locator("p").filter({ hasText: /\[E2E\] Task/ });
+    await expect(titleText).toBeVisible({ timeout: 5_000 });
 
     // Delete button should NOT be visible
     await expect(

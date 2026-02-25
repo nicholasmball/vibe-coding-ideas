@@ -55,7 +55,9 @@ jobs:
         run: npm ci
 
       - name: Install Playwright browsers
-        run: npx playwright install ${{ matrix.browser }} --with-deps
+        run: |
+          npx playwright install chromium --with-deps
+          ${{ matrix.browser != 'chromium' && format('npx playwright install {0} --with-deps', matrix.browser) || '' }}
 
       - name: Run E2E tests (${{ matrix.project }})
         run: npx playwright test --project="${{ matrix.project }}"
@@ -69,3 +71,56 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 14
+
+      - name: Create issue on failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const runId = context.runId;
+            const project = '${{ matrix.project }}';
+            const sha = context.sha.substring(0, 7);
+            const actor = context.actor;
+            const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
+
+            const { data: commit } = await github.rest.repos.getCommit({ owner, repo, ref: context.sha });
+            const commitMsg = commit.message.split('\n')[0].substring(0, 80);
+
+            // Check if an issue already exists for this run (another matrix job may have created one)
+            const { data: existing } = await github.rest.issues.listForRepo({
+              owner, repo,
+              labels: 'e2e-failure',
+              state: 'open',
+              per_page: 5,
+            });
+            const alreadyReported = existing.find(i => i.body?.includes(runUrl));
+            if (alreadyReported) {
+              // Append this project's failure as a comment
+              await github.rest.issues.createComment({
+                owner, repo,
+                issue_number: alreadyReported.number,
+                body: `**${project}** also failed in this run.`,
+              });
+              return;
+            }
+
+            await github.rest.issues.create({
+              owner, repo,
+              title: `E2E failure: ${project} — ${commitMsg}`,
+              body: [
+                `## E2E Test Failure`,
+                ``,
+                `| | |`,
+                `|---|---|`,
+                `| **Project** | ${project} |`,
+                `| **Commit** | [\`${sha}\`](https://github.com/${owner}/${repo}/commit/${context.sha}) |`,
+                `| **Author** | @${actor} |`,
+                `| **Message** | ${commitMsg} |`,
+                `| **Run** | [View logs](${runUrl}) |`,
+                ``,
+                `cc @${actor}`,
+              ].join('\n'),
+              labels: ['e2e-failure'],
+              assignees: [actor],
+            });
