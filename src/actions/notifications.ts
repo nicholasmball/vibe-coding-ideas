@@ -20,7 +20,7 @@ export async function markNotificationsRead(notificationIds: string[]) {
     .in("id", notificationIds)
     .eq("user_id", user.id);
 
-  revalidatePath("/feed");
+  revalidatePath("/ideas");
 }
 
 export async function markAllNotificationsRead() {
@@ -39,7 +39,7 @@ export async function markAllNotificationsRead() {
     .eq("user_id", user.id)
     .eq("read", false);
 
-  revalidatePath("/feed");
+  revalidatePath("/ideas");
 }
 
 export async function updateNotificationPreferences(

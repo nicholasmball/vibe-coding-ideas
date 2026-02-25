@@ -218,5 +218,5 @@ export async function deleteIdea(ideaId: string) {
     throw new Error(error.message);
   }
 
-  redirect("/feed");
+  redirect("/ideas");
 }

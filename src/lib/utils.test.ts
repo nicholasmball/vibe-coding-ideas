@@ -6,6 +6,7 @@ import {
   formatDueDate,
   getLabelColorConfig,
   stripMarkdown,
+  stripMarkdownForMeta,
 } from "./utils";
 
 describe("cn", () => {
@@ -157,5 +158,39 @@ describe("stripMarkdown", () => {
 
   it("removes bold italic combined syntax", () => {
     expect(stripMarkdown("***bold italic***")).toBe("bold italic");
+  });
+});
+
+describe("stripMarkdownForMeta", () => {
+  it("returns short text unchanged", () => {
+    expect(stripMarkdownForMeta("Hello world")).toBe("Hello world");
+  });
+
+  it("strips markdown and truncates at word boundary", () => {
+    const long = "**Bold intro** with a " + "really long description ".repeat(10);
+    const result = stripMarkdownForMeta(long);
+    expect(result.length).toBeLessThanOrEqual(156); // 155 + ellipsis char
+    expect(result).not.toContain("**");
+    expect(result.endsWith("\u2026")).toBe(true);
+  });
+
+  it("respects custom max length", () => {
+    const text = "Short sentence here. Another sentence follows after this one.";
+    const result = stripMarkdownForMeta(text, 30);
+    expect(result.length).toBeLessThanOrEqual(31); // 30 + ellipsis
+  });
+
+  it("handles empty string", () => {
+    expect(stripMarkdownForMeta("")).toBe("");
+  });
+
+  it("strips markdown before truncating", () => {
+    const md = "# Heading\n\n**Bold** and *italic* content with [a link](https://example.com)";
+    const result = stripMarkdownForMeta(md);
+    expect(result).not.toContain("#");
+    expect(result).not.toContain("**");
+    expect(result).not.toContain("https://");
+    expect(result).toContain("Bold");
+    expect(result).toContain("a link");
   });
 });

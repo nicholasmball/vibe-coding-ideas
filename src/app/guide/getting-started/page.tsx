@@ -3,7 +3,7 @@ import { Rocket, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "Getting Started - VibeCodes Guide",
+  title: "Getting Started Guide",
   description:
     "Create your account, explore the idea feed, and submit your first idea on VibeCodes.",
 };

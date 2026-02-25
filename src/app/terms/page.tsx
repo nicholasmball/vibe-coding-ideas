@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Terms of Service - VibeCodes",
+  title: "Terms of Service",
   description:
     "The Terms of Service governing your use of VibeCodes — a collaborative idea board for developers.",
 };

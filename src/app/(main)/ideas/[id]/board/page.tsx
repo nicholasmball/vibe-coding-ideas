@@ -28,12 +28,49 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params;
   const supabase = await createClient();
-  const { data: idea } = await supabase.from("ideas").select("title").eq("id", id).single();
+  const { data: idea } = await supabase
+    .from("ideas")
+    .select("title, visibility")
+    .eq("id", id)
+    .single();
 
-  if (!idea) return { title: "Board - Not Found" };
+  if (!idea) return { title: "Board Not Found" };
+
+  if (idea.visibility === "private") {
+    return {
+      title: "Private Board",
+      description: "Sign in to VibeCodes to view this board.",
+      robots: { index: false, follow: false },
+    };
+  }
+
+  const [{ count: taskCount }, { count: columnCount }] = await Promise.all([
+    supabase
+      .from("board_tasks")
+      .select("*", { count: "exact", head: true })
+      .eq("idea_id", id)
+      .eq("archived", false),
+    supabase
+      .from("board_columns")
+      .select("*", { count: "exact", head: true })
+      .eq("idea_id", id),
+  ]);
+
+  const ogTitle = `${idea.title} — Board`;
+  const ogDescription = `Kanban board for ${idea.title} on VibeCodes — ${taskCount ?? 0} tasks across ${columnCount ?? 0} columns`;
 
   return {
-    title: `Board - ${idea.title} - VibeCodes`,
+    title: `${idea.title} — Board`,
+    description: ogDescription,
+    openGraph: {
+      title: ogTitle,
+      description: ogDescription,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: ogTitle,
+      description: ogDescription,
+    },
   };
 }
 

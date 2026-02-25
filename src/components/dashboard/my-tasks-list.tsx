@@ -25,7 +25,7 @@ export function MyTasksList({ tasks }: MyTasksListProps) {
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
           Tasks appear here when you&apos;re assigned to them on a{" "}
-          <Link href="/feed" className="text-primary hover:underline">
+          <Link href="/ideas" className="text-primary hover:underline">
             project board
           </Link>
           .

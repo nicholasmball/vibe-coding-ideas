@@ -19,7 +19,7 @@ export function ActiveBoards({ boards }: ActiveBoardsProps) {
     return (
       <p className="py-4 text-center text-sm text-muted-foreground">
         No active boards yet.{" "}
-        <Link href="/feed" className="text-primary hover:underline">
+        <Link href="/ideas" className="text-primary hover:underline">
           Browse the feed
         </Link>{" "}
         to find ideas to work on.

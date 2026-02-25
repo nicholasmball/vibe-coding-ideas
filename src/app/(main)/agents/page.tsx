@@ -7,7 +7,8 @@ import type { BotProfile } from "@/types";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "My Agents - VibeCodes",
+  title: "My Agents",
+  robots: { index: false, follow: false },
 };
 
 export default async function AgentsPage() {

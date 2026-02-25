@@ -35,7 +35,7 @@ test.describe("Feed page", () => {
   test("displays idea cards with title, description, author, and tags", async ({
     userAPage,
   }) => {
-    await userAPage.goto("/feed");
+    await userAPage.goto("/ideas");
 
     // Wait for the feed to load — use a longer timeout for initial page render
     const ideaCard = userAPage.locator(`[data-testid="idea-card-${ideaId}"]`);
@@ -60,7 +60,7 @@ test.describe("Feed page", () => {
   test("navigates to idea detail on card title click", async ({
     userAPage,
   }) => {
-    await userAPage.goto("/feed");
+    await userAPage.goto("/ideas");
 
     // Wait for the card to appear
     const ideaCard = userAPage.locator(`[data-testid="idea-card-${ideaId}"]`);
@@ -78,7 +78,7 @@ test.describe("Feed page", () => {
   });
 
   test("shows vote button on idea cards", async ({ userAPage }) => {
-    await userAPage.goto("/feed");
+    await userAPage.goto("/ideas");
 
     const ideaCard = userAPage.locator(`[data-testid="idea-card-${ideaId}"]`);
     await expect(ideaCard).toBeVisible({ timeout: 15_000 });
@@ -90,7 +90,7 @@ test.describe("Feed page", () => {
   });
 
   test("vote and unvote from feed", async ({ userAPage }) => {
-    await userAPage.goto("/feed");
+    await userAPage.goto("/ideas");
 
     const ideaCard = userAPage.locator(`[data-testid="idea-card-${ideaId}"]`);
     await expect(ideaCard).toBeVisible({ timeout: 15_000 });
@@ -130,7 +130,7 @@ test.describe("Feed page", () => {
     }
 
     try {
-      await userAPage.goto("/feed");
+      await userAPage.goto("/ideas");
 
       // Should show exactly 10 idea cards on page 1
       const cards = userAPage.locator('[data-testid^="idea-card-"]');
@@ -171,7 +171,7 @@ test.describe("Feed page", () => {
   test("complete profile banner shows for incomplete profile", async ({
     freshPage,
   }) => {
-    await freshPage.goto("/feed");
+    await freshPage.goto("/ideas");
     await freshPage.waitForLoadState("domcontentloaded");
 
     // Fresh user may be redirected to login if auth is not established

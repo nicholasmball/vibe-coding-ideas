@@ -8,8 +8,8 @@ test.describe("Auth middleware redirects", () => {
       expect(anonPage.url()).toContain("/login");
     });
 
-    test("should redirect /feed to /login", async ({ anonPage }) => {
-      await anonPage.goto("/feed");
+    test("should redirect /ideas to /login", async ({ anonPage }) => {
+      await anonPage.goto("/ideas");
       await anonPage.waitForURL("**/login**");
       expect(anonPage.url()).toContain("/login");
     });

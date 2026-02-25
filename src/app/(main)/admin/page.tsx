@@ -4,7 +4,8 @@ import { AiUsageDashboard } from "@/components/admin/ai-usage-dashboard";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Admin: AI Usage - VibeCodes",
+  title: "Admin: AI Usage",
+  robots: { index: false, follow: false },
 };
 
 interface PageProps {

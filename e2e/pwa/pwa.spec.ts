@@ -80,7 +80,7 @@ test.describe("PWA Features", () => {
     // Try to navigate to a page that hasn't been cached
     // The service worker should serve the offline fallback
     try {
-      await userAPage.goto("/feed", {
+      await userAPage.goto("/ideas", {
         waitUntil: "domcontentloaded",
         timeout: 10_000,
       });

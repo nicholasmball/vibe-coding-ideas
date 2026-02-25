@@ -52,7 +52,7 @@ test.describe("Feed filters", () => {
   });
 
   test("search by title", async ({ userAPage }) => {
-    await userAPage.goto("/feed");
+    await userAPage.goto("/ideas");
     await expect(userAPage.locator('[data-testid^="idea-card-"]').first()).toBeVisible({ timeout: 15_000 });
 
     // Type in search input
@@ -78,7 +78,7 @@ test.describe("Feed filters", () => {
   });
 
   test("filter by status", async ({ userAPage }) => {
-    await userAPage.goto("/feed");
+    await userAPage.goto("/ideas");
 
     // Wait for cards to load
     await expect(
@@ -105,7 +105,7 @@ test.describe("Feed filters", () => {
   });
 
   test("sort by newest/popular/discussed", async ({ userAPage }) => {
-    await userAPage.goto("/feed");
+    await userAPage.goto("/ideas");
 
     await expect(
       userAPage.locator('[data-testid^="idea-card-"]').first()
@@ -146,7 +146,7 @@ test.describe("Feed filters", () => {
   });
 
   test("view tabs: All / My Ideas / Collaborating", async ({ userAPage }) => {
-    await userAPage.goto("/feed");
+    await userAPage.goto("/ideas");
 
     await expect(
       userAPage.locator('[data-testid^="idea-card-"]').first()
@@ -191,7 +191,7 @@ test.describe("Feed filters", () => {
 
   test("clear filters resets results", async ({ userAPage }) => {
     // Start with a search filter applied
-    await userAPage.goto("/feed?q=Unique+Alpha");
+    await userAPage.goto("/ideas?q=Unique+Alpha");
 
     // "Showing results for" indicator should be visible
     await expect(
@@ -223,7 +223,7 @@ test.describe("Feed filters", () => {
   });
 
   test("empty state message when no results match", async ({ userAPage }) => {
-    await userAPage.goto("/feed");
+    await userAPage.goto("/ideas");
 
     // Wait for feed to load
     const searchInput = userAPage.getByPlaceholder("Search ideas...");

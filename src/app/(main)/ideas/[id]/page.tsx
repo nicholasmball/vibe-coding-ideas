@@ -19,7 +19,7 @@ import { RemoveCollaboratorButton } from "@/components/ideas/remove-collaborator
 import { InlineIdeaHeader } from "@/components/ideas/inline-idea-header";
 import { InlineIdeaBody } from "@/components/ideas/inline-idea-body";
 import { InlineIdeaTags } from "@/components/ideas/inline-idea-tags";
-import { formatRelativeTime } from "@/lib/utils";
+import { formatRelativeTime, stripMarkdownForMeta } from "@/lib/utils";
 import { PendingRequests } from "@/components/ideas/pending-requests";
 import type { CommentWithAuthor, CollaboratorWithUser, CollaborationRequestWithRequester, BotProfile, AiCredits } from "@/types";
 import type { Metadata } from "next";
@@ -35,13 +35,26 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const supabase = await createClient();
   const { data: idea } = await supabase
     .from("ideas")
-    .select("title, description")
+    .select("title, description, visibility")
     .eq("id", id)
     .single();
 
   if (!idea) return { title: "Idea Not Found" };
 
-  const description = idea.description?.substring(0, 160) || "An idea on VibeCodes";
+  if (idea.visibility === "private") {
+    return {
+      title: "Private Idea",
+      description: "Sign in to VibeCodes to view this idea.",
+      openGraph: {
+        title: "Private Idea on VibeCodes",
+        description: "Sign in to VibeCodes to view this idea.",
+      },
+    };
+  }
+
+  const description = idea.description
+    ? stripMarkdownForMeta(idea.description)
+    : "An idea on VibeCodes";
 
   return {
     title: idea.title,

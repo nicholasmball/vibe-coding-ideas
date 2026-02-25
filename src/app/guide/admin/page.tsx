@@ -3,7 +3,7 @@ import { Shield, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "Admin - VibeCodes Guide",
+  title: "Admin Guide",
   description:
     "Admin features on VibeCodes — AI usage analytics, per-user rate limits, user management, and content moderation.",
 };

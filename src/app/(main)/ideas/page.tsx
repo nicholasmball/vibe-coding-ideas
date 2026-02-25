@@ -5,8 +5,17 @@ import type { SortOption, IdeaStatus, IdeaWithAuthor } from "@/types";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Feed - VibeCodes",
-  description: "Discover and vote on vibe coding project ideas",
+  title: "Ideas",
+  description: "Discover and vote on vibe coding project ideas on VibeCodes.",
+  openGraph: {
+    title: "Ideas",
+    description: "Discover and vote on vibe coding project ideas on VibeCodes.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Ideas",
+    description: "Discover and vote on vibe coding project ideas on VibeCodes.",
+  },
 };
 
 const PAGE_SIZE = 10;

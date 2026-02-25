@@ -71,7 +71,7 @@ export function IdeaFeed({
     if (!("page" in updates)) {
       params.delete("page");
     }
-    router.push(`/feed?${params.toString()}`);
+    router.push(`/ideas?${params.toString()}`);
   }, [searchParams, router]);
 
   // Debounced search on keystroke

@@ -46,7 +46,7 @@ Move to "Blocked/Requires User Input" with a comment explaining why.
 - Error boundaries (`error.tsx`) report to Sentry via `Sentry.captureException()`; root uses `global-error.tsx`
 
 ### Auth
-- Middleware protects `/dashboard`, `/feed`, `/ideas`, `/profile`, `/admin`, `/agents`
+- Middleware protects `/dashboard`, `/ideas`, `/profile`, `/admin`, `/agents`
 - Middleware excludes `.well-known`, `api/mcp`, `api/oauth`, `oauth`, `monitoring`, `sw.js`
 - `useUser()` hook for client-side auth state
 - OAuth (GitHub + Google) + email/password with forgot/reset flow

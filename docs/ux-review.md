@@ -13,7 +13,7 @@
 **Fix:** Use `usePathname()` and conditionally apply `variant="secondary"` or a bottom-border accent to the current route's button.
 
 ### 1.2 Add `loading.tsx` skeleton files
-**Files:** `src/app/(main)/dashboard/`, `src/app/(main)/feed/`, `src/app/(main)/ideas/[id]/`, `src/app/(main)/ideas/[id]/board/`
+**Files:** `src/app/(main)/dashboard/`, `src/app/(main)/ideas/`, `src/app/(main)/ideas/[id]/`, `src/app/(main)/ideas/[id]/board/`
 **Issue:** No loading states for server-rendered pages. While the server runs 10+ queries (dashboard has 3 sequential phases), users see a frozen screen with no feedback.
 **Fix:** Add `loading.tsx` with skeleton UI in each route directory:
 - Dashboard: skeleton stats cards (2x2 grid) + skeleton section cards
@@ -101,10 +101,10 @@
 - Minimum session duration (5 minutes), or
 - Visit count threshold (3+ visits, stored in localStorage)
 
-### 3.5 Reduce dashboard/feed/profile data overlap
+### 3.5 Reduce dashboard/ideas/profile data overlap
 **Files:** `src/app/(main)/dashboard/page.tsx`, `src/components/ideas/idea-feed.tsx`, `src/app/(main)/profile/[id]/page.tsx`
 **Issue:** "My Ideas" appears on dashboard, feed ("My Ideas" tab), and profile. Three places, slightly different presentations.
-**Fix:** Make dashboard sections "View all" links route to the feed with pre-applied filters (e.g., `/feed?view=mine`). Dashboard becomes a summary hub, feed is the canonical list view.
+**Fix:** Make dashboard sections "View all" links route to the feed with pre-applied filters (e.g., `/ideas?view=mine`). Dashboard becomes a summary hub, feed is the canonical list view.
 
 ### 3.6 Widen task detail dialog
 **File:** `src/components/board/task-detail-dialog.tsx` (line 381)

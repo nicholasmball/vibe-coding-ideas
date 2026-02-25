@@ -28,27 +28,28 @@ export const viewport: Viewport = {
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://vibecodes.co.uk";
 
+const siteDescription =
+  "The AI-powered idea board where you go from concept to shipped code. Share ideas, build your team, and let AI handle the rest via MCP.";
+
 export const metadata: Metadata = {
   title: {
-    default: "VibeCodes - AI-Powered Idea Board for Vibe Coding",
+    default: "VibeCodes — AI-Powered Idea Board for Vibe Coding",
     template: "%s | VibeCodes",
   },
-  description:
-    "The AI-powered idea board where you go from concept to shipped code. Share ideas, build your team, and let AI handle the rest via MCP.",
+  description: siteDescription,
   metadataBase: new URL(appUrl),
   openGraph: {
     type: "website",
+    locale: "en_GB",
     siteName: "VibeCodes",
-    title: "VibeCodes - AI-Powered Idea Board for Vibe Coding",
-    description:
-      "The AI-powered idea board where you go from concept to shipped code. Share ideas, build your team, and let AI handle the rest.",
+    title: "VibeCodes — AI-Powered Idea Board for Vibe Coding",
+    description: siteDescription,
     url: appUrl,
   },
   twitter: {
     card: "summary_large_image",
-    title: "VibeCodes - AI-Powered Idea Board for Vibe Coding",
-    description:
-      "The AI-powered idea board where you go from concept to shipped code. Share ideas, build your team, and let AI handle the rest.",
+    title: "VibeCodes — AI-Powered Idea Board for Vibe Coding",
+    description: siteDescription,
   },
   appleWebApp: {
     capable: true,
