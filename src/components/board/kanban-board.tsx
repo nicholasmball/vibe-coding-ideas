@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect, createContext } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -23,6 +23,7 @@ import {
   horizontalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { BoardColumn } from "./board-column";
 import { AddColumnButton } from "./add-column-button";
@@ -42,6 +43,12 @@ import type {
   BotProfile,
   AiCredits,
 } from "@/types";
+
+// Context for auto-open state — bypasses memo chain so task cards can react to URL navigation
+export const TaskAutoOpenContext = createContext<{
+  autoOpenTaskId: string | undefined;
+  onAutoOpenConsumed: () => void;
+}>({ autoOpenTaskId: undefined, onAutoOpenConsumed: () => {} });
 
 // Custom collision detection: pointerWithin finds the column, closestCenter picks task position
 const multiContainerCollision: CollisionDetection = (args) => {
@@ -119,6 +126,37 @@ export function KanbanBoard({
   coverImageUrls = {},
   isReadOnly = false,
 }: KanbanBoardProps) {
+  // Auto-open: detect taskId from URL navigation (Link clicks) as well as server props.
+  // useSearchParams reacts to Link navigations, which may not propagate through server
+  // props when the board is already mounted (memo chain can block the update).
+  const searchParams = useSearchParams();
+  const urlTaskId = searchParams.get("taskId") ?? undefined;
+  const [autoOpenTaskId, setAutoOpenTaskId] = useState<string | undefined>(initialTaskId);
+
+  // Sync with server-provided initialTaskId (handles initial page load)
+  useEffect(() => {
+    if (initialTaskId) {
+      setAutoOpenTaskId(initialTaskId);
+    }
+  }, [initialTaskId]);
+
+  // Sync with URL changes from client-side Link navigations (notification clicks)
+  useEffect(() => {
+    if (urlTaskId) {
+      setAutoOpenTaskId(urlTaskId);
+    }
+  }, [urlTaskId]);
+
+  // Clear auto-open state once the dialog has been opened and then closed
+  const handleAutoOpenConsumed = useCallback(() => {
+    setAutoOpenTaskId(undefined);
+  }, []);
+
+  const autoOpenCtx = useMemo(
+    () => ({ autoOpenTaskId, onAutoOpenConsumed: handleAutoOpenConsumed }),
+    [autoOpenTaskId, handleAutoOpenConsumed]
+  );
+
   const [columns, setColumns] = useState(initialColumns);
   const columnsRef = useRef(columns);
   columnsRef.current = columns;
@@ -635,15 +673,15 @@ export function KanbanBoard({
     [ideaId]
   );
 
-  // Detect when initialTaskId exists but is filtered out
+  // Detect when the target task exists but is filtered out
   useEffect(() => {
-    if (!initialTaskId) return;
+    if (!autoOpenTaskId) return;
     const existsInFull = columns.some((col) =>
-      col.tasks.some((t) => t.id === initialTaskId)
+      col.tasks.some((t) => t.id === autoOpenTaskId)
     );
     if (!existsInFull) return; // Task doesn't exist on this board at all
     const visibleInFiltered = filteredColumns.some((col) =>
-      col.tasks.some((t) => t.id === initialTaskId)
+      col.tasks.some((t) => t.id === autoOpenTaskId)
     );
     if (!visibleInFiltered) {
       toast.info("The linked task is hidden by current filters", {
@@ -659,12 +697,13 @@ export function KanbanBoard({
         },
       });
     }
-  }, [initialTaskId, columns, filteredColumns]);
+  }, [autoOpenTaskId, columns, filteredColumns]);
 
   const columnIds = useMemo(() => columns.map((c) => c.id), [columns]);
 
   return (
     <BoardOpsContext.Provider value={boardOps}>
+    <TaskAutoOpenContext.Provider value={autoOpenCtx}>
     <div className="flex min-h-0 flex-1 flex-col">
       <BoardToolbar
         searchQuery={searchQuery}
@@ -720,7 +759,7 @@ export function KanbanBoard({
                     checklistItemsByTaskId={checklistItemsByTaskId}
                     highlightQuery={searchQuery}
                     currentUserId={currentUserId}
-                    initialTaskId={initialTaskId}
+                    initialTaskId={autoOpenTaskId}
                     userBots={userBots}
                     coverImageUrls={coverImageUrls}
                     aiEnabled={aiEnabled}
@@ -745,6 +784,7 @@ export function KanbanBoard({
         )}
       </DndContext>
     </div>
+    </TaskAutoOpenContext.Provider>
     </BoardOpsContext.Provider>
   );
 }
