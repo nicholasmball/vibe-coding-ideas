@@ -44,20 +44,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   }
 
-  const [{ count: taskCount }, { count: columnCount }] = await Promise.all([
-    supabase
-      .from("board_tasks")
-      .select("*", { count: "exact", head: true })
-      .eq("idea_id", id)
-      .eq("archived", false),
-    supabase
-      .from("board_columns")
-      .select("*", { count: "exact", head: true })
-      .eq("idea_id", id),
-  ]);
-
   const ogTitle = `${idea.title} — Board`;
-  const ogDescription = `Kanban board for ${idea.title} on VibeCodes — ${taskCount ?? 0} tasks across ${columnCount ?? 0} columns`;
+  const ogDescription = `Kanban board for ${idea.title} — plan, track, and ship on VibeCodes`;
 
   return {
     title: `${idea.title} — Board`,
