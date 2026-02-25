@@ -318,7 +318,7 @@ export function BotActivityDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto overflow-x-hidden">
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto overflow-x-hidden [&>button]:shrink-0">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <Avatar className="h-9 w-9 shrink-0">
@@ -424,8 +424,8 @@ export function BotActivityDialog({
               </p>
             ) : (
               <>
-                <ScrollArea className="max-h-96">
-                  <div className="space-y-4 pr-4 min-w-0 overflow-hidden">
+                <ScrollArea className="max-h-96 -mr-4">
+                  <div className="space-y-4 pr-4 min-w-0">
                     {sessions.map((session, sessionIdx) => {
                       const taskGroups = groupByTask(session);
 
@@ -495,9 +495,9 @@ export function BotActivityDialog({
                                     );
 
                                     return (
-                                      <div key={entry.id} className="flex items-center gap-1.5">
+                                      <div key={entry.id} className="flex items-center gap-1.5 min-w-0">
                                         <IconComponent className="h-3 w-3 shrink-0 text-muted-foreground" />
-                                        <span className="text-xs truncate">
+                                        <span className="text-xs truncate min-w-0 flex-1">
                                           {label}
                                           {detailText && (
                                             <span className="text-muted-foreground"> {detailText}</span>
