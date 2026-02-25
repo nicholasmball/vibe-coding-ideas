@@ -15,6 +15,7 @@ type ActionType = "enhance_description" | "generate_questions" | "enhance_with_c
 
 /** Re-throw AI SDK errors as plain Error so Next.js RSC can serialize them. */
 function toPlainError(err: unknown): never {
+  console.error("[AI Action Error]", err);
   if (err instanceof Error) {
     throw new Error(err.message);
   }
