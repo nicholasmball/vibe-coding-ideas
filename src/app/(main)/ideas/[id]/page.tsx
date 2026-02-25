@@ -1,6 +1,7 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Users, Pencil, LayoutDashboard, Trash2, Sparkles } from "lucide-react";
+import { requireAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -74,13 +75,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function IdeaDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
+  const { user, supabase } = await requireAuth();
 
   // Fetch idea with author
   const { data: idea } = await supabase

@@ -1,6 +1,7 @@
-import { redirect, notFound } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { requireAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { initializeBoardColumns } from "@/actions/board";
 import { KanbanBoard } from "@/components/board/kanban-board";
@@ -65,13 +66,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function BoardPage({ params, searchParams }: PageProps) {
   const { id } = await params;
   const { taskId: initialTaskId } = await searchParams;
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
+  const { user, supabase } = await requireAuth();
 
   // Fetch idea (include visibility for access control)
   const { data: idea } = await supabase
