@@ -9,7 +9,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
 import type { AiCredits } from "@/types";
 
-const AI_MODEL = "claude-sonnet-4-5-20250929";
+const AI_MODEL = "claude-sonnet-4-6";
 
 type ActionType = "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description";
 
