@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/auth";
 import { AiUsageDashboard } from "@/components/admin/ai-usage-dashboard";
 import type { Metadata } from "next";
 
@@ -18,13 +18,7 @@ interface PageProps {
 
 export default async function AdminPage({ searchParams }: PageProps) {
   const { from, to, action } = await searchParams;
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
+  const { user, supabase } = await requireAuth();
 
   // Check admin
   const { data: currentUser } = await supabase

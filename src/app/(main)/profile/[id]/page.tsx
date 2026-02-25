@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { requireAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ProfileHeader } from "@/components/profile/profile-header";
 import { ProfileTabs } from "@/components/profile/profile-tabs";
@@ -51,11 +52,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ProfilePage({ params }: PageProps) {
   const { id } = await params;
-  const supabase = await createClient();
-
-  const {
-    data: { user: currentUser },
-  } = await supabase.auth.getUser();
+  const { user: currentUser, supabase } = await requireAuth();
 
   // Fetch profile user
   const { data: profileUser } = await supabase

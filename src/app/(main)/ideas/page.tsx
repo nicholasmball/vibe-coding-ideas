@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/auth";
 import { IdeaFeed } from "@/components/ideas/idea-feed";
 import { CompleteProfileBanner } from "@/components/profile/complete-profile-banner";
 import type { SortOption, IdeaStatus, IdeaWithAuthor } from "@/types";
@@ -32,11 +32,7 @@ export default async function FeedPage({
   const status = (params.status as IdeaStatus) || "";
   const view = (params.view as "all" | "mine" | "collaborating") || "all";
   const page = Math.max(1, parseInt(params.page || "1", 10));
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user, supabase } = await requireAuth();
 
   // For "collaborating" view, fetch idea IDs where user is a collaborator
   let collaboratingIdeaIds: string[] = [];

@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/auth";
 import { IdeaForm } from "@/components/ideas/idea-form";
 import type { Metadata } from "next";
 
@@ -10,12 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default async function NewIdeaPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
+  const { user, supabase } = await requireAuth();
 
   let githubUsername: string | null = null;
   {

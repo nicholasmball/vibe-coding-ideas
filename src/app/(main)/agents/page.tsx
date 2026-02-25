@@ -1,7 +1,6 @@
-import { redirect } from "next/navigation";
 import { Bot, Info } from "lucide-react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/auth";
 import { BotManagement } from "@/components/profile/bot-management";
 import type { BotProfile } from "@/types";
 import type { Metadata } from "next";
@@ -12,12 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AgentsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
+  const { user, supabase } = await requireAuth();
 
   const { data: bots } = await supabase
     .from("bot_profiles")

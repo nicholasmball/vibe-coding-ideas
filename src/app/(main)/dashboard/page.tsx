@@ -1,6 +1,5 @@
 import type React from "react";
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -12,7 +11,7 @@ import {
   Plus,
   Users,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/auth";
 import { getDueDateStatus } from "@/lib/utils";
 import { DEFAULT_PANEL_ORDER } from "@/lib/dashboard-order";
 import { StatsCards } from "@/components/dashboard/stats-cards";
@@ -43,12 +42,7 @@ export const metadata: Metadata = {
 };
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
+  const { user, supabase } = await requireAuth();
 
   // Phase 1: Independent queries
   const [
