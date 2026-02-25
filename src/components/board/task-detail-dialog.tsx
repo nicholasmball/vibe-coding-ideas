@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
-import { Tag, Trash2, Archive, ArchiveRestore, Pencil, X, Bot, Link2, Sparkles, Loader2 } from "lucide-react";
+import { Tag, Trash2, Archive, ArchiveRestore, Pencil, X, Bot, Link2, Sparkles, Loader2, Eye } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -67,6 +67,8 @@ export function TaskDetailDialog({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
+  const [previewDesc, setPreviewDesc] = useState(false);
+  const skipBlurRef = useRef(false);
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // @mention state for description
@@ -212,7 +214,12 @@ export function TaskDetailDialog({
   }
 
   async function handleDescriptionBlur() {
+    if (skipBlurRef.current) {
+      skipBlurRef.current = false;
+      return;
+    }
     setEditingDescription(false);
+    setPreviewDesc(false);
     setDescMentionQuery(null);
     const newDesc = description.trim() || null;
     if (newDesc === (task.description ?? null)) return;
@@ -407,6 +414,10 @@ export function TaskDetailDialog({
         if (!v && coverPreviewOpen) {
           setCoverPreviewOpen(false);
           return;
+        }
+        if (!v && editingDescription) {
+          // Save description when closing dialog while editing (including preview mode)
+          handleDescriptionBlur();
         }
         onOpenChange(v);
       }}
@@ -616,6 +627,7 @@ export function TaskDetailDialog({
                         variant="ghost"
                         size="sm"
                         className="h-6 gap-1 px-2 text-xs text-muted-foreground"
+                        onMouseDown={() => { skipBlurRef.current = true; }}
                         onClick={handleEnhanceDescription}
                         disabled={enhancing}
                         title="Enhance with AI"
@@ -628,6 +640,22 @@ export function TaskDetailDialog({
                         {enhancing ? "Enhancing..." : "Enhance"}
                       </Button>
                     )}
+                    {!isReadOnly && editingDescription && description.trim() && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 gap-1 px-2 text-xs text-muted-foreground"
+                        onMouseDown={() => { skipBlurRef.current = true; }}
+                        onClick={() => setPreviewDesc((v) => !v)}
+                      >
+                        {previewDesc ? (
+                          <><Pencil className="h-3 w-3" /> Write</>
+                        ) : (
+                          <><Eye className="h-3 w-3" /> Preview</>
+                        )}
+                      </Button>
+                    )}
                     {!isReadOnly && !editingDescription && description && (
                       <Button
                         variant="ghost"
@@ -635,6 +663,7 @@ export function TaskDetailDialog({
                         className="h-6 gap-1 text-xs text-muted-foreground"
                         onClick={() => {
                           setEditingDescription(true);
+                          setPreviewDesc(false);
                           requestAnimationFrame(() => {
                             descriptionTextareaRef.current?.focus();
                           });
@@ -655,27 +684,36 @@ export function TaskDetailDialog({
                     <p className="text-xs text-muted-foreground">No description</p>
                   )
                 ) : editingDescription ? (
-                  <div className="relative">
-                    {descMentionQuery !== null && (
-                      <MentionAutocomplete
-                        filteredMembers={filteredDescMembers}
-                        selectedIndex={descMentionIndex}
-                        onSelect={handleDescMentionSelect}
-                      />
-                    )}
-                    <Textarea
-                      ref={descriptionTextareaRef}
-                      value={description}
-                      onChange={handleDescInputChange}
-                      onKeyDown={handleDescKeyDown}
+                  previewDesc ? (
+                    <div
+                      className="min-h-[156px] rounded-md border border-input px-3 py-2 text-sm"
                       onBlur={handleDescriptionBlur}
-                      placeholder="Add a description... (@ to mention, supports markdown)"
-                      rows={6}
-                      className="text-sm"
-                      disabled={savingDesc}
-                      autoFocus
-                    />
-                  </div>
+                    >
+                      <Markdown>{description}</Markdown>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      {descMentionQuery !== null && (
+                        <MentionAutocomplete
+                          filteredMembers={filteredDescMembers}
+                          selectedIndex={descMentionIndex}
+                          onSelect={handleDescMentionSelect}
+                        />
+                      )}
+                      <Textarea
+                        ref={descriptionTextareaRef}
+                        value={description}
+                        onChange={handleDescInputChange}
+                        onKeyDown={handleDescKeyDown}
+                        onBlur={handleDescriptionBlur}
+                        placeholder="Add a description... (@ to mention, supports markdown)"
+                        rows={6}
+                        className="text-sm"
+                        disabled={savingDesc}
+                        autoFocus
+                      />
+                    </div>
+                  )
                 ) : description ? (
                   <div
                     className="cursor-pointer rounded-md border border-transparent px-3 py-2 text-sm transition-colors hover:border-border hover:bg-muted/50"

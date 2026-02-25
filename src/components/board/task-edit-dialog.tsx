@@ -20,7 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { Bot, X, Image as ImageIcon, Sparkles, Loader2 } from "lucide-react";
+import { Bot, X, Image as ImageIcon, Sparkles, Loader2, Eye, Pencil } from "lucide-react";
+import { Markdown } from "@/components/ui/markdown";
 import { getLabelColorConfig } from "@/lib/utils";
 import { createBoardTask, addLabelsToTask } from "@/actions/board";
 import { useBoardOps } from "./board-context";
@@ -63,6 +64,7 @@ export function TaskEditDialog({
   const [pendingImages, setPendingImages] = useState<{ file: File; previewUrl: string }[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [enhancing, setEnhancing] = useState(false);
+  const [previewDesc, setPreviewDesc] = useState(false);
   const dragCounterRef = useRef(0);
   const dialogRef = useRef<HTMLDivElement>(null);
   const ops = useBoardOps();
@@ -349,32 +351,55 @@ export function TaskEditDialog({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <Label htmlFor="task-description">Description</Label>
-              {showAiEnhance && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 gap-1 px-2 text-xs text-muted-foreground"
-                  onClick={handleEnhanceDescription}
-                  disabled={enhancing}
-                  title="Enhance with AI"
-                >
-                  {enhancing ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <Sparkles className="h-3 w-3" />
-                  )}
-                  {enhancing ? "Enhancing..." : "Enhance"}
-                </Button>
-              )}
+              <div className="flex items-center gap-1">
+                {showAiEnhance && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 gap-1 px-2 text-xs text-muted-foreground"
+                    onClick={handleEnhanceDescription}
+                    disabled={enhancing}
+                    title="Enhance with AI"
+                  >
+                    {enhancing ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3 w-3" />
+                    )}
+                    {enhancing ? "Enhancing..." : "Enhance"}
+                  </Button>
+                )}
+                {description.trim() && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 gap-1 px-2 text-xs text-muted-foreground"
+                    onClick={() => setPreviewDesc((v) => !v)}
+                  >
+                    {previewDesc ? (
+                      <><Pencil className="h-3 w-3" /> Write</>
+                    ) : (
+                      <><Eye className="h-3 w-3" /> Preview</>
+                    )}
+                  </Button>
+                )}
+              </div>
             </div>
-            <Textarea
-              id="task-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Optional description..."
-              rows={3}
-            />
+            {previewDesc ? (
+              <div className="min-h-[78px] rounded-md border border-input px-3 py-2 text-sm">
+                <Markdown>{description}</Markdown>
+              </div>
+            ) : (
+              <Textarea
+                id="task-description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Optional description... (supports markdown)"
+                rows={3}
+              />
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="task-assignee">Assignee</Label>
