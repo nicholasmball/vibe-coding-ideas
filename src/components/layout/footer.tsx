@@ -11,15 +11,15 @@ export function Footer() {
             <span>&copy; {new Date().getFullYear()} VibeCodes</span>
           </div>
           <span className="text-border">&middot;</span>
-          <Link href="/guide" className="px-1 hover:text-foreground">
+          <Link href="/guide" prefetch={false} className="px-1 hover:text-foreground">
             Guide
           </Link>
           <span className="text-border">&middot;</span>
-          <Link href="/terms" className="px-1 hover:text-foreground">
+          <Link href="/terms" prefetch={false} className="px-1 hover:text-foreground">
             Terms of Service
           </Link>
           <span className="text-border">&middot;</span>
-          <Link href="/privacy" className="px-1 hover:text-foreground">
+          <Link href="/privacy" prefetch={false} className="px-1 hover:text-foreground">
             Privacy Policy
           </Link>
         </div>

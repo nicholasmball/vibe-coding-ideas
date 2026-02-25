@@ -47,7 +47,7 @@ export default function LoginPage() {
             </Link>
           </p>
           <p className="mt-2 text-center text-xs text-muted-foreground">
-            <Link href="/guide" className="hover:text-primary hover:underline">
+            <Link href="/guide" prefetch={false} className="hover:text-primary hover:underline">
               Learn more about VibeCodes
             </Link>
           </p>

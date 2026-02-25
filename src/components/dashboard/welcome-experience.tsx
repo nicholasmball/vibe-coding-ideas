@@ -102,7 +102,7 @@ export function WelcomeExperience() {
         {/* Getting started actions */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {gettingStarted.map((item) => (
-            <Link key={item.href} href={item.href} className="group">
+            <Link key={item.href} href={item.href} prefetch={false} className="group">
               <div className="flex flex-col items-center gap-2 rounded-xl border border-border/60 bg-card/60 px-4 py-5 text-center transition-all hover:border-primary/30 hover:bg-card">
                 <div
                   className={`flex h-10 w-10 items-center justify-center rounded-xl ${item.iconBg}`}
@@ -123,6 +123,7 @@ export function WelcomeExperience() {
         {/* Guide teaser */}
         <Link
           href="/guide/getting-started"
+          prefetch={false}
           className="group mt-4 flex items-center gap-3 rounded-xl border border-border/40 bg-card/30 px-4 py-3 transition-all hover:border-primary/30 hover:bg-card/60"
         >
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-400/10">

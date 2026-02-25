@@ -287,6 +287,7 @@ export function Navbar() {
                   )}
                   <Link
                     href="/guide"
+                    prefetch={false}
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     <Button variant={isActive("/guide") ? "secondary" : "ghost"} className="w-full justify-start gap-2">

@@ -37,7 +37,7 @@ export default function SignupPage() {
           <EmailAuthForm mode="signup" />
           <p className="mt-4 text-center text-xs text-muted-foreground">
             New here?{" "}
-            <Link href="/guide" className="font-medium text-primary hover:underline">
+            <Link href="/guide" prefetch={false} className="font-medium text-primary hover:underline">
               Read our getting started guide
             </Link>
           </p>
