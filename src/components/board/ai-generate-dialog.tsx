@@ -32,7 +32,6 @@ import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ImportPreviewTable } from "./import-preview-table";
-import { generateBoardTasks } from "@/actions/ai";
 import {
   autoMapColumns,
   getUniqueColumnNames,
@@ -122,9 +121,11 @@ export function AiGenerateDialog({
 
   const busy = generating || phase === "inserting" || phase === "loading-board";
 
+  const [streamingTaskCount, setStreamingTaskCount] = useState(0);
+
   const generateSteps = [
     { title: "Analyzing idea description", description: "Reading your idea and prompt" },
-    { title: "Generating tasks & columns", description: "Building the board structure" },
+    { title: "Generating tasks & columns", description: streamingTaskCount > 0 ? `${streamingTaskCount} task${streamingTaskCount !== 1 ? "s" : ""} generated so far` : "Building the board structure" },
     { title: "Finalizing board", description: "Organizing labels and due dates" },
   ];
   const activeBots = bots.filter((b) => b.is_active);
@@ -162,14 +163,67 @@ export function AiGenerateDialog({
   async function handleGenerate() {
     setGenerating(true);
     setGeneratedTasks(null);
+    setStreamingTaskCount(0);
     try {
       const personaPrompt =
         selectedBotId !== "default"
           ? activeBots.find((b) => b.id === selectedBotId)?.system_prompt
           : null;
 
-      const result = await generateBoardTasks(ideaId, prompt, personaPrompt);
-      const tasks = result.tasks as ImportTask[];
+      const res = await fetch("/api/ai/generate-tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ideaId, prompt, personaPrompt }),
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => null);
+        throw new Error(body?.error ?? `Request failed (${res.status})`);
+      }
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("No response stream");
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let lastParsed: { tasks: ImportTask[] } | null = null;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Process complete NDJSON lines
+        const lines = buffer.split("\n");
+        buffer = lines.pop() ?? "";
+
+        for (const line of lines) {
+          if (!line.trim()) continue;
+          try {
+            lastParsed = JSON.parse(line);
+            setStreamingTaskCount(lastParsed!.tasks?.length ?? 0);
+          } catch {
+            // Incomplete JSON line — skip
+          }
+        }
+      }
+
+      // Process any remaining buffer
+      if (buffer.trim()) {
+        try {
+          lastParsed = JSON.parse(buffer);
+        } catch {
+          // Ignore
+        }
+      }
+
+      if (!lastParsed?.tasks?.length) {
+        throw new Error("AI did not generate any tasks. Try a more detailed prompt.");
+      }
+
+      // Cap at 50 tasks
+      const tasks = lastParsed.tasks.slice(0, 50) as ImportTask[];
       setGeneratedTasks(tasks);
 
       const uniqueColumns = getUniqueColumnNames(tasks);
@@ -181,6 +235,7 @@ export function AiGenerateDialog({
       );
     } finally {
       setGenerating(false);
+      setStreamingTaskCount(0);
     }
   }
 
@@ -343,6 +398,7 @@ export function AiGenerateDialog({
     setTaskStatuses([]);
     setInsertProgress({ current: 0, total: 0 });
     setInsertResult(null);
+    setStreamingTaskCount(0);
     if (loadingTimeoutRef.current) {
       clearTimeout(loadingTimeoutRef.current);
       loadingTimeoutRef.current = null;
