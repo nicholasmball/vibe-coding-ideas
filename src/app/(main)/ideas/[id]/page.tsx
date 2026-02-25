@@ -22,7 +22,7 @@ import { InlineIdeaBody } from "@/components/ideas/inline-idea-body";
 import { InlineIdeaTags } from "@/components/ideas/inline-idea-tags";
 import { formatRelativeTime, stripMarkdownForMeta } from "@/lib/utils";
 import { PendingRequests } from "@/components/ideas/pending-requests";
-import type { CommentWithAuthor, CollaboratorWithUser, CollaborationRequestWithRequester, BotProfile, AiCredits } from "@/types";
+import type { CommentWithAuthor, CollaboratorWithUser, CollaborationRequestWithRequester, BotProfile } from "@/types";
 import type { Metadata } from "next";
 
 export const maxDuration = 120;
@@ -168,37 +168,17 @@ export default async function IdeaDetailPage({ params }: PageProps) {
     pendingRequests = (requests ?? []) as unknown as CollaborationRequestWithRequester[];
   }
 
-  // Check if user is admin and has AI access
+  // Check if user is admin and has AI API key
   let isAdmin = false;
-  let aiEnabled = false;
-  let aiCredits: AiCredits | null = null;
+  let userHasApiKey = false;
   if (user) {
     const { data: profile } = await supabase
       .from("users")
-      .select("is_admin, ai_enabled, ai_daily_limit, encrypted_anthropic_key")
+      .select("is_admin, encrypted_anthropic_key")
       .eq("id", user.id)
       .single();
     isAdmin = profile?.is_admin ?? false;
-    aiEnabled = profile?.ai_enabled ?? false;
-
-    if (aiEnabled && profile) {
-      const isByok = !!profile.encrypted_anthropic_key;
-      if (isByok) {
-        aiCredits = { used: 0, limit: null, remaining: null, isByok: true };
-      } else {
-        const todayUTC = new Date();
-        todayUTC.setUTCHours(0, 0, 0, 0);
-        const { count } = await supabase
-          .from("ai_usage_log")
-          .select("*", { count: "exact", head: true })
-          .eq("user_id", user.id)
-          .eq("key_type", "platform")
-          .gte("created_at", todayUTC.toISOString());
-        const used = count ?? 0;
-        const limit = profile.ai_daily_limit;
-        aiCredits = { used, limit, remaining: Math.max(0, limit - used), isByok: false };
-      }
-    }
+    userHasApiKey = !!profile?.encrypted_anthropic_key;
   }
 
   const isAuthor = user?.id === idea.author_id;
@@ -206,7 +186,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
 
   // Fetch user's bot profiles for AI persona selector
   let userBots: BotProfile[] = [];
-  if (user && aiEnabled) {
+  if (user && userHasApiKey) {
     const { data: bots } = await supabase
       .from("bot_profiles")
       .select("*")
@@ -292,14 +272,14 @@ export default async function IdeaDetailPage({ params }: PageProps) {
             </Button>
           </Link>
         )}
-        {isAuthor && aiEnabled && (
+        {isAuthor && (
           <span className="hidden sm:inline-flex">
             <EnhanceIdeaButton
               ideaId={idea.id}
               ideaTitle={idea.title}
               currentDescription={idea.description}
               bots={userBots}
-              aiCredits={aiCredits}
+              disabled={!userHasApiKey}
             />
           </span>
         )}
@@ -316,9 +296,8 @@ export default async function IdeaDetailPage({ params }: PageProps) {
             currentDescription={idea.description}
             isAuthor={isAuthor}
             canDelete={canDelete}
-            aiEnabled={aiEnabled}
+            hasApiKey={userHasApiKey}
             bots={userBots}
-            aiCredits={aiCredits}
           />
         )}
       </div>

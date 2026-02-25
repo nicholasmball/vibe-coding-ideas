@@ -3,10 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   AI_MODEL,
   getAnthropicProvider,
-  getKeyType,
-  checkRateLimit,
   logAiUsage,
-  hasPlatformKey,
 } from "@/lib/ai-helpers";
 
 export const maxDuration = 300; // Streaming keeps the connection alive; allow generous time
@@ -24,32 +21,14 @@ export async function POST(req: Request) {
 
     const { data: profile } = await supabase
       .from("users")
-      .select("ai_enabled, encrypted_anthropic_key, ai_daily_limit")
+      .select("encrypted_anthropic_key")
       .eq("id", user.id)
       .single();
 
-    const keyType = getKeyType(profile?.encrypted_anthropic_key ?? null);
-    const isByok = keyType === "byok";
-
-    // BYOK users always have access; platform users need ai_enabled AND a platform key
-    if (!isByok && !profile?.ai_enabled) {
+    if (!profile?.encrypted_anthropic_key) {
       return Response.json(
-        { error: "AI features are not enabled for your account" },
+        { error: "No API key configured — add your Anthropic key in your profile settings" },
         { status: 403 }
-      );
-    }
-    if (!isByok && !hasPlatformKey()) {
-      return Response.json(
-        { error: "No API key available — add your own key in your profile settings" },
-        { status: 403 }
-      );
-    }
-
-    const rateCheck = await checkRateLimit(supabase, user.id, profile!);
-    if (!rateCheck.allowed) {
-      return Response.json(
-        { error: `Daily AI limit reached (${rateCheck.used}/${rateCheck.limit}). Try again tomorrow.` },
-        { status: 429 }
       );
     }
 
@@ -67,7 +46,7 @@ export async function POST(req: Request) {
       return Response.json({ error: "Missing ideaId or prompt" }, { status: 400 });
     }
 
-    const anthropic = getAnthropicProvider(profile!.encrypted_anthropic_key);
+    const anthropic = getAnthropicProvider(profile.encrypted_anthropic_key);
 
     const { data: idea } = await supabase
       .from("ideas")
@@ -140,7 +119,6 @@ Use the answers above to inform your enhanced description. Make the enhancement 
           inputTokens: usage.inputTokens ?? 0,
           outputTokens: usage.outputTokens ?? 0,
           model: AI_MODEL,
-          keyType,
           ideaId,
         });
         // Log truncation for debugging

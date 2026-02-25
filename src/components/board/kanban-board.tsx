@@ -41,7 +41,6 @@ import type {
   BoardChecklistItem,
   User,
   BotProfile,
-  AiCredits,
 } from "@/types";
 
 // Context for auto-open state — bypasses memo chain so task cards can react to URL navigation
@@ -103,9 +102,8 @@ interface KanbanBoardProps {
   currentUserId: string;
   initialTaskId?: string;
   userBots?: User[];
-  aiEnabled?: boolean;
+  hasApiKey?: boolean;
   botProfiles?: BotProfile[];
-  aiCredits?: AiCredits | null;
   coverImageUrls?: Record<string, string>;
   isReadOnly?: boolean;
 }
@@ -120,9 +118,8 @@ export function KanbanBoard({
   currentUserId,
   initialTaskId,
   userBots = [],
-  aiEnabled = false,
+  hasApiKey = false,
   botProfiles = [],
-  aiCredits,
   coverImageUrls = {},
   isReadOnly = false,
 }: KanbanBoardProps) {
@@ -723,9 +720,8 @@ export function KanbanBoard({
         ideaId={ideaId}
         ideaDescription={ideaDescription}
         currentUserId={currentUserId}
-        aiEnabled={aiEnabled}
+        hasApiKey={hasApiKey}
         botProfiles={botProfiles}
-        aiCredits={aiCredits}
         isReadOnly={isReadOnly}
       />
       <DndContext
@@ -762,9 +758,8 @@ export function KanbanBoard({
                     initialTaskId={autoOpenTaskId}
                     userBots={userBots}
                     coverImageUrls={coverImageUrls}
-                    aiEnabled={aiEnabled}
-                    aiCredits={aiCredits}
-                    ideaDescription={ideaDescription}
+                    hasApiKey={hasApiKey}
+                                ideaDescription={ideaDescription}
                     isReadOnly={isReadOnly}
                   />
                 );

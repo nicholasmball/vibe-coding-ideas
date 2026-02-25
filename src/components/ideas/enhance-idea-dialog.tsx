@@ -36,7 +36,7 @@ import {
 import { PromptTemplateSelector } from "@/components/ai/prompt-template-selector";
 import { AiProgressSteps } from "@/components/ai/ai-progress-steps";
 import type { ClarifyingQuestion } from "@/actions/ai";
-import type { BotProfile, AiCredits } from "@/types";
+import type { BotProfile } from "@/types";
 
 const DEFAULT_PROMPT =
   "Improve this idea description. Add more detail, user stories, technical scope, and a clear product vision. Keep the original intent and key points, but make it more comprehensive and well-structured.";
@@ -50,7 +50,6 @@ interface EnhanceIdeaDialogProps {
   ideaTitle: string;
   currentDescription: string;
   bots: BotProfile[];
-  aiCredits?: AiCredits | null;
 }
 
 export function EnhanceIdeaDialog({
@@ -60,7 +59,6 @@ export function EnhanceIdeaDialog({
   ideaTitle,
   currentDescription,
   bots,
-  aiCredits,
 }: EnhanceIdeaDialogProps) {
   const router = useRouter();
 
@@ -85,11 +83,6 @@ export function EnhanceIdeaDialog({
   // Refine phase
   const [refinementInput, setRefinementInput] = useState("");
   const [truncated, setTruncated] = useState(false);
-
-  // Credit tracking
-  const [localRemaining, setLocalRemaining] = useState<number | null>(
-    aiCredits?.remaining ?? null
-  );
 
   const busy = loading || applying || generatingQuestions;
 
@@ -129,9 +122,6 @@ export function EnhanceIdeaDialog({
           prompt,
           getPersonaPrompt()
         );
-        if (localRemaining !== null) {
-          setLocalRemaining((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
-        }
         setQuestions(result.questions);
         setAnswers({});
         setPhase("questions");
@@ -173,10 +163,6 @@ export function EnhanceIdeaDialog({
       if (!res.ok) {
         const data = await res.json().catch(() => null);
         throw new Error(data?.error ?? `Request failed (${res.status})`);
-      }
-
-      if (localRemaining !== null) {
-        setLocalRemaining((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
       }
 
       const reader = res.body?.getReader();
@@ -273,7 +259,6 @@ export function EnhanceIdeaDialog({
     setEnhancedText(null);
     setTruncated(false);
     setRefinementInput("");
-    setLocalRemaining(aiCredits?.remaining ?? null);
   }
 
   function handleOpenChange(value: boolean) {
@@ -309,16 +294,6 @@ export function EnhanceIdeaDialog({
         {/* ── Configure Phase ────────────────────────────────────────── */}
         {phase === "configure" && (
           <div className="space-y-4">
-            {aiCredits && !aiCredits.isByok && localRemaining !== null && (
-              <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                {localRemaining}/{aiCredits.limit} credits remaining today
-              </div>
-            )}
-            {aiCredits?.isByok && (
-              <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                Using your API key
-              </div>
-            )}
             <div className="grid">
               <div className={`col-start-1 row-start-1 ${generatingQuestions || loading ? "pointer-events-none opacity-40 blur-[1px]" : ""} transition-all`}>
                 {/* Persona selector */}
@@ -410,7 +385,7 @@ export function EnhanceIdeaDialog({
             {!generatingQuestions && !loading && (
               <Button
                 onClick={handleNext}
-                disabled={!prompt.trim() || (!aiCredits?.isByok && localRemaining === 0)}
+                disabled={!prompt.trim()}
                 className="w-full gap-2"
               >
                 {askQuestions ? (

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { EnhanceIdeaButton } from "@/components/ideas/enhance-idea-button";
 import { DeleteIdeaButton } from "@/components/ideas/delete-idea-button";
-import type { BotProfile, AiCredits } from "@/types";
+import type { BotProfile } from "@/types";
 
 interface IdeaMobileActionsProps {
   ideaId: string;
@@ -19,9 +19,8 @@ interface IdeaMobileActionsProps {
   ideaDescription: string;
   isAuthor: boolean;
   canDelete: boolean;
-  aiEnabled: boolean;
+  hasApiKey: boolean;
   userBots: BotProfile[];
-  aiCredits: AiCredits | null;
 }
 
 export function IdeaMobileActions({
@@ -30,9 +29,8 @@ export function IdeaMobileActions({
   ideaDescription,
   isAuthor,
   canDelete,
-  aiEnabled,
+  hasApiKey,
   userBots,
-  aiCredits,
 }: IdeaMobileActionsProps) {
   return (
     <DropdownMenu>
@@ -51,14 +49,14 @@ export function IdeaMobileActions({
             </Link>
           </DropdownMenuItem>
         )}
-        {isAuthor && aiEnabled && (
+        {isAuthor && (
           <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="p-0">
             <EnhanceIdeaButton
               ideaId={ideaId}
               ideaTitle={ideaTitle}
               currentDescription={ideaDescription}
               bots={userBots}
-              aiCredits={aiCredits}
+              disabled={!hasApiKey}
               variant="dropdown"
             />
           </DropdownMenuItem>

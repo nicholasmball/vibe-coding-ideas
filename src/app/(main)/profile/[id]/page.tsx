@@ -194,9 +194,7 @@ export default async function ProfilePage({ params }: PageProps) {
                 <EditProfileDialog user={profileUser} />
                 <NotificationSettings preferences={profileUser.notification_preferences} />
                 <BoardColumnSettings columns={profileUser.default_board_columns} />
-                {profileUser.ai_enabled && (
-                  <ApiKeySettings hasKey={!!profileUser.encrypted_anthropic_key} />
-                )}
+                <ApiKeySettings hasKey={!!profileUser.encrypted_anthropic_key} />
               </div>
               {/* Mobile: Edit Profile visible + rest in dropdown */}
               <div className="contents sm:hidden">
@@ -204,7 +202,6 @@ export default async function ProfilePage({ params }: PageProps) {
                 <ProfileSettingsMenu
                   preferences={profileUser.notification_preferences}
                   columns={profileUser.default_board_columns}
-                  aiEnabled={profileUser.ai_enabled}
                   hasApiKey={!!profileUser.encrypted_anthropic_key}
                 />
               </div>

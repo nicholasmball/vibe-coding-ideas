@@ -11,7 +11,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { getLabelColorConfig } from "@/lib/utils";
 import { ImportDialog } from "./import-dialog";
 import { AiGenerateDialog } from "./ai-generate-dialog";
-import type { BoardColumnWithTasks, BoardLabel, User, BotProfile, AiCredits } from "@/types";
+import type { BoardColumnWithTasks, BoardLabel, User, BotProfile } from "@/types";
 
 interface BoardToolbarProps {
   searchQuery: string;
@@ -31,9 +31,8 @@ interface BoardToolbarProps {
   ideaId: string;
   ideaDescription?: string;
   currentUserId: string;
-  aiEnabled?: boolean;
+  hasApiKey?: boolean;
   botProfiles?: BotProfile[];
-  aiCredits?: AiCredits | null;
   isReadOnly?: boolean;
 }
 
@@ -55,9 +54,8 @@ export function BoardToolbar({
   ideaId,
   ideaDescription = "",
   currentUserId,
-  aiEnabled = false,
+  hasApiKey = false,
   botProfiles = [],
-  aiCredits,
   isReadOnly = false,
 }: BoardToolbarProps) {
   const [importOpen, setImportOpen] = useState(false);
@@ -212,24 +210,17 @@ export function BoardToolbar({
 
       {!isReadOnly && (
         <div className="ml-auto flex gap-2">
-          {aiEnabled && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 gap-1.5 text-xs"
-              onClick={() => setAiGenerateOpen(true)}
-              disabled={!aiCredits?.isByok && aiCredits?.remaining === 0}
-              title={!aiCredits?.isByok && aiCredits?.remaining === 0 ? "Daily limit reached" : undefined}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">AI Generate</span>
-              {aiCredits && !aiCredits.isByok && aiCredits.remaining !== null && (
-                <span className="ml-1 text-[10px] text-muted-foreground">
-                  {aiCredits.remaining}/{aiCredits.limit}
-                </span>
-              )}
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-xs"
+            onClick={() => setAiGenerateOpen(true)}
+            disabled={!hasApiKey}
+            title={!hasApiKey ? "Add your API key in profile settings to enable AI" : undefined}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">AI Generate</span>
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -254,7 +245,7 @@ export function BoardToolbar({
         />
       )}
 
-      {!isReadOnly && aiEnabled && (
+      {!isReadOnly && (
         <AiGenerateDialog
           open={aiGenerateOpen}
           onOpenChange={setAiGenerateOpen}
@@ -265,7 +256,6 @@ export function BoardToolbar({
           boardLabels={boardLabels}
           teamMembers={teamMembers}
           bots={botProfiles}
-          aiCredits={aiCredits}
         />
       )}
     </div>

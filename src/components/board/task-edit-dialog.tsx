@@ -28,7 +28,7 @@ import { createClient } from "@/lib/supabase/client";
 import { logTaskActivity } from "@/lib/activity";
 import { enhanceTaskDescription } from "@/actions/ai";
 import { POSITION_GAP } from "@/lib/constants";
-import type { User, BoardLabel, BoardTaskWithAssignee, AiCredits } from "@/types";
+import type { User, BoardLabel, BoardTaskWithAssignee } from "@/types";
 
 interface TaskEditDialogProps {
   open: boolean;
@@ -39,8 +39,7 @@ interface TaskEditDialogProps {
   boardLabels: BoardLabel[];
   currentUserId: string;
   userBots?: User[];
-  aiEnabled?: boolean;
-  aiCredits?: AiCredits | null;
+  hasApiKey?: boolean;
   ideaDescription?: string;
 }
 
@@ -53,8 +52,7 @@ export function TaskEditDialog({
   boardLabels,
   currentUserId,
   userBots = [],
-  aiEnabled = false,
-  aiCredits,
+  hasApiKey = false,
   ideaDescription = "",
 }: TaskEditDialogProps) {
   const [title, setTitle] = useState("");
@@ -69,8 +67,7 @@ export function TaskEditDialog({
   const dialogRef = useRef<HTMLDivElement>(null);
   const ops = useBoardOps();
 
-  const showAiEnhance = aiEnabled && description.trim().length > 10;
-  const aiExhausted = !aiCredits?.isByok && aiCredits?.remaining === 0;
+  const showAiEnhance = hasApiKey && description.trim().length > 10;
 
   async function handleEnhanceDescription() {
     if (!title.trim() || !description.trim()) return;
@@ -359,8 +356,8 @@ export function TaskEditDialog({
                   size="sm"
                   className="h-6 gap-1 px-2 text-xs text-muted-foreground"
                   onClick={handleEnhanceDescription}
-                  disabled={enhancing || aiExhausted}
-                  title={aiExhausted ? "Daily limit reached" : "Enhance with AI"}
+                  disabled={enhancing}
+                  title="Enhance with AI"
                 >
                   {enhancing ? (
                     <Loader2 className="h-3 w-3 animate-spin" />

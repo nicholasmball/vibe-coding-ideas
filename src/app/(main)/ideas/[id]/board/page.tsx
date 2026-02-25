@@ -15,7 +15,6 @@ import type {
   BoardChecklistItem,
   User,
   BotProfile,
-  AiCredits,
 } from "@/types";
 import type { Metadata } from "next";
 
@@ -163,7 +162,7 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
     isTeamMember
       ? supabase
           .from("users")
-          .select("ai_enabled, ai_daily_limit, encrypted_anthropic_key")
+          .select("encrypted_anthropic_key")
           .eq("id", user.id)
           .single()
       : Promise.resolve({ data: null }),
@@ -226,33 +225,7 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
     });
   }
 
-  const aiEnabled = isReadOnly ? false : (userProfile?.ai_enabled ?? false);
-
-  // Compute AI credits (only for team members)
-  let aiCredits: AiCredits | null = null;
-  if (!isReadOnly && aiEnabled && userProfile) {
-    const isByok = !!userProfile.encrypted_anthropic_key;
-    if (isByok) {
-      aiCredits = { used: 0, limit: null, remaining: null, isByok: true };
-    } else {
-      const todayUTC = new Date();
-      todayUTC.setUTCHours(0, 0, 0, 0);
-      const { count } = await supabase
-        .from("ai_usage_log")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("key_type", "platform")
-        .gte("created_at", todayUTC.toISOString());
-      const used = count ?? 0;
-      const limit = userProfile.ai_daily_limit;
-      aiCredits = {
-        used,
-        limit,
-        remaining: Math.max(0, limit - used),
-        isByok: false,
-      };
-    }
-  }
+  const userHasApiKey = !isReadOnly && !!userProfile?.encrypted_anthropic_key;
 
   // Batch-create signed URLs for cover images (single API call instead of N)
   const coverPaths = (rawTasks ?? []).map((t) => t.cover_image_path).filter((p): p is string => !!p);
@@ -313,9 +286,8 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
         currentUserId={user.id}
         initialTaskId={initialTaskId}
         userBots={userBots}
-        aiEnabled={aiEnabled}
+        hasApiKey={userHasApiKey}
         botProfiles={userBotProfiles}
-        aiCredits={aiCredits}
         coverImageUrls={coverImageUrls}
         isReadOnly={isReadOnly}
       />

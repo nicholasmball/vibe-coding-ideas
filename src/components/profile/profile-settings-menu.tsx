@@ -17,14 +17,12 @@ import type { NotificationPreferences } from "@/types";
 interface ProfileSettingsMenuProps {
   preferences: NotificationPreferences;
   columns: { title: string; is_done_column: boolean }[] | null;
-  aiEnabled: boolean;
   hasApiKey: boolean;
 }
 
 export function ProfileSettingsMenu({
   preferences,
   columns,
-  aiEnabled,
   hasApiKey,
 }: ProfileSettingsMenuProps) {
   const [showNotifications, setShowNotifications] = useState(false);
@@ -49,12 +47,10 @@ export function ProfileSettingsMenu({
             <Columns className="mr-2 h-4 w-4" />
             Board Columns
           </DropdownMenuItem>
-          {aiEnabled && (
-            <DropdownMenuItem onClick={() => setShowApiKey(true)}>
-              <Key className="mr-2 h-4 w-4" />
-              API Key
-            </DropdownMenuItem>
-          )}
+          <DropdownMenuItem onClick={() => setShowApiKey(true)}>
+            <Key className="mr-2 h-4 w-4" />
+            API Key
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -69,13 +65,11 @@ export function ProfileSettingsMenu({
         open={showColumns}
         onOpenChange={setShowColumns}
       />
-      {aiEnabled && (
-        <ApiKeySettings
-          hasKey={hasApiKey}
-          open={showApiKey}
-          onOpenChange={setShowApiKey}
-        />
-      )}
+      <ApiKeySettings
+        hasKey={hasApiKey}
+        open={showApiKey}
+        onOpenChange={setShowApiKey}
+      />
     </>
   );
 }

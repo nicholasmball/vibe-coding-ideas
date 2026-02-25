@@ -94,13 +94,6 @@ export type DashboardBot = BotProfile & {
 // AI usage types
 export type AiUsageLog = Database["public"]["Tables"]["ai_usage_log"]["Row"];
 
-export type AiCredits = {
-  used: number;
-  limit: number | null;
-  remaining: number | null;
-  isByok: boolean;
-};
-
 // Collaboration request types
 export type CollaborationRequest = Database["public"]["Tables"]["collaboration_requests"]["Row"];
 export type CollaborationRequestStatus = Database["public"]["Enums"]["collaboration_request_status"];

@@ -6,7 +6,6 @@ import {
   Activity,
   Coins,
   Cpu,
-  Key,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,15 +23,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AiUserManagementRow } from "./ai-user-management-row";
 import { formatRelativeTime } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import type { UsageLogWithUser, AdminUser } from "@/app/(main)/admin/page";
+import type { UsageLogWithUser } from "@/app/(main)/admin/page";
 
 interface AiUsageDashboardProps {
   usageLogs: UsageLogWithUser[];
-  users: AdminUser[];
   filters: { from: string; to: string; action: string };
 }
 
@@ -49,7 +45,6 @@ function estimateCost(inputTokens: number, outputTokens: number): number {
 
 export function AiUsageDashboard({
   usageLogs,
-  users,
   filters,
 }: AiUsageDashboardProps) {
   const router = useRouter();
@@ -65,7 +60,7 @@ export function AiUsageDashboard({
     router.push(`/admin?${params.toString()}`);
   }
 
-  // Compute stats from all logs (not just filtered)
+  // Compute stats from all logs
   const stats = useMemo(() => {
     const now = new Date();
     const todayStart = new Date(now);
@@ -78,8 +73,6 @@ export function AiUsageDashboard({
     let monthCalls = 0;
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
-    let platformCalls = 0;
-    let byokCalls = 0;
 
     for (const log of usageLogs) {
       const logDate = new Date(log.created_at);
@@ -88,8 +81,6 @@ export function AiUsageDashboard({
       if (logDate >= monthAgo) monthCalls++;
       totalInputTokens += log.input_tokens;
       totalOutputTokens += log.output_tokens;
-      if (log.key_type === "platform") platformCalls++;
-      else byokCalls++;
     }
 
     return {
@@ -101,48 +92,7 @@ export function AiUsageDashboard({
       totalOutputTokens,
       totalTokens: totalInputTokens + totalOutputTokens,
       estimatedCost: estimateCost(totalInputTokens, totalOutputTokens),
-      platformCalls,
-      byokCalls,
     };
-  }, [usageLogs]);
-
-  // Per-user stats
-  const userStats = useMemo(() => {
-    const map = new Map<
-      string,
-      {
-        calls: number;
-        inputTokens: number;
-        outputTokens: number;
-        keyType: "platform" | "byok" | "mixed";
-        lastUsed: string | null;
-      }
-    >();
-
-    for (const log of usageLogs) {
-      const existing = map.get(log.user_id);
-      if (existing) {
-        existing.calls++;
-        existing.inputTokens += log.input_tokens;
-        existing.outputTokens += log.output_tokens;
-        if (existing.keyType !== log.key_type && existing.keyType !== "mixed") {
-          existing.keyType = "mixed";
-        }
-        if (!existing.lastUsed || log.created_at > existing.lastUsed) {
-          existing.lastUsed = log.created_at;
-        }
-      } else {
-        map.set(log.user_id, {
-          calls: 1,
-          inputTokens: log.input_tokens,
-          outputTokens: log.output_tokens,
-          keyType: log.key_type as "platform" | "byok",
-          lastUsed: log.created_at,
-        });
-      }
-    }
-
-    return map;
   }, [usageLogs]);
 
   return (
@@ -189,7 +139,7 @@ export function AiUsageDashboard({
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard
           icon={<Activity className="h-4 w-4" />}
           label="Total Calls"
@@ -204,46 +154,10 @@ export function AiUsageDashboard({
         />
         <StatCard
           icon={<Coins className="h-4 w-4" />}
-          label="Est. Cost"
+          label="Est. Cost (all BYOK)"
           value={`$${stats.estimatedCost.toFixed(2)}`}
           detail="$3/M input + $15/M output"
         />
-        <StatCard
-          icon={<Key className="h-4 w-4" />}
-          label="Platform vs BYOK"
-          value={`${stats.platformCalls} / ${stats.byokCalls}`}
-          detail={`${stats.totalCalls > 0 ? Math.round((stats.platformCalls / stats.totalCalls) * 100) : 0}% platform`}
-        />
-      </div>
-
-      {/* User Management Table */}
-      <div>
-        <h2 className="mb-3 text-lg font-semibold">User Management</h2>
-        <div className="rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead className="text-right">Calls</TableHead>
-                <TableHead className="text-right">Tokens</TableHead>
-                <TableHead className="text-right">Est. Cost</TableHead>
-                <TableHead>Key</TableHead>
-                <TableHead className="text-center">AI Enabled</TableHead>
-                <TableHead className="text-center">Daily Limit</TableHead>
-                <TableHead>Last Used</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((u) => (
-                <AiUserManagementRow
-                  key={u.id}
-                  user={u}
-                  stats={userStats.get(u.id) ?? null}
-                />
-              ))}
-            </TableBody>
-          </Table>
-        </div>
       </div>
 
       {/* Recent Activity */}
@@ -256,7 +170,6 @@ export function AiUsageDashboard({
                 <TableHead>User</TableHead>
                 <TableHead>Action</TableHead>
                 <TableHead className="text-right">Tokens</TableHead>
-                <TableHead>Key</TableHead>
                 <TableHead>Time</TableHead>
               </TableRow>
             </TableHeader>
@@ -289,14 +202,6 @@ export function AiUsageDashboard({
                     </span>
                   </td>
                   <td className="p-2">
-                    <Badge
-                      variant={log.key_type === "byok" ? "secondary" : "outline"}
-                      className="text-[10px]"
-                    >
-                      {log.key_type === "byok" ? "BYOK" : "Platform"}
-                    </Badge>
-                  </td>
-                  <td className="p-2">
                     <span className="text-xs text-muted-foreground">
                       {formatRelativeTime(log.created_at)}
                     </span>
@@ -305,7 +210,7 @@ export function AiUsageDashboard({
               ))}
               {usageLogs.length === 0 && (
                 <TableRow>
-                  <td colSpan={5} className="p-8 text-center text-sm text-muted-foreground">
+                  <td colSpan={4} className="p-8 text-center text-sm text-muted-foreground">
                     No AI usage recorded yet.
                   </td>
                 </TableRow>

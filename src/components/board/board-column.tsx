@@ -25,7 +25,6 @@ import type {
   BoardLabel,
   BoardChecklistItem,
   User,
-  AiCredits,
 } from "@/types";
 
 const EMPTY_CHECKLIST: BoardChecklistItem[] = [];
@@ -42,8 +41,7 @@ interface BoardColumnProps {
   initialTaskId?: string;
   userBots?: User[];
   coverImageUrls?: Record<string, string>;
-  aiEnabled?: boolean;
-  aiCredits?: AiCredits | null;
+  hasApiKey?: boolean;
   ideaDescription?: string;
   isReadOnly?: boolean;
 }
@@ -60,8 +58,7 @@ export const BoardColumn = memo(function BoardColumn({
   initialTaskId,
   userBots = [],
   coverImageUrls = {},
-  aiEnabled = false,
-  aiCredits,
+  hasApiKey = false,
   ideaDescription = "",
   isReadOnly = false,
 }: BoardColumnProps) {
@@ -254,8 +251,7 @@ export const BoardColumn = memo(function BoardColumn({
             boardLabels={boardLabels}
             currentUserId={currentUserId}
             userBots={userBots}
-            aiEnabled={aiEnabled}
-            aiCredits={aiCredits}
+            hasApiKey={hasApiKey}
             ideaDescription={ideaDescription}
           />
           <ColumnEditDialog

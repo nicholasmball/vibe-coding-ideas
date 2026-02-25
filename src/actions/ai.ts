@@ -3,14 +3,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { generateText, generateObject } from "ai";
 import { z } from "zod";
-import type { AiCredits } from "@/types";
 import {
   AI_MODEL,
   getAnthropicProvider,
-  getKeyType,
-  checkRateLimit,
   logAiUsage,
-  hasPlatformKey,
 } from "@/lib/ai-helpers";
 
 const AI_TIMEOUT_MS = 90_000; // 90s — fail gracefully before Vercel's 120s function timeout
@@ -27,53 +23,8 @@ function toPlainError(err: unknown): never {
   throw new Error("An unexpected AI error occurred");
 }
 
-// ── Get Remaining Credits ────────────────────────────────────────────────
-
-export async function getAiRemainingCredits(): Promise<AiCredits> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) return { used: 0, limit: null, remaining: null, isByok: false };
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("encrypted_anthropic_key, ai_daily_limit")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile) return { used: 0, limit: null, remaining: null, isByok: false };
-
-  const isByok = getKeyType(profile.encrypted_anthropic_key) === "byok";
-
-  if (isByok) {
-    return { used: 0, limit: null, remaining: null, isByok: true };
-  }
-
-  const limit = profile.ai_daily_limit;
-
-  const todayUTC = new Date();
-  todayUTC.setUTCHours(0, 0, 0, 0);
-
-  const { count } = await supabase
-    .from("ai_usage_log")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .eq("key_type", "platform")
-    .gte("created_at", todayUTC.toISOString());
-
-  const used = count ?? 0;
-  return { used, limit, remaining: Math.max(0, limit - used), isByok: false };
-}
-
-// ── Enhance Idea Description ───────────────────────────────────────────
-
-export async function enhanceIdeaDescription(
-  ideaId: string,
-  prompt: string,
-  personaPrompt?: string | null
-) {
+/** Common auth + BYOK key check for all AI actions. */
+async function requireAiAccess() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -83,29 +34,44 @@ export async function enhanceIdeaDescription(
 
   const { data: profile } = await supabase
     .from("users")
-    .select("ai_enabled, encrypted_anthropic_key, ai_daily_limit")
+    .select("encrypted_anthropic_key")
     .eq("id", user.id)
     .single();
 
   if (!profile) throw new Error("User profile not found");
 
-  const keyType = getKeyType(profile.encrypted_anthropic_key);
-  const isByok = keyType === "byok";
-
-  // BYOK users always have access; platform users need ai_enabled AND a platform key
-  if (!isByok && !profile.ai_enabled) {
-    throw new Error("AI features are not enabled for your account");
-  }
-  if (!isByok && !hasPlatformKey()) {
-    throw new Error("No API key available — add your own key in your profile settings");
-  }
-
-  const rateCheck = await checkRateLimit(supabase, user.id, profile);
-  if (!rateCheck.allowed) {
-    throw new Error(`Daily AI limit reached (${rateCheck.used}/${rateCheck.limit}). Try again tomorrow.`);
-  }
-
   const anthropic = getAnthropicProvider(profile.encrypted_anthropic_key);
+
+  return { supabase, user, anthropic };
+}
+
+// ── Check API Key Status ────────────────────────────────────────────────
+
+export async function hasApiKey(): Promise<boolean> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return false;
+
+  const { data: profile } = await supabase
+    .from("users")
+    .select("encrypted_anthropic_key")
+    .eq("id", user.id)
+    .single();
+
+  return !!profile?.encrypted_anthropic_key;
+}
+
+// ── Enhance Idea Description ───────────────────────────────────────────
+
+export async function enhanceIdeaDescription(
+  ideaId: string,
+  prompt: string,
+  personaPrompt?: string | null
+) {
+  const { supabase, user, anthropic } = await requireAiAccess();
 
   const { data: idea } = await supabase
     .from("ideas")
@@ -143,7 +109,6 @@ export async function enhanceIdeaDescription(
     inputTokens: usage.inputTokens ?? 0,
     outputTokens: usage.outputTokens ?? 0,
     model: AI_MODEL,
-    keyType,
     ideaId,
   });
 
@@ -169,38 +134,7 @@ export async function generateClarifyingQuestions(
   prompt: string,
   personaPrompt?: string | null
 ) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) throw new Error("Not authenticated");
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("ai_enabled, encrypted_anthropic_key, ai_daily_limit")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile) throw new Error("User profile not found");
-
-  const keyType = getKeyType(profile.encrypted_anthropic_key);
-  const isByok = keyType === "byok";
-
-  // BYOK users always have access; platform users need ai_enabled AND a platform key
-  if (!isByok && !profile.ai_enabled) {
-    throw new Error("AI features are not enabled for your account");
-  }
-  if (!isByok && !hasPlatformKey()) {
-    throw new Error("No API key available — add your own key in your profile settings");
-  }
-
-  const rateCheck = await checkRateLimit(supabase, user.id, profile);
-  if (!rateCheck.allowed) {
-    throw new Error(`Daily AI limit reached (${rateCheck.used}/${rateCheck.limit}). Try again tomorrow.`);
-  }
-
-  const anthropic = getAnthropicProvider(profile.encrypted_anthropic_key);
+  const { supabase, user, anthropic } = await requireAiAccess();
 
   const { data: idea } = await supabase
     .from("ideas")
@@ -247,7 +181,6 @@ ${idea.description}`,
     inputTokens: usage.inputTokens ?? 0,
     outputTokens: usage.outputTokens ?? 0,
     model: AI_MODEL,
-    keyType,
     ideaId,
   });
 
@@ -266,38 +199,7 @@ export async function enhanceIdeaWithContext(
     refinementFeedback?: string;
   }
 ) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) throw new Error("Not authenticated");
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("ai_enabled, encrypted_anthropic_key, ai_daily_limit")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile) throw new Error("User profile not found");
-
-  const keyType = getKeyType(profile.encrypted_anthropic_key);
-  const isByok = keyType === "byok";
-
-  // BYOK users always have access; platform users need ai_enabled AND a platform key
-  if (!isByok && !profile.ai_enabled) {
-    throw new Error("AI features are not enabled for your account");
-  }
-  if (!isByok && !hasPlatformKey()) {
-    throw new Error("No API key available — add your own key in your profile settings");
-  }
-
-  const rateCheck = await checkRateLimit(supabase, user.id, profile);
-  if (!rateCheck.allowed) {
-    throw new Error(`Daily AI limit reached (${rateCheck.used}/${rateCheck.limit}). Try again tomorrow.`);
-  }
-
-  const anthropic = getAnthropicProvider(profile.encrypted_anthropic_key);
+  const { supabase, user, anthropic } = await requireAiAccess();
 
   const { data: idea } = await supabase
     .from("ideas")
@@ -374,7 +276,6 @@ Use the answers above to inform your enhanced description. Make the enhancement 
     inputTokens: usage.inputTokens ?? 0,
     outputTokens: usage.outputTokens ?? 0,
     model: AI_MODEL,
-    keyType,
     ideaId,
   });
 
@@ -422,38 +323,7 @@ export async function generateBoardTasks(
   prompt: string,
   personaPrompt?: string | null
 ) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) throw new Error("Not authenticated");
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("ai_enabled, encrypted_anthropic_key, ai_daily_limit")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile) throw new Error("User profile not found");
-
-  const keyType = getKeyType(profile.encrypted_anthropic_key);
-  const isByok = keyType === "byok";
-
-  // BYOK users always have access; platform users need ai_enabled AND a platform key
-  if (!isByok && !profile.ai_enabled) {
-    throw new Error("AI features are not enabled for your account");
-  }
-  if (!isByok && !hasPlatformKey()) {
-    throw new Error("No API key available — add your own key in your profile settings");
-  }
-
-  const rateCheck = await checkRateLimit(supabase, user.id, profile);
-  if (!rateCheck.allowed) {
-    throw new Error(`Daily AI limit reached (${rateCheck.used}/${rateCheck.limit}). Try again tomorrow.`);
-  }
-
-  const anthropic = getAnthropicProvider(profile.encrypted_anthropic_key);
+  const { supabase, user, anthropic } = await requireAiAccess();
 
   const { data: idea } = await supabase
     .from("ideas")
@@ -525,7 +395,6 @@ export async function generateBoardTasks(
     inputTokens: usage.inputTokens ?? 0,
     outputTokens: usage.outputTokens ?? 0,
     model: AI_MODEL,
-    keyType,
     ideaId,
   });
 
@@ -545,38 +414,7 @@ export async function enhanceTaskDescription(
   taskTitle: string,
   taskDescription: string
 ) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) throw new Error("Not authenticated");
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("ai_enabled, encrypted_anthropic_key, ai_daily_limit")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile) throw new Error("User profile not found");
-
-  const keyType = getKeyType(profile.encrypted_anthropic_key);
-  const isByok = keyType === "byok";
-
-  // BYOK users always have access; platform users need ai_enabled AND a platform key
-  if (!isByok && !profile.ai_enabled) {
-    throw new Error("AI features are not enabled for your account");
-  }
-  if (!isByok && !hasPlatformKey()) {
-    throw new Error("No API key available — add your own key in your profile settings");
-  }
-
-  const rateCheck = await checkRateLimit(supabase, user.id, profile);
-  if (!rateCheck.allowed) {
-    throw new Error(`Daily AI limit reached (${rateCheck.used}/${rateCheck.limit}). Try again tomorrow.`);
-  }
-
-  const anthropic = getAnthropicProvider(profile.encrypted_anthropic_key);
+  const { supabase, user, anthropic } = await requireAiAccess();
 
   const { data: idea } = await supabase
     .from("ideas")
@@ -610,7 +448,6 @@ ${taskDescription}
     inputTokens: usage.inputTokens ?? 0,
     outputTokens: usage.outputTokens ?? 0,
     model: AI_MODEL,
-    keyType,
     ideaId,
   });
 

@@ -48,7 +48,6 @@ import type {
   BoardLabel,
   User,
   BotProfile,
-  AiCredits,
 } from "@/types";
 import { PromptTemplateSelector } from "@/components/ai/prompt-template-selector";
 import { AiProgressSteps } from "@/components/ai/ai-progress-steps";
@@ -82,7 +81,6 @@ interface AiGenerateDialogProps {
   boardLabels: BoardLabel[];
   teamMembers: User[];
   bots: BotProfile[];
-  aiCredits?: AiCredits | null;
 }
 
 export function AiGenerateDialog({
@@ -95,7 +93,6 @@ export function AiGenerateDialog({
   boardLabels,
   teamMembers,
   bots,
-  aiCredits,
 }: AiGenerateDialogProps) {
   const router = useRouter();
   const [phase, setPhase] = useState<DialogPhase>("configure");
@@ -124,10 +121,6 @@ export function AiGenerateDialog({
   const createdCountRef = useRef(0);
 
   const busy = generating || phase === "inserting" || phase === "loading-board";
-
-  const [localRemaining, setLocalRemaining] = useState<number | null>(
-    aiCredits?.remaining ?? null
-  );
 
   const generateSteps = [
     { title: "Analyzing idea description", description: "Reading your idea and prompt" },
@@ -176,9 +169,6 @@ export function AiGenerateDialog({
           : null;
 
       const result = await generateBoardTasks(ideaId, prompt, personaPrompt);
-      if (localRemaining !== null) {
-        setLocalRemaining((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
-      }
       const tasks = result.tasks as ImportTask[];
       setGeneratedTasks(tasks);
 
@@ -353,7 +343,6 @@ export function AiGenerateDialog({
     setTaskStatuses([]);
     setInsertProgress({ current: 0, total: 0 });
     setInsertResult(null);
-    setLocalRemaining(aiCredits?.remaining ?? null);
     if (loadingTimeoutRef.current) {
       clearTimeout(loadingTimeoutRef.current);
       loadingTimeoutRef.current = null;
@@ -397,16 +386,6 @@ export function AiGenerateDialog({
         {/* ── Configure Phase ─────────────────────────────────── */}
         {phase === "configure" && (
           <div className="space-y-4">
-            {aiCredits && !aiCredits.isByok && localRemaining !== null && (
-              <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                {localRemaining}/{aiCredits.limit} credits remaining today
-              </div>
-            )}
-            {aiCredits?.isByok && (
-              <div className="rounded-md border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                Using your API key
-              </div>
-            )}
             <div className="grid">
               <div className={`col-start-1 row-start-1 ${generating ? "pointer-events-none opacity-40 blur-[1px]" : ""} transition-all`}>
                 {activeBots.length > 0 && (
@@ -510,11 +489,11 @@ export function AiGenerateDialog({
             {!generating && (
               <Button
                 onClick={handleGenerate}
-                disabled={!prompt.trim() || (!aiCredits?.isByok && localRemaining === 0)}
+                disabled={!prompt.trim()}
                 className="w-full gap-2"
               >
                 <Sparkles className="h-4 w-4" />
-                {!aiCredits?.isByok && localRemaining === 0 ? "Daily limit reached" : "Generate"}
+                Generate
               </Button>
             )}
           </div>

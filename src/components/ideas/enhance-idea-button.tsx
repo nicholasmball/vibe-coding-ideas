@@ -9,15 +9,15 @@ import {
   TooltipContent,
 } from "@/components/ui/tooltip";
 import { EnhanceIdeaDialog } from "./enhance-idea-dialog";
-import type { BotProfile, AiCredits } from "@/types";
+import type { BotProfile } from "@/types";
 
 interface EnhanceIdeaButtonProps {
   ideaId: string;
   ideaTitle: string;
   currentDescription: string;
   bots: BotProfile[];
-  aiCredits?: AiCredits | null;
   variant?: "button" | "dropdown";
+  disabled?: boolean;
 }
 
 export function EnhanceIdeaButton({
@@ -25,26 +25,19 @@ export function EnhanceIdeaButton({
   ideaTitle,
   currentDescription,
   bots,
-  aiCredits,
   variant = "button",
+  disabled = false,
 }: EnhanceIdeaButtonProps) {
   const [open, setOpen] = useState(false);
-
-  const exhausted = !aiCredits?.isByok && aiCredits?.remaining === 0;
 
   const button = variant === "dropdown" ? (
     <button
       className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent disabled:opacity-50"
       onClick={() => setOpen(true)}
-      disabled={exhausted}
+      disabled={disabled}
     >
       <Sparkles className="h-4 w-4" />
       Enhance with AI
-      {aiCredits && !aiCredits.isByok && aiCredits.remaining !== null && (
-        <span className="text-[10px] text-muted-foreground">
-          {aiCredits.remaining}/{aiCredits.limit}
-        </span>
-      )}
     </button>
   ) : (
     <Button
@@ -52,26 +45,21 @@ export function EnhanceIdeaButton({
       size="sm"
       className="gap-2"
       onClick={() => setOpen(true)}
-      disabled={exhausted}
+      disabled={disabled}
     >
       <Sparkles className="h-4 w-4" />
       Enhance with AI
-      {aiCredits && !aiCredits.isByok && aiCredits.remaining !== null && (
-        <span className="text-[10px] text-muted-foreground">
-          {aiCredits.remaining}/{aiCredits.limit}
-        </span>
-      )}
     </Button>
   );
 
   return (
     <>
-      {exhausted ? (
+      {disabled ? (
         <Tooltip>
           <TooltipTrigger asChild>
             <span tabIndex={0}>{button}</span>
           </TooltipTrigger>
-          <TooltipContent>Daily limit reached</TooltipContent>
+          <TooltipContent>Add your API key in profile settings to enable AI</TooltipContent>
         </Tooltip>
       ) : (
         button
@@ -83,7 +71,6 @@ export function EnhanceIdeaButton({
         ideaTitle={ideaTitle}
         currentDescription={currentDescription}
         bots={bots}
-        aiCredits={aiCredits}
       />
     </>
   );
