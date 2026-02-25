@@ -55,7 +55,6 @@ export default async function DashboardPage() {
     notificationsResult,
     tasksResult,
     botProfilesResult,
-    currentUserResult,
   ] = await Promise.all([
     // My ideas (limit 5)
     supabase
@@ -112,12 +111,6 @@ export default async function DashboardPage() {
       .select("*")
       .eq("owner_id", user.id)
       .order("created_at"),
-    // Current user record (for active_bot_id)
-    supabase
-      .from("users")
-      .select("active_bot_id")
-      .eq("id", user.id)
-      .maybeSingle(),
   ]);
 
   const myIdeas = (myIdeasResult.data ?? []) as unknown as IdeaWithAuthor[];
@@ -138,7 +131,6 @@ export default async function DashboardPage() {
 
   // Bot profiles
   const botProfiles = (botProfilesResult.data ?? []) as BotProfile[];
-  const activeBotId = currentUserResult.data?.active_bot_id ?? null;
   const botUserIds = botProfiles.map((b) => b.id);
 
   // All idea IDs the user owns or collaborates on (for board queries)
@@ -246,13 +238,21 @@ export default async function DashboardPage() {
 
   // Assemble DashboardBot[] — sorted by latest activity (most recent first),
   // bots with no activity fall to the bottom sorted by creation date
+  const MCP_ACTIVE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
+  const now = Date.now();
   const dashboardBots: DashboardBot[] = botProfiles
-    .map((bot) => ({
-      ...bot,
-      currentTask: botCurrentTask.get(bot.id) ?? null,
-      lastActivity: botLastActivity.get(bot.id) ?? null,
-      isActiveMcpBot: activeBotId === bot.id,
-    }))
+    .map((bot) => {
+      const lastActivity = botLastActivity.get(bot.id) ?? null;
+      const lastActivityAge = lastActivity
+        ? now - new Date(lastActivity.created_at).getTime()
+        : Infinity;
+      return {
+        ...bot,
+        currentTask: botCurrentTask.get(bot.id) ?? null,
+        lastActivity,
+        isActiveMcpBot: lastActivityAge < MCP_ACTIVE_THRESHOLD_MS,
+      };
+    })
     .sort((a, b) => {
       const aTime = a.lastActivity?.created_at;
       const bTime = b.lastActivity?.created_at;

@@ -29,28 +29,28 @@ export function MyBots({ bots }: MyBotsProps) {
               bot.is_active ? "" : "opacity-50"
             }`}
           >
-            <div className="flex items-center gap-3">
-              <Avatar className="h-8 w-8 shrink-0">
+            <div className="flex items-start gap-3">
+              <Avatar className="h-8 w-8 shrink-0 mt-0.5">
                 {bot.avatar_url && <AvatarImage src={bot.avatar_url} alt={bot.name} />}
                 <AvatarFallback className="text-xs">
                   {bot.name.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2">
                   <span className="text-sm font-medium truncate">{bot.name}</span>
                   {bot.role && (
-                    <Badge variant="outline" className="text-[10px]">
+                    <Badge variant="outline" className="text-[10px] shrink-0">
                       {bot.role}
                     </Badge>
                   )}
                   {bot.isActiveMcpBot && (
-                    <Badge className="bg-emerald-500/90 text-white text-[10px]">
+                    <Badge className="text-[10px] shrink-0 bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/30">
                       MCP Active
                     </Badge>
                   )}
                   {!bot.is_active && (
-                    <Badge variant="secondary" className="text-[10px]">
+                    <Badge variant="secondary" className="text-[10px] shrink-0">
                       Inactive
                     </Badge>
                   )}
@@ -58,10 +58,10 @@ export function MyBots({ bots }: MyBotsProps) {
                 {bot.currentTask ? (
                   <Link
                     href={`/ideas/${bot.currentTask.idea.id}/board?taskId=${bot.currentTask.id}`}
-                    className="mt-1 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors group"
+                    className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors group"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <span className="truncate">
+                    <span className="truncate flex-1 min-w-0">
                       {bot.currentTask.title}
                     </span>
                     <Badge variant="outline" className="text-[10px] shrink-0">

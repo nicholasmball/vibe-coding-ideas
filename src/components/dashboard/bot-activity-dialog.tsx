@@ -338,7 +338,7 @@ export function BotActivityDialog({
                   </Badge>
                 )}
                 {bot.isActiveMcpBot && (
-                  <Badge className="bg-emerald-500/90 text-white text-[10px] font-normal">
+                  <Badge className="text-[10px] font-normal bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/30">
                     MCP Active
                   </Badge>
                 )}
