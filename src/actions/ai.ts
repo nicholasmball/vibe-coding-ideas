@@ -10,6 +10,7 @@ import type { Database } from "@/types/database";
 import type { AiCredits } from "@/types";
 
 const AI_MODEL = "claude-sonnet-4-6";
+const AI_TIMEOUT_MS = 90_000; // 90s — fail gracefully before Vercel's 120s function timeout
 
 type ActionType = "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description";
 
@@ -17,6 +18,10 @@ type ActionType = "enhance_description" | "generate_questions" | "enhance_with_c
 function toPlainError(err: unknown): never {
   console.error("[AI Action Error]", err);
   if (err instanceof Error) {
+    // AbortSignal.timeout() throws a TimeoutError with name "TimeoutError"
+    if (err.name === "TimeoutError" || err.name === "AbortError") {
+      throw new Error("The AI request timed out. Please try again — the service may be under heavy load.");
+    }
     throw new Error(err.message);
   }
   throw new Error("An unexpected AI error occurred");
@@ -198,6 +203,7 @@ export async function enhanceIdeaDescription(
       system: systemPrompt,
       prompt: `${prompt}\n\n---\n\n**Idea Title:** ${idea.title}\n\n**Current Description:**\n${idea.description}`,
       maxOutputTokens: 8000,
+      abortSignal: AbortSignal.timeout(AI_TIMEOUT_MS),
     }));
   } catch (err) {
     toPlainError(err);
@@ -293,6 +299,7 @@ export async function generateClarifyingQuestions(
 ${idea.description}`,
       schema: ClarifyingQuestionsSchema,
       maxOutputTokens: 1000,
+      abortSignal: AbortSignal.timeout(AI_TIMEOUT_MS),
     }));
   } catch (err) {
     toPlainError(err);
@@ -411,6 +418,7 @@ Use the answers above to inform your enhanced description. Make the enhancement 
       system: systemPrompt,
       prompt: userPrompt,
       maxOutputTokens: 8000,
+      abortSignal: AbortSignal.timeout(AI_TIMEOUT_MS),
     }));
   } catch (err) {
     toPlainError(err);
@@ -553,6 +561,7 @@ export async function generateBoardTasks(
       prompt: contextParts.join("\n\n"),
       schema: GeneratedBoardSchema,
       maxOutputTokens: 8000,
+      abortSignal: AbortSignal.timeout(AI_TIMEOUT_MS),
     }));
   } catch (err) {
     toPlainError(err);
@@ -629,6 +638,7 @@ ${taskDescription}
 
 **Context (for reference only, do NOT repeat in output):** Project "${idea.title}"`,
       maxOutputTokens: 1000,
+      abortSignal: AbortSignal.timeout(AI_TIMEOUT_MS),
     }));
   } catch (err) {
     toPlainError(err);
