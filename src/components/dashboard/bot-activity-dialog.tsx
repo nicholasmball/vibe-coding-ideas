@@ -352,7 +352,7 @@ export function BotActivityDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 overflow-hidden">
+        <div className="space-y-6 min-w-0">
           {/* Assigned Tasks Section */}
           <section>
             <h3 className="text-sm font-medium mb-2 flex items-center gap-1.5">
@@ -424,8 +424,8 @@ export function BotActivityDialog({
               </p>
             ) : (
               <>
-                <ScrollArea className="max-h-96 [&_[data-slot=scroll-area-viewport]>div]:!block [&_[data-slot=scroll-area-viewport]>div]:!min-w-0">
-                  <div className="space-y-4">
+                <ScrollArea type="always" className="max-h-96 [&_[data-slot=scroll-area-viewport]>div]:!block [&_[data-slot=scroll-area-viewport]>div]:!min-w-0">
+                  <div className="space-y-4 pr-3">
                     {sessions.map((session, sessionIdx) => {
                       const taskGroups = groupByTask(session);
 
