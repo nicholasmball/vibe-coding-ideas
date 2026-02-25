@@ -56,10 +56,10 @@ export default function PrivacyPolicyPage() {
               <p className="mt-1 text-sm text-muted-foreground">
                 Contact:{" "}
                 <a
-                  href="mailto:privacy@vibecodes.co.uk"
+                  href="mailto:info@vibecodes.co.uk"
                   className="text-primary hover:underline"
                 >
-                  privacy@vibecodes.co.uk
+                  info@vibecodes.co.uk
                 </a>
               </p>
               <p className="mt-1 text-sm text-muted-foreground">

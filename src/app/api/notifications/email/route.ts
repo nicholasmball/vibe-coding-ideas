@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "VibeCodes <notifications@vibecodes.co.uk>",
+        from: "VibeCodes <noreply@vibecodes.co.uk>",
         to: [recipient.email],
         subject: email.subject,
         html: email.html,

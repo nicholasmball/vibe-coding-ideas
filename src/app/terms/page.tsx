@@ -7,7 +7,7 @@ export const metadata = {
 };
 
 const EFFECTIVE_DATE = "23 February 2026";
-const CONTACT_EMAIL = "hello@vibecodes.co.uk";
+const CONTACT_EMAIL = "info@vibecodes.co.uk";
 
 export default function TermsOfServicePage() {
   return (
