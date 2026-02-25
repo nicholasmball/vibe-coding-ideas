@@ -2,109 +2,29 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { generateText, generateObject } from "ai";
-import { createAnthropic } from "@ai-sdk/anthropic";
-import { decrypt } from "@/lib/encryption";
 import { z } from "zod";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/types/database";
 import type { AiCredits } from "@/types";
+import {
+  AI_MODEL,
+  getAnthropicProvider,
+  getKeyType,
+  checkRateLimit,
+  logAiUsage,
+  hasPlatformKey,
+} from "@/lib/ai-helpers";
 
-const AI_MODEL = "claude-sonnet-4-6";
 const AI_TIMEOUT_MS = 90_000; // 90s — fail gracefully before Vercel's 120s function timeout
-
-type ActionType = "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description";
 
 /** Re-throw AI SDK errors as plain Error so Next.js RSC can serialize them. */
 function toPlainError(err: unknown): never {
   console.error("[AI Action Error]", err);
   if (err instanceof Error) {
-    // AbortSignal.timeout() throws a TimeoutError with name "TimeoutError"
     if (err.name === "TimeoutError" || err.name === "AbortError") {
       throw new Error("The AI request timed out. Please try again — the service may be under heavy load.");
     }
     throw new Error(err.message);
   }
   throw new Error("An unexpected AI error occurred");
-}
-
-// ── Helpers ──────────────────────────────────────────────────────────────
-
-/** Create an Anthropic provider using the user's key if available, else platform key. */
-function getAnthropicProvider(encryptedKey: string | null) {
-  let apiKey = process.env.ANTHROPIC_API_KEY;
-  if (encryptedKey) {
-    try {
-      apiKey = decrypt(encryptedKey);
-    } catch {
-      // Fall back to platform key if decryption fails
-    }
-  }
-  if (!apiKey) {
-    throw new Error("No API key available — add your own key in your profile settings");
-  }
-  return createAnthropic({ apiKey });
-}
-
-function getKeyType(encryptedKey: string | null): "platform" | "byok" {
-  if (!encryptedKey) return "platform";
-  try {
-    decrypt(encryptedKey);
-    return "byok";
-  } catch {
-    return "platform";
-  }
-}
-
-async function checkRateLimit(
-  supabase: SupabaseClient<Database>,
-  userId: string,
-  profile: { encrypted_anthropic_key: string | null; ai_daily_limit: number }
-): Promise<{ allowed: boolean; used: number; limit: number | null }> {
-  const keyType = getKeyType(profile.encrypted_anthropic_key);
-
-  // BYOK users are exempt from rate limits
-  if (keyType === "byok") {
-    return { allowed: true, used: 0, limit: null };
-  }
-
-  const limit = profile.ai_daily_limit;
-
-  // Count today's platform usage
-  const todayUTC = new Date();
-  todayUTC.setUTCHours(0, 0, 0, 0);
-
-  const { count } = await supabase
-    .from("ai_usage_log")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("key_type", "platform")
-    .gte("created_at", todayUTC.toISOString());
-
-  const used = count ?? 0;
-  return { allowed: used < limit, used, limit };
-}
-
-async function logAiUsage(
-  supabase: SupabaseClient<Database>,
-  params: {
-    userId: string;
-    actionType: ActionType;
-    inputTokens: number;
-    outputTokens: number;
-    model: string;
-    keyType: "platform" | "byok";
-    ideaId: string | null;
-  }
-) {
-  await supabase.from("ai_usage_log").insert({
-    user_id: params.userId,
-    action_type: params.actionType,
-    input_tokens: params.inputTokens,
-    output_tokens: params.outputTokens,
-    model: params.model,
-    key_type: params.keyType,
-    idea_id: params.ideaId,
-  });
 }
 
 // ── Get Remaining Credits ────────────────────────────────────────────────
@@ -167,11 +87,19 @@ export async function enhanceIdeaDescription(
     .eq("id", user.id)
     .single();
 
-  if (!profile?.ai_enabled) {
-    throw new Error("AI features are not enabled for your account");
-  }
+  if (!profile) throw new Error("User profile not found");
 
   const keyType = getKeyType(profile.encrypted_anthropic_key);
+  const isByok = keyType === "byok";
+
+  // BYOK users always have access; platform users need ai_enabled AND a platform key
+  if (!isByok && !profile.ai_enabled) {
+    throw new Error("AI features are not enabled for your account");
+  }
+  if (!isByok && !hasPlatformKey()) {
+    throw new Error("No API key available — add your own key in your profile settings");
+  }
+
   const rateCheck = await checkRateLimit(supabase, user.id, profile);
   if (!rateCheck.allowed) {
     throw new Error(`Daily AI limit reached (${rateCheck.used}/${rateCheck.limit}). Try again tomorrow.`);
@@ -254,11 +182,19 @@ export async function generateClarifyingQuestions(
     .eq("id", user.id)
     .single();
 
-  if (!profile?.ai_enabled) {
-    throw new Error("AI features are not enabled for your account");
-  }
+  if (!profile) throw new Error("User profile not found");
 
   const keyType = getKeyType(profile.encrypted_anthropic_key);
+  const isByok = keyType === "byok";
+
+  // BYOK users always have access; platform users need ai_enabled AND a platform key
+  if (!isByok && !profile.ai_enabled) {
+    throw new Error("AI features are not enabled for your account");
+  }
+  if (!isByok && !hasPlatformKey()) {
+    throw new Error("No API key available — add your own key in your profile settings");
+  }
+
   const rateCheck = await checkRateLimit(supabase, user.id, profile);
   if (!rateCheck.allowed) {
     throw new Error(`Daily AI limit reached (${rateCheck.used}/${rateCheck.limit}). Try again tomorrow.`);
@@ -343,11 +279,19 @@ export async function enhanceIdeaWithContext(
     .eq("id", user.id)
     .single();
 
-  if (!profile?.ai_enabled) {
-    throw new Error("AI features are not enabled for your account");
-  }
+  if (!profile) throw new Error("User profile not found");
 
   const keyType = getKeyType(profile.encrypted_anthropic_key);
+  const isByok = keyType === "byok";
+
+  // BYOK users always have access; platform users need ai_enabled AND a platform key
+  if (!isByok && !profile.ai_enabled) {
+    throw new Error("AI features are not enabled for your account");
+  }
+  if (!isByok && !hasPlatformKey()) {
+    throw new Error("No API key available — add your own key in your profile settings");
+  }
+
   const rateCheck = await checkRateLimit(supabase, user.id, profile);
   if (!rateCheck.allowed) {
     throw new Error(`Daily AI limit reached (${rateCheck.used}/${rateCheck.limit}). Try again tomorrow.`);
@@ -491,11 +435,19 @@ export async function generateBoardTasks(
     .eq("id", user.id)
     .single();
 
-  if (!profile?.ai_enabled) {
-    throw new Error("AI features are not enabled for your account");
-  }
+  if (!profile) throw new Error("User profile not found");
 
   const keyType = getKeyType(profile.encrypted_anthropic_key);
+  const isByok = keyType === "byok";
+
+  // BYOK users always have access; platform users need ai_enabled AND a platform key
+  if (!isByok && !profile.ai_enabled) {
+    throw new Error("AI features are not enabled for your account");
+  }
+  if (!isByok && !hasPlatformKey()) {
+    throw new Error("No API key available — add your own key in your profile settings");
+  }
+
   const rateCheck = await checkRateLimit(supabase, user.id, profile);
   if (!rateCheck.allowed) {
     throw new Error(`Daily AI limit reached (${rateCheck.used}/${rateCheck.limit}). Try again tomorrow.`);
@@ -606,11 +558,19 @@ export async function enhanceTaskDescription(
     .eq("id", user.id)
     .single();
 
-  if (!profile?.ai_enabled) {
-    throw new Error("AI features are not enabled for your account");
-  }
+  if (!profile) throw new Error("User profile not found");
 
   const keyType = getKeyType(profile.encrypted_anthropic_key);
+  const isByok = keyType === "byok";
+
+  // BYOK users always have access; platform users need ai_enabled AND a platform key
+  if (!isByok && !profile.ai_enabled) {
+    throw new Error("AI features are not enabled for your account");
+  }
+  if (!isByok && !hasPlatformKey()) {
+    throw new Error("No API key available — add your own key in your profile settings");
+  }
+
   const rateCheck = await checkRateLimit(supabase, user.id, profile);
   if (!rateCheck.allowed) {
     throw new Error(`Daily AI limit reached (${rateCheck.used}/${rateCheck.limit}). Try again tomorrow.`);

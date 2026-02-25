@@ -30,10 +30,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Markdown } from "@/components/ui/markdown";
 import {
-  enhanceIdeaDescription,
   applyEnhancedDescription,
   generateClarifyingQuestions,
-  enhanceIdeaWithContext,
 } from "@/actions/ai";
 import { PromptTemplateSelector } from "@/components/ai/prompt-template-selector";
 import { AiProgressSteps } from "@/components/ai/ai-progress-steps";
@@ -150,81 +148,83 @@ export function EnhanceIdeaDialog({
     }
   }
 
-  // Legacy one-shot enhance (no questions)
-  async function handleEnhanceLegacy() {
+  // Shared streaming helper — calls /api/ai/enhance and reads the text stream
+  async function runStreamingEnhance(options?: {
+    personaPrompt?: string | null;
+    answers?: Record<string, { question: string; answer: string }>;
+    previousEnhanced?: string;
+    refinementFeedback?: string;
+  }) {
     setLoading(true);
+    setEnhancedText("");
+    setTruncated(false);
+    setPhase("result");
     try {
-      const result = await enhanceIdeaDescription(
-        ideaId,
-        prompt,
-        getPersonaPrompt()
-      );
+      const res = await fetch("/api/ai/enhance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ideaId,
+          prompt,
+          ...options,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? `Request failed (${res.status})`);
+      }
+
       if (localRemaining !== null) {
         setLocalRemaining((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
       }
-      setEnhancedText(result.enhanced);
-      setTruncated(result.truncated ?? false);
-      setPhase("result");
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("No response stream");
+
+      const decoder = new TextDecoder();
+      let text = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        text += decoder.decode(value, { stream: true });
+        setEnhancedText(text);
+      }
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Failed to enhance description"
       );
+      setPhase("configure");
+      setEnhancedText(null);
     } finally {
       setLoading(false);
     }
+  }
+
+  // Legacy one-shot enhance (no questions)
+  async function handleEnhanceLegacy() {
+    await runStreamingEnhance({ personaPrompt: getPersonaPrompt() });
   }
 
   // ── Phase: Questions → Result ───────────────────────────────────────
 
   async function handleEnhanceWithAnswers() {
-    setLoading(true);
-    try {
-      const answersPayload: Record<string, { question: string; answer: string }> = {};
-      for (const q of questions) {
-        const answer = (answers[q.id] ?? "").trim();
-        if (answer) {
-          answersPayload[q.id] = { question: q.question, answer };
-        }
+    const answersPayload: Record<string, { question: string; answer: string }> = {};
+    for (const q of questions) {
+      const answer = (answers[q.id] ?? "").trim();
+      if (answer) {
+        answersPayload[q.id] = { question: q.question, answer };
       }
-
-      const result = await enhanceIdeaWithContext(ideaId, prompt, {
-        personaPrompt: getPersonaPrompt(),
-        answers: Object.keys(answersPayload).length > 0 ? answersPayload : undefined,
-      });
-      if (localRemaining !== null) {
-        setLocalRemaining((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
-      }
-      setEnhancedText(result.enhanced);
-      setTruncated(result.truncated ?? false);
-      setPhase("result");
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to enhance description"
-      );
-    } finally {
-      setLoading(false);
     }
+    await runStreamingEnhance({
+      personaPrompt: getPersonaPrompt(),
+      answers: Object.keys(answersPayload).length > 0 ? answersPayload : undefined,
+    });
   }
 
   async function handleSkipQuestions() {
-    setLoading(true);
-    try {
-      const result = await enhanceIdeaWithContext(ideaId, prompt, {
-        personaPrompt: getPersonaPrompt(),
-      });
-      if (localRemaining !== null) {
-        setLocalRemaining((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
-      }
-      setEnhancedText(result.enhanced);
-      setTruncated(result.truncated ?? false);
-      setPhase("result");
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to enhance description"
-      );
-    } finally {
-      setLoading(false);
-    }
+    await runStreamingEnhance({ personaPrompt: getPersonaPrompt() });
   }
 
   // ── Phase: Result → Apply or Refine ─────────────────────────────────
@@ -251,27 +251,14 @@ export function EnhanceIdeaDialog({
 
   async function handleRefine() {
     if (!enhancedText || !refinementInput.trim()) return;
-    setLoading(true);
-    try {
-      const result = await enhanceIdeaWithContext(ideaId, prompt, {
-        personaPrompt: getPersonaPrompt(),
-        previousEnhanced: enhancedText,
-        refinementFeedback: refinementInput.trim(),
-      });
-      if (localRemaining !== null) {
-        setLocalRemaining((prev) => (prev !== null ? Math.max(0, prev - 1) : null));
-      }
-      setEnhancedText(result.enhanced);
-      setTruncated(result.truncated ?? false);
-      setRefinementInput("");
-      setPhase("result");
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to refine description"
-      );
-    } finally {
-      setLoading(false);
-    }
+    const feedback = refinementInput.trim();
+    const previous = enhancedText;
+    setRefinementInput("");
+    await runStreamingEnhance({
+      personaPrompt: getPersonaPrompt(),
+      previousEnhanced: previous,
+      refinementFeedback: feedback,
+    });
   }
 
   // ── Reset & Navigation ──────────────────────────────────────────────
@@ -514,9 +501,9 @@ export function EnhanceIdeaDialog({
         )}
 
         {/* ── Result Phase ───────────────────────────────────────────── */}
-        {phase === "result" && enhancedText && (
+        {phase === "result" && enhancedText !== null && (
           <div className="space-y-4">
-            {truncated && (
+            {truncated && !loading && (
               <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
                 The output was truncated due to length limits. Use Refine to ask the AI to complete the remaining sections.
               </div>
@@ -530,9 +517,16 @@ export function EnhanceIdeaDialog({
                 </div>
               </div>
               <div className="min-w-0 space-y-2">
-                <Label className="text-primary">Enhanced</Label>
+                <Label className="text-primary flex items-center gap-2">
+                  Enhanced
+                  {loading && <Loader2 className="h-3 w-3 animate-spin" />}
+                </Label>
                 <div className="max-h-60 overflow-y-auto overflow-x-hidden rounded-md border border-primary/30 bg-primary/5 p-3 text-sm break-words">
-                  <Markdown>{enhancedText}</Markdown>
+                  {enhancedText ? (
+                    <Markdown>{enhancedText}</Markdown>
+                  ) : (
+                    <span className="text-muted-foreground italic">Generating...</span>
+                  )}
                 </div>
               </div>
             </div>
