@@ -31,7 +31,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/utils";
 import { formatActivityDetails, groupIntoSessions } from "@/lib/activity-format";
@@ -424,8 +423,8 @@ export function BotActivityDialog({
               </p>
             ) : (
               <>
-                <ScrollArea className="max-h-96 -mr-4">
-                  <div className="space-y-4 pr-4 min-w-0">
+                <div className="max-h-96 overflow-y-auto">
+                  <div className="space-y-4 min-w-0">
                     {sessions.map((session, sessionIdx) => {
                       const taskGroups = groupByTask(session);
 
@@ -441,7 +440,7 @@ export function BotActivityDialog({
                           </div>
 
                           {/* Task groups within session */}
-                          <div className="space-y-3">
+                          <div className="space-y-3 min-w-0">
                             {taskGroups.map((group, groupIdx) => (
                               <div key={groupIdx}>
                                 {/* Task title header (shown once per group) */}
@@ -464,7 +463,7 @@ export function BotActivityDialog({
                                 )}
 
                                 {/* Compact entries */}
-                                <div className="space-y-1.5 pl-2 border-l-2 border-border">
+                                <div className="space-y-1.5 pl-2 border-l-2 border-border min-w-0 overflow-hidden">
                                   {group.entries.map((entry) => {
                                     if (entry.kind === "comment") {
                                       return (
@@ -517,7 +516,7 @@ export function BotActivityDialog({
                       );
                     })}
                   </div>
-                </ScrollArea>
+                </div>
                 {hasMore && (
                   <Button
                     variant="ghost"
