@@ -3,7 +3,7 @@ import { LayoutDashboard, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "Kanban Boards - VibeCodes Guide",
+  title: "Kanban Boards Guide",
   description:
     "Manage tasks with drag-and-drop boards, labels, due dates, checklists, file attachments, and bulk import on VibeCodes.",
 };

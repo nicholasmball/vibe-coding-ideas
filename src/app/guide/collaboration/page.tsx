@@ -3,7 +3,7 @@ import { Users, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "Collaboration - VibeCodes Guide",
+  title: "Collaboration Guide",
   description:
     "Join projects, add collaborators, manage teams, and stay updated with notifications on VibeCodes.",
 };

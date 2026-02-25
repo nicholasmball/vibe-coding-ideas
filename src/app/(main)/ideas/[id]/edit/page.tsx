@@ -8,7 +8,8 @@ interface PageProps {
 }
 
 export const metadata: Metadata = {
-  title: "Edit Idea - VibeCodes",
+  title: "Edit Idea",
+  robots: { index: false, follow: false },
 };
 
 export default async function EditIdeaPage({ params }: PageProps) {

@@ -22,14 +22,30 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("users")
-    .select("full_name")
+    .select("full_name, bio")
     .eq("id", id)
     .single();
 
   if (!profile) return { title: "User Not Found" };
 
+  const displayName = profile.full_name ?? "User";
+  const description = profile.bio
+    ? profile.bio.substring(0, 155)
+    : `${displayName} — Member of VibeCodes`;
+
   return {
-    title: `${profile.full_name ?? "User"} - VibeCodes`,
+    title: displayName,
+    description,
+    openGraph: {
+      title: displayName,
+      description,
+      type: "profile",
+    },
+    twitter: {
+      card: "summary",
+      title: displayName,
+      description,
+    },
   };
 }
 
@@ -198,7 +214,7 @@ export default async function ProfilePage({ params }: PageProps) {
             </>
           )}
           {showDeleteButton && (
-            <DeleteUserButton userId={id} userName={profileUser.full_name} redirectTo="/feed" />
+            <DeleteUserButton userId={id} userName={profileUser.full_name} redirectTo="/ideas" />
           )}
         </div>
       )}

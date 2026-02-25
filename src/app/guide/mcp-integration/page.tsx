@@ -3,7 +3,7 @@ import { Terminal, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "MCP Integration - VibeCodes Guide",
+  title: "MCP Integration Guide",
   description:
     "Connect Claude Code to VibeCodes via MCP and manage your ideas, boards, and tasks from the terminal.",
 };

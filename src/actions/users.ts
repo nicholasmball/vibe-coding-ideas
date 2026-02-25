@@ -82,5 +82,5 @@ export async function deleteUser(userId: string) {
   }
 
   revalidatePath("/members");
-  revalidatePath("/feed");
+  revalidatePath("/ideas");
 }

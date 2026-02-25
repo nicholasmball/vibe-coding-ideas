@@ -3,7 +3,7 @@ import { Bot, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: "AI Agent Teams - VibeCodes Guide",
+  title: "AI Agent Teams Guide",
   description:
     "Create distinct AI agent personas for parallel Claude Code sessions. Assign different roles, track who did what, and scale your AI workforce.",
 };

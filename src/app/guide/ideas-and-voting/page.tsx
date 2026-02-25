@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 export const metadata = {
-  title: "Ideas & Voting - VibeCodes Guide",
+  title: "Ideas & Voting Guide",
   description:
     "How ideas work on VibeCodes — statuses, voting, threaded comments, and visibility settings.",
 };

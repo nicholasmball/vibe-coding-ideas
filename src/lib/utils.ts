@@ -51,6 +51,14 @@ export function getLabelColorConfig(color: string) {
   return LABEL_COLORS.find((c) => c.value === color) ?? LABEL_COLORS[6]; // default blue
 }
 
+export function stripMarkdownForMeta(text: string, maxLen = 155): string {
+  const stripped = stripMarkdown(text);
+  if (stripped.length <= maxLen) return stripped;
+  const truncated = stripped.substring(0, maxLen);
+  const lastSpace = truncated.lastIndexOf(" ");
+  return (lastSpace > maxLen * 0.7 ? truncated.substring(0, lastSpace) : truncated) + "\u2026";
+}
+
 export function stripMarkdown(text: string): string {
   return text
     .replace(/```[\s\S]*?```/g, "")      // fenced code blocks

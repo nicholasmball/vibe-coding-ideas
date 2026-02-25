@@ -3,8 +3,12 @@ import { MemberDirectory } from "@/components/members/member-directory";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Members - VibeCodes",
-  description: "Browse and search VibeCodes community members",
+  title: "Members",
+  description: "Browse and search VibeCodes community members.",
+  openGraph: {
+    title: "Members",
+    description: "Browse and search VibeCodes community members.",
+  },
 };
 
 const PAGE_SIZE = 12;

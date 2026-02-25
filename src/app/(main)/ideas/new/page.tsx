@@ -4,8 +4,9 @@ import { IdeaForm } from "@/components/ideas/idea-form";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Submit Idea - VibeCodes",
-  description: "Share your vibe coding project idea with the community",
+  title: "Submit Idea",
+  description: "Share your vibe coding project idea with the community.",
+  robots: { index: false, follow: false },
 };
 
 export default async function NewIdeaPage() {

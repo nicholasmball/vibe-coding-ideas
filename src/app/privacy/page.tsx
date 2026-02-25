@@ -3,7 +3,7 @@ import { Navbar } from "@/components/layout/navbar";
 import { Sparkles, Shield, ArrowLeft } from "lucide-react";
 
 export const metadata = {
-  title: "Privacy Policy - VibeCodes",
+  title: "Privacy Policy",
   description:
     "How VibeCodes collects, uses, stores, and protects your data. Plain-English privacy policy covering accounts, ideas, AI features, and third-party services.",
 };

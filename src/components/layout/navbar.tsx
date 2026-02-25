@@ -79,8 +79,8 @@ export function Navbar() {
           <div className="hidden items-center gap-4 md:flex">
             {user && (
               <>
-                <Link href="/feed">
-                  <Button variant={isActive("/feed") ? "secondary" : "ghost"} className="gap-2">
+                <Link href="/ideas">
+                  <Button variant={isActive("/ideas") ? "secondary" : "ghost"} className="gap-2">
                     <Lightbulb className="h-4 w-4" />
                     Ideas
                   </Button>
@@ -248,10 +248,10 @@ export function Navbar() {
               ) : user ? (
                 <>
                   <Link
-                    href="/feed"
+                    href="/ideas"
                     onClick={() => setMobileMenuOpen(false)}
                   >
-                    <Button variant={isActive("/feed") ? "secondary" : "ghost"} className="w-full justify-start gap-2">
+                    <Button variant={isActive("/ideas") ? "secondary" : "ghost"} className="w-full justify-start gap-2">
                       <Lightbulb className="h-4 w-4" />
                       Ideas
                     </Button>

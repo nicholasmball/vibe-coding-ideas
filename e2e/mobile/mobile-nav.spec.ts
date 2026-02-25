@@ -51,12 +51,12 @@ test.describe("Mobile Navigation", () => {
     // Open menu
     await menuButton.click();
 
-    // Click "Ideas" link in the mobile menu (href is still /feed)
-    const feedLink = userAPage.locator("a[href='/feed']");
-    await feedLink.click();
+    // Click "Ideas" link in the mobile menu
+    const ideasLink = userAPage.locator("a[href='/ideas']");
+    await ideasLink.click();
 
     // Wait for navigation
-    await userAPage.waitForURL("**/feed", { timeout: 15_000 });
+    await userAPage.waitForURL("**/ideas", { timeout: 15_000 });
 
     // Menu should be auto-closed (the mobile-only sign out button should not be visible)
     const signOutButton = userAPage.locator("button").filter({ hasText: /sign out/i });

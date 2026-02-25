@@ -127,7 +127,7 @@ test.describe("Idea Lifecycle", () => {
   });
 
   test.describe("Deleting ideas", () => {
-    test("author should delete their own idea and be redirected to /feed", async ({
+    test("author should delete their own idea and be redirected to /ideas", async ({
       userAPage,
     }) => {
       const idea = await createTestIdea(userAId, {
@@ -157,9 +157,9 @@ test.describe("Idea Lifecycle", () => {
       // Confirm deletion
       await dialog.getByRole("button", { name: /^delete$/i }).click();
 
-      // Should redirect to /feed
-      await userAPage.waitForURL("**/feed", { timeout: 15_000 });
-      expect(userAPage.url()).toContain("/feed");
+      // Should redirect to /ideas
+      await userAPage.waitForURL("**/ideas", { timeout: 15_000 });
+      expect(userAPage.url()).toContain("/ideas");
 
       // Verify the idea no longer exists in the database
       const { data: deleted } = await supabaseAdmin
@@ -233,9 +233,9 @@ test.describe("Idea Lifecycle", () => {
       // Confirm deletion
       await dialog.getByRole("button", { name: /^delete$/i }).click();
 
-      // Should redirect to /feed
-      await adminPage.waitForURL("**/feed", { timeout: 15_000 });
-      expect(adminPage.url()).toContain("/feed");
+      // Should redirect to /ideas
+      await adminPage.waitForURL("**/ideas", { timeout: 15_000 });
+      expect(adminPage.url()).toContain("/ideas");
 
       // Verify it's gone from the database
       const { data: deleted } = await supabaseAdmin

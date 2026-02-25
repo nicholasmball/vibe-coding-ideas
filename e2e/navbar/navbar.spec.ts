@@ -2,8 +2,8 @@ import { test, expect } from "../fixtures/auth";
 
 test.describe("Navbar", () => {
   test("active nav state on current route", async ({ userAPage }) => {
-    // Navigate to /feed — "Ideas" button should have active (secondary) variant
-    await userAPage.goto("/feed");
+    // Navigate to /ideas — "Ideas" button should have active (secondary) variant
+    await userAPage.goto("/ideas");
 
     const ideasButton = userAPage
       .locator("nav")
@@ -22,7 +22,7 @@ test.describe("Navbar", () => {
   });
 
   test("logo links to /dashboard when authenticated", async ({ userAPage }) => {
-    await userAPage.goto("/feed");
+    await userAPage.goto("/ideas");
 
     // Click the logo (VibeCodes text or the sparkles icon link)
     const logoLink = userAPage.locator("nav a").filter({ hasText: "VibeCodes" }).first();

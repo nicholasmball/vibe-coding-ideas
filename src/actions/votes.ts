@@ -42,5 +42,5 @@ export async function toggleVote(ideaId: string) {
   }
 
   revalidatePath(`/ideas/${ideaId}`);
-  revalidatePath("/feed");
+  revalidatePath("/ideas");
 }

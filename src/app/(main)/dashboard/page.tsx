@@ -1,4 +1,5 @@
 import type React from "react";
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import {
@@ -36,8 +37,9 @@ import type {
   BotProfile,
 } from "@/types";
 
-export const metadata = {
-  title: "Dashboard - VibeCodes",
+export const metadata: Metadata = {
+  title: "Dashboard",
+  robots: { index: false, follow: false },
 };
 
 export default async function DashboardPage() {
@@ -389,7 +391,7 @@ export default async function DashboardPage() {
         headerRight={
           myIdeas.length > 0 ? (
             <Link
-              href="/feed?view=mine"
+              href="/ideas?view=mine"
               className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               View all
@@ -433,7 +435,7 @@ export default async function DashboardPage() {
         headerRight={
           collabIdeas.length > 0 ? (
             <Link
-              href="/feed?view=collaborating"
+              href="/ideas?view=collaborating"
               className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               View all
@@ -447,7 +449,7 @@ export default async function DashboardPage() {
             <p className="text-sm text-muted-foreground">
               Not collaborating on any ideas yet.
             </p>
-            <Link href="/feed">
+            <Link href="/ideas">
               <Button variant="outline" size="sm" className="mt-3">
                 Browse the feed
               </Button>
