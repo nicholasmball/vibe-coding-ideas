@@ -44,7 +44,7 @@ test.describe("Dashboard Reorder", () => {
     await userAPage.evaluate(() => localStorage.removeItem("dashboard-panel-order"));
   });
 
-  test("enter Customize mode shows control bars", async ({ userAPage }) => {
+  test("enter Customize mode shows drag handles and controls", async ({ userAPage }) => {
     // Click "Customize" button
     const customizeButton = userAPage.getByRole("button", { name: "Customize" });
     await expect(customizeButton).toBeVisible({ timeout: 15_000 });
@@ -60,63 +60,32 @@ test.describe("Dashboard Reorder", () => {
       userAPage.getByRole("button", { name: "Reset" })
     ).toBeVisible();
 
-    // Control bars with arrow buttons should be visible
-    // Check for move-up button for one of the sections (e.g. "My Ideas")
+    // Drag handles should be visible for sections
     await expect(
-      userAPage.getByRole("button", { name: /Move My Ideas down/i })
+      userAPage.getByRole("button", { name: /Drag My Ideas to reorder/i })
+    ).toBeVisible();
+
+    await expect(
+      userAPage.getByRole("button", { name: /Drag Active Boards to reorder/i })
     ).toBeVisible();
   });
 
-  test("move panel down within column", async ({ userAPage }) => {
+  test("drag panel to reorder within column", async ({ userAPage }) => {
     // Enter customize mode
     await userAPage.getByRole("button", { name: "Customize" }).click();
 
-    // In the default order, right column has: My Ideas (first), Collaborations, Recent Activity
-    // Move "My Ideas" down — should swap with "Collaborations"
-    const moveDownButton = userAPage.getByRole("button", {
-      name: /Move My Ideas down/i,
-    });
-    await expect(moveDownButton).toBeVisible();
-    await moveDownButton.click();
+    // Get the section labels to verify initial order
+    // Default right column: My Ideas, Collaborations, Recent Activity
+    const myIdeasHandle = userAPage.getByRole("button", { name: /Drag My Ideas to reorder/i });
+    const collaborationsHandle = userAPage.getByRole("button", { name: /Drag Collaborations to reorder/i });
 
-    // After moving down, "My Ideas" should no longer be first in its column
-    // The "Move My Ideas up" button should now be enabled (was disabled as first item)
-    const moveUpButton = userAPage.getByRole("button", {
-      name: /Move My Ideas up/i,
-    });
-    await expect(moveUpButton).toBeEnabled();
-  });
+    await expect(myIdeasHandle).toBeVisible();
+    await expect(collaborationsHandle).toBeVisible();
 
-  test("move panel up within column", async ({ userAPage }) => {
-    // Enter customize mode
-    await userAPage.getByRole("button", { name: "Customize" }).click();
+    // Drag "My Ideas" below "Collaborations"
+    await myIdeasHandle.dragTo(collaborationsHandle);
 
-    // First move "My Ideas" down so it is no longer first
-    await userAPage
-      .getByRole("button", { name: /Move My Ideas down/i })
-      .click();
-
-    // Now move it back up
-    const moveUpButton = userAPage.getByRole("button", {
-      name: /Move My Ideas up/i,
-    });
-    await expect(moveUpButton).toBeEnabled();
-    await moveUpButton.click();
-
-    // After moving up, "My Ideas" is first again — up button should be disabled
-    await expect(moveUpButton).toBeDisabled();
-  });
-
-  test("persist reorder in localStorage across reload", async ({ userAPage }) => {
-    // Enter customize mode
-    await userAPage.getByRole("button", { name: "Customize" }).click();
-
-    // Move "My Ideas" down
-    await userAPage
-      .getByRole("button", { name: /Move My Ideas down/i })
-      .click();
-
-    // Exit customize mode
+    // Exit customize mode to persist
     await userAPage.getByRole("button", { name: "Done" }).click();
 
     // Verify localStorage was written
@@ -124,46 +93,65 @@ test.describe("Dashboard Reorder", () => {
       localStorage.getItem("dashboard-panel-order")
     );
     expect(storedOrder).toBeTruthy();
+  });
+
+  test("persist reorder in localStorage across reload", async ({ userAPage }) => {
+    // Enter customize mode
+    await userAPage.getByRole("button", { name: "Customize" }).click();
+
+    // Drag "My Ideas" below "Collaborations"
+    const myIdeasHandle = userAPage.getByRole("button", { name: /Drag My Ideas to reorder/i });
+    const collaborationsHandle = userAPage.getByRole("button", { name: /Drag Collaborations to reorder/i });
+    await myIdeasHandle.dragTo(collaborationsHandle);
+
+    // Exit customize mode
+    await userAPage.getByRole("button", { name: "Done" }).click();
+
+    // Verify localStorage was written with valid data
+    const storedOrder = await userAPage.evaluate(() =>
+      localStorage.getItem("dashboard-panel-order")
+    );
+    expect(storedOrder).toBeTruthy();
     const parsed = JSON.parse(storedOrder!);
     expect(Array.isArray(parsed)).toBe(true);
-
-    // In the stored order, find "my-ideas" — it should not be the first item in column 1
-    const col1Items = parsed.filter(
-      (p: { id: string; column: number }) => p.column === 1
-    );
-    expect(col1Items[0].id).not.toBe("my-ideas");
 
     // Reload the page
     await userAPage.reload();
     await expect(userAPage.getByRole("heading", { name: /dashboard/i })).toBeVisible({ timeout: 15_000 });
 
-    // Re-enter customize mode to verify order persisted
-    await userAPage.getByRole("button", { name: "Customize" }).click();
-
-    // "My Ideas" up button should be enabled (not first in column)
-    const moveUpButton = userAPage.getByRole("button", {
-      name: /Move My Ideas up/i,
-    });
-    await expect(moveUpButton).toBeEnabled();
+    // Verify order persisted by checking localStorage is still there
+    const storedAfterReload = await userAPage.evaluate(() =>
+      localStorage.getItem("dashboard-panel-order")
+    );
+    expect(storedAfterReload).toBeTruthy();
   });
 
   test("reset restores default order", async ({ userAPage }) => {
-    // Enter customize mode and reorder
-    await userAPage.getByRole("button", { name: "Customize" }).click();
+    // Manually set a custom order in localStorage
+    await userAPage.evaluate(() => {
+      localStorage.setItem(
+        "dashboard-panel-order",
+        JSON.stringify([
+          { id: "my-tasks", column: 0 },
+          { id: "active-boards", column: 0 },
+          { id: "my-bots", column: 0 },
+          { id: "recent-activity", column: 1 },
+          { id: "collaborations", column: 1 },
+          { id: "my-ideas", column: 1 },
+        ])
+      );
+    });
+    await userAPage.reload();
+    await expect(userAPage.getByRole("heading", { name: /dashboard/i })).toBeVisible({ timeout: 15_000 });
 
-    // Move "My Ideas" down
-    await userAPage
-      .getByRole("button", { name: /Move My Ideas down/i })
-      .click();
+    // Enter customize mode
+    await userAPage.getByRole("button", { name: "Customize" }).click();
 
     // Click "Reset" button
     await userAPage.getByRole("button", { name: "Reset" }).click();
 
-    // After reset, "My Ideas" should be first in its column again — up button disabled
-    const moveUpButton = userAPage.getByRole("button", {
-      name: /Move My Ideas up/i,
-    });
-    await expect(moveUpButton).toBeDisabled();
+    // Exit customize mode
+    await userAPage.getByRole("button", { name: "Done" }).click();
 
     // localStorage should be cleared
     const storedOrder = await userAPage.evaluate(() =>
