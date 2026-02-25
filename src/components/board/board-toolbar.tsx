@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { Search, X, Upload, Sparkles, Archive, SlidersHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -213,10 +214,14 @@ export function BoardToolbar({
           <Button
             variant="outline"
             size="sm"
-            className="h-8 gap-1.5 text-xs"
-            onClick={() => setAiGenerateOpen(true)}
-            disabled={!hasApiKey}
-            title={!hasApiKey ? "Add your API key in profile settings to enable AI" : undefined}
+            className={`h-8 gap-1.5 text-xs ${!hasApiKey ? "opacity-50" : ""}`}
+            onClick={() => {
+              if (!hasApiKey) {
+                toast.info("Add your API key in profile settings to enable AI");
+                return;
+              }
+              setAiGenerateOpen(true);
+            }}
           >
             <Sparkles className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">AI Generate</span>

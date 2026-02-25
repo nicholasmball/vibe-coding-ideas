@@ -2,12 +2,8 @@
 
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-} from "@/components/ui/tooltip";
 import { EnhanceIdeaDialog } from "./enhance-idea-dialog";
 import type { BotProfile } from "@/types";
 
@@ -30,39 +26,34 @@ export function EnhanceIdeaButton({
 }: EnhanceIdeaButtonProps) {
   const [open, setOpen] = useState(false);
 
-  const button = variant === "dropdown" ? (
-    <button
-      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent disabled:opacity-50"
-      onClick={() => setOpen(true)}
-      disabled={disabled}
-    >
-      <Sparkles className="h-4 w-4" />
-      Enhance with AI
-    </button>
-  ) : (
-    <Button
-      variant="outline"
-      size="sm"
-      className="gap-2"
-      onClick={() => setOpen(true)}
-      disabled={disabled}
-    >
-      <Sparkles className="h-4 w-4" />
-      Enhance with AI
-    </Button>
-  );
+  const handleClick = () => {
+    if (disabled) {
+      toast.info("Add your API key in profile settings to enable AI");
+      return;
+    }
+    setOpen(true);
+  };
 
   return (
     <>
-      {disabled ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span tabIndex={0}>{button}</span>
-          </TooltipTrigger>
-          <TooltipContent>Add your API key in profile settings to enable AI</TooltipContent>
-        </Tooltip>
+      {variant === "dropdown" ? (
+        <button
+          className={`flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent ${disabled ? "opacity-50" : ""}`}
+          onClick={handleClick}
+        >
+          <Sparkles className="h-4 w-4" />
+          Enhance with AI
+        </button>
       ) : (
-        button
+        <Button
+          variant="outline"
+          size="sm"
+          className={`gap-2 ${disabled ? "opacity-50" : ""}`}
+          onClick={handleClick}
+        >
+          <Sparkles className="h-4 w-4" />
+          Enhance with AI
+        </Button>
       )}
       <EnhanceIdeaDialog
         open={open}
