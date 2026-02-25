@@ -13,6 +13,14 @@ const AI_MODEL = "claude-sonnet-4-6";
 
 type ActionType = "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description";
 
+/** Re-throw AI SDK errors as plain Error so Next.js RSC can serialize them. */
+function toPlainError(err: unknown): never {
+  if (err instanceof Error) {
+    throw new Error(err.message);
+  }
+  throw new Error("An unexpected AI error occurred");
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────
 
 /** Create an Anthropic provider using the user's key if available, else platform key. */
@@ -180,12 +188,19 @@ export async function enhanceIdeaDescription(
     ? `${personaPrompt}\n\nYou are helping to enhance an idea description on a project management platform.`
     : "You are an expert product manager and technical writer helping to enhance idea descriptions on a project management platform.";
 
-  const { text, usage, finishReason } = await generateText({
-    model: anthropic(AI_MODEL),
-    system: systemPrompt,
-    prompt: `${prompt}\n\n---\n\n**Idea Title:** ${idea.title}\n\n**Current Description:**\n${idea.description}`,
-    maxOutputTokens: 8000,
-  });
+  let text: string;
+  let usage: { inputTokens?: number; outputTokens?: number };
+  let finishReason: string;
+  try {
+    ({ text, usage, finishReason } = await generateText({
+      model: anthropic(AI_MODEL),
+      system: systemPrompt,
+      prompt: `${prompt}\n\n---\n\n**Idea Title:** ${idea.title}\n\n**Current Description:**\n${idea.description}`,
+      maxOutputTokens: 8000,
+    }));
+  } catch (err) {
+    toPlainError(err);
+  }
 
   await logAiUsage(supabase, {
     userId: user.id,
@@ -259,10 +274,13 @@ export async function generateClarifyingQuestions(
     ? `${personaPrompt}\n\nYou are helping to enhance an idea description. Before enhancing, you need to ask 2-4 focused clarifying questions to produce a better result.`
     : "You are an expert product manager helping to enhance an idea description. Before enhancing, you need to ask 2-4 focused clarifying questions to produce a better result.";
 
-  const { object, usage } = await generateObject({
-    model: anthropic(AI_MODEL),
-    system: systemPrompt,
-    prompt: `The user wants to enhance the following idea. Read the idea and the user's enhancement prompt, then generate 2-4 targeted clarifying questions that would help you produce a much better enhancement. Focus on questions about target users, technical scope, project goals, success criteria, or any gaps in the current description.
+  let object: z.infer<typeof ClarifyingQuestionsSchema>;
+  let usage: { inputTokens?: number; outputTokens?: number };
+  try {
+    ({ object, usage } = await generateObject({
+      model: anthropic(AI_MODEL),
+      system: systemPrompt,
+      prompt: `The user wants to enhance the following idea. Read the idea and the user's enhancement prompt, then generate 2-4 targeted clarifying questions that would help you produce a much better enhancement. Focus on questions about target users, technical scope, project goals, success criteria, or any gaps in the current description.
 
 **Enhancement Prompt:** ${prompt}
 
@@ -272,9 +290,12 @@ export async function generateClarifyingQuestions(
 
 **Current Description:**
 ${idea.description}`,
-    schema: ClarifyingQuestionsSchema,
-    maxOutputTokens: 1000,
-  });
+      schema: ClarifyingQuestionsSchema,
+      maxOutputTokens: 1000,
+    }));
+  } catch (err) {
+    toPlainError(err);
+  }
 
   await logAiUsage(supabase, {
     userId: user.id,
@@ -380,12 +401,19 @@ Use the answers above to inform your enhanced description. Make the enhancement 
     userPrompt = `${prompt}\n\n---\n\n**Idea Title:** ${idea.title}\n\n**Current Description:**\n${idea.description}`;
   }
 
-  const { text, usage, finishReason } = await generateText({
-    model: anthropic(AI_MODEL),
-    system: systemPrompt,
-    prompt: userPrompt,
-    maxOutputTokens: 8000,
-  });
+  let text: string;
+  let usage: { inputTokens?: number; outputTokens?: number };
+  let finishReason: string;
+  try {
+    ({ text, usage, finishReason } = await generateText({
+      model: anthropic(AI_MODEL),
+      system: systemPrompt,
+      prompt: userPrompt,
+      maxOutputTokens: 8000,
+    }));
+  } catch (err) {
+    toPlainError(err);
+  }
 
   await logAiUsage(supabase, {
     userId: user.id,
@@ -515,13 +543,19 @@ export async function generateBoardTasks(
     );
   }
 
-  const { object, usage } = await generateObject({
-    model: anthropic(AI_MODEL),
-    system: systemPrompt,
-    prompt: contextParts.join("\n\n"),
-    schema: GeneratedBoardSchema,
-    maxOutputTokens: 8000,
-  });
+  let object: z.infer<typeof GeneratedBoardSchema>;
+  let usage: { inputTokens?: number; outputTokens?: number };
+  try {
+    ({ object, usage } = await generateObject({
+      model: anthropic(AI_MODEL),
+      system: systemPrompt,
+      prompt: contextParts.join("\n\n"),
+      schema: GeneratedBoardSchema,
+      maxOutputTokens: 8000,
+    }));
+  } catch (err) {
+    toPlainError(err);
+  }
 
   await logAiUsage(supabase, {
     userId: user.id,
@@ -582,16 +616,22 @@ export async function enhanceTaskDescription(
 
   if (!idea) throw new Error("Idea not found");
 
-  const { text, usage } = await generateText({
-    model: anthropic(AI_MODEL),
-    system: "You are a concise technical writer. Improve the task description's clarity and structure. STRICT RULES: Keep the output roughly the same length as the input (never more than 2x). Do NOT add boilerplate sections, templates, checklists, or context the user didn't provide. Just sharpen what's already there. Return ONLY the improved description — no preamble.",
-    prompt: `**Task Title:** ${taskTitle}
+  let text: string;
+  let usage: { inputTokens?: number; outputTokens?: number };
+  try {
+    ({ text, usage } = await generateText({
+      model: anthropic(AI_MODEL),
+      system: "You are a concise technical writer. Improve the task description's clarity and structure. STRICT RULES: Keep the output roughly the same length as the input (never more than 2x). Do NOT add boilerplate sections, templates, checklists, or context the user didn't provide. Just sharpen what's already there. Return ONLY the improved description — no preamble.",
+      prompt: `**Task Title:** ${taskTitle}
 **Current Description:**
 ${taskDescription}
 
 **Context (for reference only, do NOT repeat in output):** Project "${idea.title}"`,
-    maxOutputTokens: 1000,
-  });
+      maxOutputTokens: 1000,
+    }));
+  } catch (err) {
+    toPlainError(err);
+  }
 
   await logAiUsage(supabase, {
     userId: user.id,
