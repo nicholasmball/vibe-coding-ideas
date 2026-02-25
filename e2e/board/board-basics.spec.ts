@@ -137,9 +137,9 @@ test.describe("Board Basics", () => {
       .first()
       .waitFor({ timeout: 15_000 });
 
-    // Header should contain the idea title
+    // Header should contain the idea title (use heading role to avoid matching <title>)
     await expect(
-      userAPage.getByText("[E2E] Board Deep Link Idea — Board")
+      userAPage.getByRole("heading", { name: "[E2E] Board Deep Link Idea — Board" })
     ).toBeVisible();
 
     // "Back to idea" link should be visible and point to the idea detail page

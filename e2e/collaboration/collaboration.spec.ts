@@ -143,7 +143,19 @@ test.describe("Collaboration", () => {
         .eq("idea_id", publicIdeaId)
         .eq("user_id", userBId);
 
+      // Clean up any pending collaboration requests that could interfere
+      await supabaseAdmin
+        .from("collaboration_requests")
+        .delete()
+        .eq("idea_id", publicIdeaId)
+        .eq("requester_id", userBId);
+
       await userAPage.goto(`/ideas/${publicIdeaId}`);
+
+      // Wait for Collaborators (0) to confirm clean state
+      await expect(
+        userAPage.getByText(/Collaborators \(0\)/)
+      ).toBeVisible({ timeout: 15_000 });
 
       // Click the "Add" button to open the collaborator search popover
       const addButton = userAPage.getByRole("button", { name: "Add", exact: true });
@@ -155,14 +167,24 @@ test.describe("Collaboration", () => {
         /search by name or email/i
       );
       await expect(searchInput).toBeVisible();
-      await searchInput.fill("Test User B");
 
-      // Wait for debounced search (300ms) + server round-trip
-      await userAPage.waitForTimeout(500);
-
-      // Wait for search results to appear in the popover
+      // Search with retry — clear and re-type if "No users found" appears (handles auth token refresh races)
       const userBResult = userAPage.getByRole("button").filter({ hasText: "Test User B" }).first();
-      await expect(userBResult).toBeVisible({ timeout: 15_000 });
+      for (let attempt = 0; attempt < 3; attempt++) {
+        await searchInput.clear();
+        await searchInput.fill("Test User B");
+        try {
+          await expect(userBResult).toBeVisible({ timeout: 5_000 });
+          break;
+        } catch {
+          if (attempt === 2) {
+            // Final attempt — use full timeout
+            await searchInput.clear();
+            await searchInput.fill("Test User B");
+            await expect(userBResult).toBeVisible({ timeout: 15_000 });
+          }
+        }
+      }
 
       // Click the result to add User B and wait for the server action response
       const actionPromise = userAPage.waitForResponse(

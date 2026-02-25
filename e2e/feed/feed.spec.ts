@@ -96,8 +96,11 @@ test.describe("Feed page", () => {
     await expect(ideaCard).toBeVisible({ timeout: 15_000 });
 
     const voteButton = ideaCard.locator('[data-testid="vote-button"]');
+    await expect(voteButton).toBeVisible({ timeout: 15_000 });
+    await expect(voteButton).toBeEnabled({ timeout: 15_000 });
 
-    // Get initial vote count
+    // Get initial vote count (wait for hydration to complete)
+    await expect(voteButton).toContainText(/\d+/, { timeout: 10_000 });
     const initialText = await voteButton.innerText();
     const initialCount = parseInt(initialText.replace(/\D/g, ""), 10) || 0;
 
@@ -191,10 +194,9 @@ test.describe("Feed page", () => {
     const editLink = freshPage.getByRole("link", { name: /edit profile/i });
     await expect(editLink).toBeVisible();
 
-    // Dismiss button should work
-    const dismissButton = banner
-      .locator("..")
-      .getByRole("button");
+    // Dismiss button should work (find the X button near the banner)
+    const bannerContainer = banner.locator("xpath=ancestor::div[contains(@class, 'rounded')]").first();
+    const dismissButton = bannerContainer.getByRole("button");
     await dismissButton.click();
     await expect(banner).not.toBeVisible();
   });

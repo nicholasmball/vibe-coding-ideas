@@ -143,10 +143,10 @@ test.describe("Dashboard", () => {
     const myIdeasSection = userAPage.locator('[data-testid="section-my-ideas"]');
     await expect(myIdeasSection).toBeVisible({ timeout: 15_000 });
 
-    // Should contain the seeded idea title
+    // Should contain the seeded idea title (wait for data to render)
     await expect(
       myIdeasSection.getByText("[E2E] Dashboard My Idea")
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 15_000 });
   });
 
   test("My Tasks section shows assigned tasks", async ({ userAPage }) => {
@@ -156,10 +156,10 @@ test.describe("Dashboard", () => {
     const myTasksSection = userAPage.locator('[data-testid="section-my-tasks"]');
     await expect(myTasksSection).toBeVisible({ timeout: 15_000 });
 
-    // Should contain one of the seeded tasks
+    // Should contain one of the seeded tasks (wait for data to render)
     await expect(
       myTasksSection.getByText("[E2E] Task 1")
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 15_000 });
   });
 
   test("Active Boards section shows boards with tasks", async ({ userAPage }) => {
@@ -169,15 +169,15 @@ test.describe("Dashboard", () => {
     const activeBoardsSection = userAPage.locator('[data-testid="section-active-boards"]');
     await expect(activeBoardsSection).toBeVisible({ timeout: 15_000 });
 
-    // Should contain the board idea title
+    // Should contain the board idea title (wait for data to render)
     await expect(
       activeBoardsSection.getByText("[E2E] Dashboard Board Idea")
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 15_000 });
 
     // Should show task count
     await expect(
       activeBoardsSection.getByText(/2 tasks/)
-    ).toBeVisible();
+    ).toBeVisible({ timeout: 15_000 });
   });
 
   test("Collaborations section shows ideas user collaborates on", async ({
@@ -210,7 +210,12 @@ test.describe("Dashboard", () => {
   });
 
   test("collapse and expand a section", async ({ userAPage }) => {
+    // Reset collapse state from any prior test failure
     await userAPage.goto("/dashboard");
+    await userAPage.evaluate(() =>
+      localStorage.removeItem("dashboard-collapsed-my-ideas")
+    );
+    await userAPage.reload();
     await expect(userAPage.getByRole("heading", { name: /dashboard/i })).toBeVisible({ timeout: 15_000 });
 
     const myIdeasSection = userAPage.locator('[data-testid="section-my-ideas"]');
@@ -238,7 +243,12 @@ test.describe("Dashboard", () => {
   test("collapse state persists in localStorage across reload", async ({
     userAPage,
   }) => {
+    // Reset collapse state from any prior test failure
     await userAPage.goto("/dashboard");
+    await userAPage.evaluate(() =>
+      localStorage.removeItem("dashboard-collapsed-my-ideas")
+    );
+    await userAPage.reload();
     await expect(userAPage.getByRole("heading", { name: /dashboard/i })).toBeVisible({ timeout: 15_000 });
 
     const myIdeasSection = userAPage.locator('[data-testid="section-my-ideas"]');

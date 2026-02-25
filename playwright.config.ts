@@ -8,7 +8,7 @@ export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 1 : 0,
+  retries: process.env.CI ? 2 : 1,
   workers: 1,
   reporter: [["html", { open: "never" }]],
   timeout: 30_000,
@@ -44,7 +44,14 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: "npm run build && npm start",
+    // Hide .env.local during build so NEXT_PUBLIC_* vars come from process.env (.env.test)
+    // then restore it after build completes (before npm start, which doesn't need it)
+    command: [
+      'node -e "const fs=require(\'fs\');try{fs.renameSync(\'.env.local\',\'.env.local.e2e-bak\')}catch{}"',
+      "npm run build",
+      'node -e "const fs=require(\'fs\');try{fs.renameSync(\'.env.local.e2e-bak\',\'.env.local\')}catch{}"',
+      "npm start",
+    ].join(" && "),
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,

@@ -46,90 +46,26 @@ test.describe("Admin page", () => {
       adminPage.getByRole("heading", { name: /admin/i })
     ).toBeVisible({ timeout: 15_000 });
 
-    // Stats cards should be visible — check for their labels (use first() to avoid table header duplicates)
+    // Stats cards should be visible — 3 cards in BYOK-only mode
     await expect(adminPage.getByText("Total Calls").first()).toBeVisible();
     await expect(adminPage.getByText("Total Tokens").first()).toBeVisible();
-    await expect(adminPage.getByText("Est. Cost").first()).toBeVisible();
-    await expect(adminPage.getByText("Platform vs BYOK").first()).toBeVisible();
+    // Cost card now says "Est. Cost (all BYOK)" instead of old "Platform vs BYOK"
+    await expect(adminPage.getByText(/Est\. Cost/i).first()).toBeVisible();
   });
 
-  test("toggle AI enabled for a user", async ({ adminPage }) => {
+  test("Recent Activity table renders", async ({ adminPage }) => {
     await adminPage.goto("/admin");
 
-    // Wait for User Management section
     await expect(
-      adminPage.getByText("User Management")
+      adminPage.getByRole("heading", { name: /admin/i })
     ).toBeVisible({ timeout: 15_000 });
 
-    // Find the table row containing Test User A
-    const userRow = adminPage
-      .locator("tr")
-      .filter({ hasText: "Test User A" });
-    await expect(userRow).toBeVisible();
-
-    // Find the AI Enabled switch in that row
-    const aiSwitch = userRow.locator("button[role='switch']");
-    await expect(aiSwitch).toBeVisible();
-
-    // Get initial state
-    const initialState = await aiSwitch.getAttribute("data-state");
-
-    // Toggle
-    await aiSwitch.click();
-    await adminPage.waitForTimeout(1000);
-
-    // State should change
-    const newState = await aiSwitch.getAttribute("data-state");
-    expect(newState).not.toBe(initialState);
-
-    // Toggle back to restore original state
-    await aiSwitch.click();
-    await adminPage.waitForTimeout(1000);
-
-    const restoredState = await aiSwitch.getAttribute("data-state");
-    expect(restoredState).toBe(initialState);
-  });
-
-  test("edit daily AI limit for a user", async ({ adminPage }) => {
-    await adminPage.goto("/admin");
-
-    // Wait for User Management section
-    await expect(
-      adminPage.getByText("User Management")
-    ).toBeVisible({ timeout: 15_000 });
-
-    // Find the table row containing Test User A
-    const userRow = adminPage
-      .locator("tr")
-      .filter({ hasText: "Test User A" });
-    await expect(userRow).toBeVisible();
-
-    // Find the daily limit number input in that row
-    const limitInput = userRow.locator('input[type="number"]');
-    await expect(limitInput).toBeVisible();
-
-    // Get initial value
-    const initialValue = await limitInput.inputValue();
-
-    // Change the limit
-    await limitInput.clear();
-    await limitInput.fill("25");
-    await limitInput.blur();
-
-    // Wait for server action
-    await adminPage.waitForTimeout(1500);
-
-    // Success toast should appear
-    const toast = adminPage
-      .locator("[data-sonner-toast]")
-      .filter({ hasText: /daily limit set to 25/i });
-    await expect(toast).toBeVisible({ timeout: 5_000 });
-
-    // Restore original value
-    await limitInput.clear();
-    await limitInput.fill(initialValue);
-    await limitInput.blur();
-    await adminPage.waitForTimeout(1500);
+    // Recent Activity section with table headers
+    await expect(adminPage.getByText("Recent Activity")).toBeVisible();
+    await expect(adminPage.getByText("User").first()).toBeVisible();
+    await expect(adminPage.getByText("Action").first()).toBeVisible();
+    await expect(adminPage.getByText("Tokens").first()).toBeVisible();
+    await expect(adminPage.getByText("Time").first()).toBeVisible();
   });
 
   test("filter by date range", async ({ adminPage }) => {

@@ -203,8 +203,8 @@ test.describe("Feed filters", () => {
     await expect(searchBadge).toBeVisible();
 
     // Click the X button on the search badge to clear
-    const clearButton = searchBadge.locator("..").locator("button");
-    await clearButton.click();
+    const badgeWithClear = userAPage.locator('[data-slot="badge"]').filter({ hasText: "Unique Alpha" });
+    await badgeWithClear.locator("button").click();
 
     // URL should no longer have the q param
     await userAPage.waitForURL((url) => !url.searchParams.has("q"), {
