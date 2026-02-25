@@ -44,6 +44,7 @@ interface BoardColumnProps {
   hasApiKey?: boolean;
   ideaDescription?: string;
   isReadOnly?: boolean;
+  isCompact?: boolean;
 }
 
 export const BoardColumn = memo(function BoardColumn({
@@ -61,6 +62,7 @@ export const BoardColumn = memo(function BoardColumn({
   hasApiKey = false,
   ideaDescription = "",
   isReadOnly = false,
+  isCompact = false,
 }: BoardColumnProps) {
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -136,9 +138,9 @@ export const BoardColumn = memo(function BoardColumn({
         ref={setNodeRef}
         style={style}
         data-testid={`column-${column.id}`}
-        className={`flex max-h-full min-w-[280px] max-w-[320px] shrink-0 snap-start flex-col rounded-lg border border-border bg-muted/50 ${
-          isOver ? "ring-2 ring-primary/50" : ""
-        } ${isDragging ? "opacity-50" : ""}`}
+        className={`flex max-h-full shrink-0 snap-start flex-col rounded-lg border border-border bg-muted/50 ${
+          isCompact ? "min-w-[180px] max-w-[200px]" : "min-w-[280px] max-w-[320px]"
+        } ${isOver ? "ring-2 ring-primary/50" : ""} ${isDragging ? "opacity-50" : ""}`}
       >
         {/* Column header */}
         <div className="flex items-center justify-between border-b border-border px-3 py-2">

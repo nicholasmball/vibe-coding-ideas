@@ -49,15 +49,26 @@ export const TaskAutoOpenContext = createContext<{
   onAutoOpenConsumed: () => void;
 }>({ autoOpenTaskId: undefined, onAutoOpenConsumed: () => {} });
 
-// Custom collision detection: pointerWithin finds the column, closestCenter picks task position
+// Custom collision detection: pointerWithin finds the column, closestCenter bridges gaps
 const multiContainerCollision: CollisionDetection = (args) => {
-  // First check if pointer is within any droppable (columns)
+  // First check if pointer is within any droppable (columns/tasks)
   const pointerCollisions = pointerWithin(args);
   if (pointerCollisions.length > 0) {
     return pointerCollisions;
   }
-  // Fallback to closestCenter for edge cases (fast moves, keyboard nav)
-  return closestCenter(args);
+  // Fallback to closestCenter for gap zones between columns, fast moves, and keyboard nav
+  const closest = closestCenter(args);
+  // When in a gap, closestCenter may return a column — prefer column droppables
+  // to avoid snapping to far-away tasks
+  if (closest.length > 0) {
+    const containerMap = new Map(args.droppableContainers.map((c) => [c.id, c]));
+    const columnHits = closest.filter((c) => {
+      const data = containerMap.get(c.id)?.data?.current;
+      return data?.type === "column";
+    });
+    return columnHits.length > 0 ? columnHits : closest;
+  }
+  return closest;
 };
 
 const layoutMeasuring = {
@@ -68,14 +79,23 @@ const layoutMeasuring = {
 const OverlayContent = React.memo(function OverlayContent({
   activeTask,
   activeColumn,
+  targetColumnName,
+  isCompact,
 }: {
   activeTask: BoardTaskWithAssignee | null;
   activeColumn: BoardColumnWithTasks | null;
+  targetColumnName?: string | null;
+  isCompact?: boolean;
 }) {
   if (activeTask) {
     return (
-      <div className="w-[280px] rounded-md border border-primary bg-background p-3 shadow-lg">
-        <p className="text-sm font-medium">{activeTask.title}</p>
+      <div className={`${isCompact ? "w-[170px]" : "w-[280px]"} rounded-md border border-primary bg-background p-3 shadow-lg`}>
+        <p className="text-sm font-medium line-clamp-2">{activeTask.title}</p>
+        {targetColumnName && (
+          <p className="mt-1 text-xs text-primary">
+            → {targetColumnName}
+          </p>
+        )}
       </div>
     );
   }
@@ -106,6 +126,109 @@ interface KanbanBoardProps {
   botProfiles?: BotProfile[];
   coverImageUrls?: Record<string, string>;
   isReadOnly?: boolean;
+}
+
+// Dwell-scroll constants (hoisted out of hook to avoid stale closure issues)
+const DWELL_EDGE_ZONE = 40;      // px from container edge to trigger zone
+const DWELL_INNER_ZONE = 80;     // px from edge where cancel kicks in
+const DWELL_MS = 350;            // ms pointer must sit in edge zone before scroll
+const DWELL_BETWEEN_STEP_MS = 500; // ms pause between column steps
+const DWELL_COLUMN_STEP = 296;   // ~280px column + 16px gap
+
+function useDwellEdgeScroll(
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>,
+  isDragging: boolean,
+  isTouchDrag: boolean,
+) {
+  const pointerRef = useRef<{ x: number; y: number } | null>(null);
+  const dwellTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollingRef = useRef<"left" | "right" | null>(null);
+
+  const cancelAll = useCallback(() => {
+    if (dwellTimerRef.current !== null) {
+      clearTimeout(dwellTimerRef.current);
+      dwellTimerRef.current = null;
+    }
+    if (stepTimerRef.current !== null) {
+      clearTimeout(stepTimerRef.current);
+      stepTimerRef.current = null;
+    }
+    scrollingRef.current = null;
+  }, []);
+
+  const doScrollStep = useCallback(
+    (direction: "left" | "right") => {
+      const el = scrollContainerRef.current;
+      if (!el) return;
+      const delta = direction === "right" ? DWELL_COLUMN_STEP : -DWELL_COLUMN_STEP;
+      el.scrollBy({ left: delta, behavior: "smooth" });
+
+      stepTimerRef.current = setTimeout(() => {
+        const pos = pointerRef.current;
+        if (!pos) return;
+        const rect = el.getBoundingClientRect();
+        const inRightEdge = pos.x > rect.right - DWELL_EDGE_ZONE;
+        const inLeftEdge = pos.x < rect.left + DWELL_EDGE_ZONE;
+        if (direction === "right" && inRightEdge) {
+          doScrollStep("right");
+        } else if (direction === "left" && inLeftEdge) {
+          doScrollStep("left");
+        } else {
+          scrollingRef.current = null;
+        }
+      }, DWELL_BETWEEN_STEP_MS);
+    },
+    [scrollContainerRef],
+  );
+
+  const startDwell = useCallback(
+    (direction: "left" | "right") => {
+      if (scrollingRef.current === direction) return;
+      cancelAll();
+      scrollingRef.current = direction;
+
+      dwellTimerRef.current = setTimeout(() => {
+        dwellTimerRef.current = null;
+        doScrollStep(direction);
+      }, DWELL_MS);
+    },
+    [cancelAll, doScrollStep],
+  );
+
+  useEffect(() => {
+    if (!isDragging || !isTouchDrag) {
+      cancelAll();
+      pointerRef.current = null;
+      return;
+    }
+
+    const onPointerMove = (e: PointerEvent) => {
+      pointerRef.current = { x: e.clientX, y: e.clientY };
+
+      const el = scrollContainerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX;
+
+      const inRightEdge = x > rect.right - DWELL_EDGE_ZONE;
+      const inLeftEdge = x < rect.left + DWELL_EDGE_ZONE;
+
+      if (inRightEdge) {
+        startDwell("right");
+      } else if (inLeftEdge) {
+        startDwell("left");
+      } else if (x > rect.left + DWELL_INNER_ZONE && x < rect.right - DWELL_INNER_ZONE) {
+        cancelAll();
+      }
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    return () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      cancelAll();
+    };
+  }, [isDragging, isTouchDrag, cancelAll, startDwell, scrollContainerRef]);
 }
 
 export function KanbanBoard({
@@ -161,9 +284,12 @@ export function KanbanBoard({
   const [activeColumn, setActiveColumn] = useState<BoardColumnWithTasks | null>(null);
   const dragSourceColumnRef = useRef<string | null>(null);
   const dragCurrentColumnRef = useRef<string | null>(null);
-  const lastOverColumnRef = useRef<string | null>(null);
+  const [dragTargetColumnName, setDragTargetColumnName] = useState<string | null>(null);
   // Snapshot of columns at drag start — used for immediate revert on cancel
   const dragStartColumnsRef = useRef<BoardColumnWithTasks[] | null>(null);
+
+  // Track whether the active drag was initiated via touch (for mobile-only scroll logic)
+  const [isTouchDrag, setIsTouchDrag] = useState(false);
 
   // Track in-flight move operations to prevent server data from reverting optimistic updates
   const [pendingOps, setPendingOps] = useState(0);
@@ -191,6 +317,21 @@ export function KanbanBoard({
     window.addEventListener("resize", handleScrollCheck);
     return () => window.removeEventListener("resize", handleScrollCheck);
   }, [handleScrollCheck, columns]);
+
+  // Dwell-based column scroll — only fires on touch, only after a deliberate pause
+  const isDragging = !!(activeTask || activeColumn);
+  useDwellEdgeScroll(scrollContainerRef, isDragging, isTouchDrag);
+
+  // Defer compact mode by one frame so column resize doesn't stutter the drag-start paint
+  const [renderCompact, setRenderCompact] = useState(false);
+  useEffect(() => {
+    if (isDragging && isTouchDrag) {
+      const id = requestAnimationFrame(() => setRenderCompact(true));
+      return () => cancelAnimationFrame(id);
+    } else {
+      setRenderCompact(false);
+    }
+  }, [isDragging, isTouchDrag]);
 
   // Update columns when server data changes (via realtime refresh)
   const serverKey = useMemo(
@@ -428,11 +569,21 @@ export function KanbanBoard({
     showArchived,
   ]);
 
+  // ────────────────────────────────────────────────────────────────────────────
+  // Sensor configuration
+  //
+  // TouchSensor: delay 250ms (slightly longer than the previous 200ms) and a
+  // tighter 8px tolerance. The extra 50ms prevents accidental drag activation
+  // when the user is scrolling vertically within a column. The tighter tolerance
+  // ensures the pointer hasn't drifted much before we commit to a drag, which
+  // pairs well with the dwell-scroll (the card picks up cleanly before the edge
+  // zone becomes relevant).
+  // ────────────────────────────────────────────────────────────────────────────
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: { distance: 8 },
   });
   const touchSensor = useSensor(TouchSensor, {
-    activationConstraint: { delay: 200, tolerance: 5 },
+    activationConstraint: { delay: 250, tolerance: 8 },
   });
   const keyboardSensor = useSensor(KeyboardSensor);
   const sensors = useSensors(mouseSensor, touchSensor, keyboardSensor);
@@ -441,26 +592,30 @@ export function KanbanBoard({
     const { active } = event;
     const data = active.data.current;
 
-      // Snapshot columns so we can revert immediately if drag is cancelled
-      dragStartColumnsRef.current = columnsRef.current;
+    // Snapshot columns so we can revert immediately if drag is cancelled
+    dragStartColumnsRef.current = columnsRef.current;
 
-      if (data?.type === "column") {
-        const col = columnsRef.current.find((c) => c.id === data.columnId);
-        if (col) setActiveColumn(col);
-      } else {
-        const colId = (data?.columnId as string) ?? null;
-        // Look up the task from columns state (sortableData no longer carries it)
-        if (colId) {
-          const col = columnsRef.current.find((c) => c.id === colId);
-          const task = col?.tasks.find((t) => t.id === active.id);
-          if (task) setActiveTask(task);
-        }
-        dragSourceColumnRef.current = colId;
-        dragCurrentColumnRef.current = colId;
+    // Detect touch-initiated drag so the dwell-scroll hook activates
+    const nativeEvent = event.activatorEvent;
+    setIsTouchDrag(
+      typeof TouchEvent !== "undefined" && nativeEvent instanceof TouchEvent
+    );
+
+    if (data?.type === "column") {
+      const col = columnsRef.current.find((c) => c.id === data.columnId);
+      if (col) setActiveColumn(col);
+    } else {
+      const colId = (data?.columnId as string) ?? null;
+      // Look up the task from columns state (sortableData no longer carries it)
+      if (colId) {
+        const col = columnsRef.current.find((c) => c.id === colId);
+        const task = col?.tasks.find((t) => t.id === active.id);
+        if (task) setActiveTask(task);
       }
-    },
-    []
-  );
+      dragSourceColumnRef.current = colId;
+      dragCurrentColumnRef.current = colId;
+    }
+  }, []);
 
   const handleDragOver = useCallback(
     (event: DragOverEvent) => {
@@ -492,12 +647,12 @@ export function KanbanBoard({
 
       if (activeColumnId === overColumnId) return;
 
-      // Skip if we already moved the task to this column
-      if (overColumnId === lastOverColumnRef.current) return;
-      lastOverColumnRef.current = overColumnId;
-
       // Update our tracking ref (replaces mutating active.data.current)
       dragCurrentColumnRef.current = overColumnId;
+
+      // Update overlay with target column name for visual feedback
+      const targetCol = columnsRef.current.find((c) => c.id === overColumnId);
+      setDragTargetColumnName(targetCol?.title ?? null);
 
       // Move task between columns optimistically
       setColumns((prev) => {
@@ -547,11 +702,14 @@ export function KanbanBoard({
       const activeData = active.data.current;
       const currentColumns = columnsRef.current;
 
-      lastOverColumnRef.current = null;
+      // Always reset touch-drag flag when the drag session ends
+      setIsTouchDrag(false);
 
       // Column drag end
       if (activeData?.type === "column") {
         setActiveColumn(null);
+        dragCurrentColumnRef.current = null;
+        dragSourceColumnRef.current = null;
         if (!over) {
           dragStartColumnsRef.current = null;
           return;
@@ -587,12 +745,14 @@ export function KanbanBoard({
 
       // Task drag end — read current column from our ref (not active.data)
       setActiveTask(null);
+      setDragTargetColumnName(null);
 
       const currentColumnId = dragCurrentColumnRef.current;
       const movedBetweenColumns = dragSourceColumnRef.current !== currentColumnId;
 
       // Clean up refs
       dragCurrentColumnRef.current = null;
+      dragSourceColumnRef.current = null;
 
       // Dropped on nothing — revert to pre-drag state immediately
       if (!over || !activeData || activeData.type !== "task") {
@@ -646,7 +806,7 @@ export function KanbanBoard({
       // Calculate position based on the reordered array
       const taskIndex = overIndex;
       let newPosition: number;
-      if (reordered.length === 1) {
+      if (reordered.length <= 1) {
         newPosition = 0;
       } else if (taskIndex === 0) {
         newPosition = reordered[1].position - POSITION_GAP;
@@ -728,6 +888,9 @@ export function KanbanBoard({
         sensors={isReadOnly ? [] : sensors}
         collisionDetection={multiContainerCollision}
         measuring={layoutMeasuring}
+        // Disable dnd-kit's built-in auto-scroll entirely — our dwell hook
+        // handles scrolling for touch and the browser handles mouse natively.
+        autoScroll={false}
         onDragStart={isReadOnly ? undefined : handleDragStart}
         onDragOver={isReadOnly ? undefined : handleDragOver}
         onDragEnd={isReadOnly ? undefined : handleDragEnd}
@@ -736,7 +899,9 @@ export function KanbanBoard({
           <div
             ref={scrollContainerRef}
             onScroll={handleScrollCheck}
-            className="flex h-full items-start gap-4 overflow-x-auto pb-4 snap-x snap-mandatory sm:snap-none"
+            className={`flex h-full items-start gap-4 overflow-x-auto pb-4 ${
+              activeTask || activeColumn ? "!snap-none scroll-smooth" : "snap-x snap-mandatory sm:snap-none"
+            }`}
           >
             <SortableContext
               items={columnIds}
@@ -759,8 +924,9 @@ export function KanbanBoard({
                     userBots={userBots}
                     coverImageUrls={coverImageUrls}
                     hasApiKey={hasApiKey}
-                                ideaDescription={ideaDescription}
+                    ideaDescription={ideaDescription}
                     isReadOnly={isReadOnly}
+                    isCompact={renderCompact}
                   />
                 );
               })}
@@ -771,10 +937,26 @@ export function KanbanBoard({
           {canScrollRight && (
             <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-background to-transparent sm:hidden" />
           )}
+          {/* Visible edge-scroll trigger zones during touch drags.
+              These give the user a clear affordance for where to hover to
+              scroll left/right. They are rendered only on touch devices
+              (sm:hidden) and only while a drag is active. */}
+          {isDragging && isTouchDrag && (
+            <>
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute left-0 top-0 z-10 h-full w-10 rounded-r-lg bg-primary/20"
+              />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute right-0 top-0 z-10 h-full w-10 rounded-l-lg bg-primary/20"
+              />
+            </>
+          )}
         </div>
         {!isReadOnly && (
           <DragOverlay dropAnimation={null}>
-            <OverlayContent activeTask={activeTask} activeColumn={activeColumn} />
+            <OverlayContent activeTask={activeTask} activeColumn={activeColumn} targetColumnName={dragTargetColumnName} isCompact={renderCompact} />
           </DragOverlay>
         )}
       </DndContext>
