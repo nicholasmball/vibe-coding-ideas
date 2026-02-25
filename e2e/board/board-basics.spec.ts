@@ -93,12 +93,12 @@ test.describe("Board Basics", () => {
     // App shows a read-only guest view instead of redirecting
     // The guest banner should be visible
     await expect(
-      userBPage.getByText(/viewing this board as a guest/i)
+      userBPage.getByText(/viewing this board in read-only mode/i)
     ).toBeVisible({ timeout: 15_000 });
 
-    // The "Request to Collaborate" link should be visible
+    // The "Request Access" button should be visible
     await expect(
-      userBPage.getByRole("link", { name: /request to collaborate/i })
+      userBPage.getByRole("button", { name: /request access/i })
     ).toBeVisible();
   });
 

@@ -50,9 +50,16 @@ test.describe("Collaboration", () => {
   });
 
   test.describe("Self-join and leave (User B)", () => {
-    test("User B joins as collaborator by clicking the join button", async ({
+    test("User B requests collaboration by clicking the join button", async ({
       userBPage,
     }) => {
+      // Clean up any existing requests from previous runs
+      await supabaseAdmin
+        .from("collaboration_requests")
+        .delete()
+        .eq("idea_id", publicIdeaId)
+        .eq("requester_id", userBId);
+
       await userBPage.goto(`/ideas/${publicIdeaId}`);
 
       // The collaborator button should say "I want to build this" for non-collaborators
@@ -62,14 +69,19 @@ test.describe("Collaboration", () => {
       await expect(joinButton).toBeVisible({ timeout: 15_000 });
       await expect(joinButton).toBeEnabled({ timeout: 15_000 });
 
-      // Click to join
+      // Click to request collaboration
       await joinButton.click();
 
-      // After joining, button text should change to "Leave Project"
-      const leaveButton = userBPage.getByRole("button", {
-        name: /leave project/i,
+      // After requesting, button text should change to "Requested" (pending approval)
+      const requestedButton = userBPage.getByRole("button", {
+        name: /requested/i,
       });
-      await expect(leaveButton).toBeVisible({ timeout: 15_000 });
+      await expect(requestedButton).toBeVisible({ timeout: 15_000 });
+
+      // A success toast should appear
+      await expect(
+        userBPage.locator("[data-sonner-toast]").filter({ hasText: /request sent/i })
+      ).toBeVisible({ timeout: 10_000 });
     });
 
     test("User B appears in the collaborators list after joining", async ({
@@ -91,6 +103,13 @@ test.describe("Collaboration", () => {
     test("User B leaves the project by clicking Leave button", async ({
       userBPage,
     }) => {
+      // Clean up any pending collaboration requests from previous tests
+      await supabaseAdmin
+        .from("collaboration_requests")
+        .delete()
+        .eq("idea_id", publicIdeaId)
+        .eq("requester_id", userBId);
+
       // Ensure User B is a collaborator first
       await addCollaborator(publicIdeaId, userBId);
 
