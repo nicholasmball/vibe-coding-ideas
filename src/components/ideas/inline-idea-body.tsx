@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Github, ExternalLink, Pencil, Plus } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,14 @@ export function InlineIdeaBody({
   const [editingDescription, setEditingDescription] = useState(false);
   const previousDescRef = useRef(initialDescription);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Sync local state when the server prop changes (e.g. after AI enhance + router.refresh)
+  useEffect(() => {
+    if (!editingDescription) {
+      setDescription(initialDescription);
+      previousDescRef.current = initialDescription;
+    }
+  }, [initialDescription, editingDescription]);
 
   const [githubUrl, setGithubUrl] = useState(initialGithubUrl ?? "");
   const [editingGithubUrl, setEditingGithubUrl] = useState(false);

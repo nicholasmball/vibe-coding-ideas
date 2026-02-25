@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Loader2,
@@ -84,7 +84,17 @@ export function EnhanceIdeaDialog({
   const [refinementInput, setRefinementInput] = useState("");
   const [truncated, setTruncated] = useState(false);
 
+  // Auto-scroll the enhanced text box while streaming
+  const enhancedBoxRef = useRef<HTMLDivElement>(null);
+
   const busy = loading || applying || generatingQuestions;
+
+  // Auto-scroll enhanced text box to bottom while streaming
+  useEffect(() => {
+    if (loading && enhancedBoxRef.current) {
+      enhancedBoxRef.current.scrollTop = enhancedBoxRef.current.scrollHeight;
+    }
+  }, [loading, enhancedText]);
 
   const questionSteps = [
     { title: "Reading your idea", description: "Analyzing the description and prompt" },
@@ -177,6 +187,14 @@ export function EnhanceIdeaDialog({
         text += decoder.decode(value, { stream: true });
         setEnhancedText(text);
       }
+
+      // Detect truncation sentinel from server
+      const TRUNCATION_MARKER = "\n\n__TRUNCATED__";
+      if (text.endsWith(TRUNCATION_MARKER)) {
+        text = text.slice(0, -TRUNCATION_MARKER.length);
+        setEnhancedText(text);
+        setTruncated(true);
+      }
     } catch (err) {
       toast.error(
         err instanceof Error ? err.message : "Failed to enhance description"
@@ -231,6 +249,18 @@ export function EnhanceIdeaDialog({
     } finally {
       setApplying(false);
     }
+  }
+
+  // ── Continue from truncation ────────────────────────────────────────
+
+  async function handleContinue() {
+    if (!enhancedText) return;
+    await runStreamingEnhance({
+      personaPrompt: getPersonaPrompt(),
+      previousEnhanced: enhancedText,
+      refinementFeedback:
+        "The previous output was cut off before it could finish. Continue writing from exactly where you stopped. Do NOT repeat any content that was already written — pick up mid-sentence or mid-section if needed.",
+    });
   }
 
   // ── Phase: Refine → Result ──────────────────────────────────────────
@@ -479,8 +509,17 @@ export function EnhanceIdeaDialog({
         {phase === "result" && enhancedText !== null && (
           <div className="space-y-4">
             {truncated && !loading && (
-              <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
-                The output was truncated due to length limits. Use Refine to ask the AI to complete the remaining sections.
+              <div className="flex items-center justify-between gap-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
+                <span>The output was truncated due to length limits.</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleContinue}
+                  disabled={busy}
+                  className="h-6 shrink-0 border-amber-500/30 text-xs hover:bg-amber-500/10"
+                >
+                  Continue
+                </Button>
               </div>
             )}
             {/* Side-by-side comparison */}
@@ -496,7 +535,7 @@ export function EnhanceIdeaDialog({
                   Enhanced
                   {loading && <Loader2 className="h-3 w-3 animate-spin" />}
                 </Label>
-                <div className="max-h-60 overflow-y-auto overflow-x-hidden rounded-md border border-primary/30 bg-primary/5 p-3 text-sm break-words">
+                <div ref={enhancedBoxRef} className="max-h-60 overflow-y-auto overflow-x-hidden rounded-md border border-primary/30 bg-primary/5 p-3 text-sm break-words">
                   {enhancedText ? (
                     <Markdown>{enhancedText}</Markdown>
                   ) : (

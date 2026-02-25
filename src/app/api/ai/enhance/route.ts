@@ -111,7 +111,7 @@ Use the answers above to inform your enhanced description. Make the enhancement 
       model: anthropic(AI_MODEL),
       system: systemPrompt,
       prompt: userPrompt,
-      maxOutputTokens: 8000,
+      maxOutputTokens: 16000,
       onFinish: async ({ usage, finishReason }) => {
         await logAiUsage(supabase, {
           userId: user.id,
@@ -121,14 +121,30 @@ Use the answers above to inform your enhanced description. Make the enhancement 
           model: AI_MODEL,
           ideaId,
         });
-        // Log truncation for debugging
         if (finishReason === "length") {
           console.warn(`[AI Enhance] Output truncated for idea ${ideaId}`);
         }
       },
     });
 
-    return result.toTextStreamResponse();
+    // Stream text, then append a truncation sentinel if output was cut short
+    const encoder = new TextEncoder();
+    const stream = new ReadableStream({
+      async start(controller) {
+        for await (const chunk of result.textStream) {
+          controller.enqueue(encoder.encode(chunk));
+        }
+        const reason = await result.finishReason;
+        if (reason === "length") {
+          controller.enqueue(encoder.encode("\n\n__TRUNCATED__"));
+        }
+        controller.close();
+      },
+    });
+
+    return new Response(stream, {
+      headers: { "Content-Type": "text/plain; charset=utf-8" },
+    });
   } catch (err) {
     console.error("[AI Enhance API Error]", err);
     return Response.json(
