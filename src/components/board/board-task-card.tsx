@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback, useRef, memo } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef, useContext, memo } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -20,6 +20,7 @@ import { LabelPicker } from "./label-picker";
 import { DueDateBadge } from "./due-date-badge";
 import { TaskDetailDialog } from "./task-detail-dialog";
 import { createClient } from "@/lib/supabase/client";
+import { TaskAutoOpenContext } from "./kanban-board";
 import type { BoardTaskWithAssignee, BoardLabel, BoardChecklistItem, User } from "@/types";
 
 interface BoardTaskCardProps {
@@ -75,7 +76,11 @@ export const BoardTaskCard = memo(function BoardTaskCard({
   initialCoverUrl,
   isReadOnly = false,
 }: BoardTaskCardProps) {
-  const [detailOpen, setDetailOpen] = useState(autoOpen);
+  // Use context for auto-open — bypasses memo chain and reacts to URL navigation
+  const { autoOpenTaskId, onAutoOpenConsumed } = useContext(TaskAutoOpenContext);
+  const shouldAutoOpen = autoOpen || task.id === autoOpenTaskId;
+
+  const [detailOpen, setDetailOpen] = useState(shouldAutoOpen);
   const [initialTab, setInitialTab] = useState<string | undefined>(undefined);
   const [coverUrl, setCoverUrl] = useState<string | null>(
     initialCoverUrl ?? null,
@@ -83,20 +88,21 @@ export const BoardTaskCard = memo(function BoardTaskCard({
   const [coverPreviewOpen, setCoverPreviewOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
-  const wasAutoOpenRef = useRef(autoOpen);
+  const wasAutoOpenRef = useRef(shouldAutoOpen);
 
-  // Sync autoOpen prop changes (e.g. clicking a second notification while on the same board)
+  // Sync auto-open from both prop and context (e.g. notification click while on the same board)
   useEffect(() => {
-    if (autoOpen) {
+    if (shouldAutoOpen) {
       setDetailOpen(true);
       wasAutoOpenRef.current = true;
     }
-  }, [autoOpen]);
+  }, [shouldAutoOpen]);
 
   // When the auto-opened detail dialog closes, scroll into view and highlight
   useEffect(() => {
     if (wasAutoOpenRef.current && !detailOpen) {
       wasAutoOpenRef.current = false;
+      onAutoOpenConsumed();
       const el = cardRef.current;
       if (el) {
         // Small delay to let the dialog unmount and DOM settle
@@ -107,7 +113,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
         });
       }
     }
-  }, [detailOpen]);
+  }, [detailOpen, onAutoOpenConsumed]);
 
   // Update URL when dialog opens/closes
   const handleOpenChange = useCallback(
