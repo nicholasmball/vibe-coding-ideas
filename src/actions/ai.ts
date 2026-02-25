@@ -11,8 +11,16 @@ import type { AiCredits } from "@/types";
 
 const AI_MODEL = "claude-sonnet-4-6";
 const AI_TIMEOUT_MS = 90_000; // 90s — fail gracefully before Vercel's 120s function timeout
+const MAX_DESCRIPTION_CHARS = 15_000; // Truncate descriptions beyond this to avoid API timeouts
 
 type ActionType = "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description";
+
+/** Truncate a description to avoid blowing up API latency with huge prompts. */
+function truncateDescription(description: string | null): string {
+  if (!description) return "(no description)";
+  if (description.length <= MAX_DESCRIPTION_CHARS) return description;
+  return description.slice(0, MAX_DESCRIPTION_CHARS) + "\n\n[… description truncated for length]";
+}
 
 /** Re-throw AI SDK errors as plain Error so Next.js RSC can serialize them. */
 function toPlainError(err: unknown): never {
@@ -201,8 +209,8 @@ export async function enhanceIdeaDescription(
     ({ text, usage, finishReason } = await generateText({
       model: anthropic(AI_MODEL),
       system: systemPrompt,
-      prompt: `${prompt}\n\n---\n\n**Idea Title:** ${idea.title}\n\n**Current Description:**\n${idea.description}`,
-      maxOutputTokens: 8000,
+      prompt: `${prompt}\n\n---\n\n**Idea Title:** ${idea.title}\n\n**Current Description:**\n${truncateDescription(idea.description)}`,
+      maxOutputTokens: 4000,
       abortSignal: AbortSignal.timeout(AI_TIMEOUT_MS),
     }));
   } catch (err) {
@@ -296,7 +304,7 @@ export async function generateClarifyingQuestions(
 **Idea Title:** ${idea.title}
 
 **Current Description:**
-${idea.description}`,
+${truncateDescription(idea.description)}`,
       schema: ClarifyingQuestionsSchema,
       maxOutputTokens: 1000,
       abortSignal: AbortSignal.timeout(AI_TIMEOUT_MS),
@@ -379,10 +387,10 @@ export async function enhanceIdeaWithContext(
     userPrompt = `You previously enhanced an idea description. The user has feedback for revision.
 
 **Original Description:**
-${idea.description}
+${truncateDescription(idea.description)}
 
 **Your Previous Enhancement:**
-${options!.previousEnhanced}
+${truncateDescription(options!.previousEnhanced!)}
 
 **User's Refinement Feedback:**
 ${options!.refinementFeedback}
@@ -398,7 +406,7 @@ Revise the enhanced description based on this feedback. Keep changes targeted to
 ---
 **Idea Title:** ${idea.title}
 **Current Description:**
-${idea.description}
+${truncateDescription(idea.description)}
 
 ---
 **Clarifying Q&A:**
@@ -406,7 +414,7 @@ ${qaSection}
 
 Use the answers above to inform your enhanced description. Make the enhancement specific and tailored based on what you learned.`;
   } else {
-    userPrompt = `${prompt}\n\n---\n\n**Idea Title:** ${idea.title}\n\n**Current Description:**\n${idea.description}`;
+    userPrompt = `${prompt}\n\n---\n\n**Idea Title:** ${idea.title}\n\n**Current Description:**\n${truncateDescription(idea.description)}`;
   }
 
   let text: string;
@@ -417,7 +425,7 @@ Use the answers above to inform your enhanced description. Make the enhancement 
       model: anthropic(AI_MODEL),
       system: systemPrompt,
       prompt: userPrompt,
-      maxOutputTokens: 8000,
+      maxOutputTokens: 4000,
       abortSignal: AbortSignal.timeout(AI_TIMEOUT_MS),
     }));
   } catch (err) {
@@ -542,7 +550,7 @@ export async function generateBoardTasks(
     `${prompt}`,
     `---`,
     `**Idea Title:** ${idea.title}`,
-    `**Idea Description:**\n${idea.description}`,
+    `**Idea Description:**\n${truncateDescription(idea.description)}`,
   ];
 
   if (existingColumns.length > 0) {
@@ -560,7 +568,7 @@ export async function generateBoardTasks(
       system: systemPrompt,
       prompt: contextParts.join("\n\n"),
       schema: GeneratedBoardSchema,
-      maxOutputTokens: 8000,
+      maxOutputTokens: 4000,
       abortSignal: AbortSignal.timeout(AI_TIMEOUT_MS),
     }));
   } catch (err) {
