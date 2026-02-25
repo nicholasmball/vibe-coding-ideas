@@ -219,6 +219,7 @@ export const BoardColumn = memo(function BoardColumn({
                 userBots={userBots}
                 initialCoverUrl={task.cover_image_path ? coverImageUrls[task.cover_image_path] : undefined}
                 isReadOnly={isReadOnly}
+                hasApiKey={hasApiKey}
               />
             ))}
           </SortableContext>

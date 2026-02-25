@@ -36,6 +36,7 @@ interface BoardTaskCardProps {
   userBots?: User[];
   initialCoverUrl?: string;
   isReadOnly?: boolean;
+  hasApiKey?: boolean;
 }
 
 function HighlightedText({ text, query }: { text: string; query: string }) {
@@ -75,6 +76,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
   userBots = [],
   initialCoverUrl,
   isReadOnly = false,
+  hasApiKey = false,
 }: BoardTaskCardProps) {
   // Use context for auto-open — bypasses memo chain and reacts to URL navigation
   const { autoOpenTaskId, onAutoOpenConsumed } = useContext(TaskAutoOpenContext);
@@ -379,6 +381,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
           initialTab={initialTab}
           userBots={userBots}
           isReadOnly={isReadOnly}
+          hasApiKey={hasApiKey}
         />
       )}
       {/* Cover image lightbox */}

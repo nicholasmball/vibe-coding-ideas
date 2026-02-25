@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
-import { Tag, Trash2, Archive, ArchiveRestore, Pencil, X, Bot, Link2 } from "lucide-react";
+import { Tag, Trash2, Archive, ArchiveRestore, Pencil, X, Bot, Link2, Sparkles, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,6 +22,7 @@ import { TaskAttachmentsSection } from "./task-attachments-section";
 import { Markdown } from "@/components/ui/markdown";
 import { MentionAutocomplete } from "./mention-autocomplete";
 import { updateBoardTask, deleteBoardTask } from "@/actions/board";
+import { enhanceTaskDescription } from "@/actions/ai";
 import { useBoardOps } from "./board-context";
 import { createClient } from "@/lib/supabase/client";
 import { logTaskActivity } from "@/lib/activity";
@@ -39,6 +40,7 @@ interface TaskDetailDialogProps {
   initialTab?: string;
   userBots?: User[];
   isReadOnly?: boolean;
+  hasApiKey?: boolean;
 }
 
 export function TaskDetailDialog({
@@ -53,6 +55,7 @@ export function TaskDetailDialog({
   initialTab,
   userBots = [],
   isReadOnly = false,
+  hasApiKey = false,
 }: TaskDetailDialogProps) {
   const ops = useBoardOps();
   const [activeTab, setActiveTab] = useState("details");
@@ -63,6 +66,7 @@ export function TaskDetailDialog({
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);
+  const [enhancing, setEnhancing] = useState(false);
   const descriptionTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   // @mention state for description
@@ -245,6 +249,22 @@ export function TaskDetailDialog({
       setDescription(task.description ?? "");
     } finally {
       setSavingDesc(false);
+    }
+  }
+
+  const showAiEnhance = hasApiKey && !isReadOnly && editingDescription && description.trim().length > 10;
+
+  async function handleEnhanceDescription() {
+    if (!title.trim() || !description.trim()) return;
+    setEnhancing(true);
+    try {
+      const result = await enhanceTaskDescription(ideaId, title.trim(), description.trim());
+      setDescription(result.enhanced);
+      toast.success("Description enhanced");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to enhance");
+    } finally {
+      setEnhancing(false);
     }
   }
 
@@ -589,22 +609,42 @@ export function TaskDetailDialog({
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">Description</span>
-                  {!isReadOnly && !editingDescription && description && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 gap-1 text-xs text-muted-foreground"
-                      onClick={() => {
-                        setEditingDescription(true);
-                        requestAnimationFrame(() => {
-                          descriptionTextareaRef.current?.focus();
-                        });
-                      }}
-                    >
-                      <Pencil className="h-3 w-3" />
-                      Edit
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {showAiEnhance && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 gap-1 px-2 text-xs text-muted-foreground"
+                        onClick={handleEnhanceDescription}
+                        disabled={enhancing}
+                        title="Enhance with AI"
+                      >
+                        {enhancing ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3 w-3" />
+                        )}
+                        {enhancing ? "Enhancing..." : "Enhance"}
+                      </Button>
+                    )}
+                    {!isReadOnly && !editingDescription && description && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 gap-1 text-xs text-muted-foreground"
+                        onClick={() => {
+                          setEditingDescription(true);
+                          requestAnimationFrame(() => {
+                            descriptionTextareaRef.current?.focus();
+                          });
+                        }}
+                      >
+                        <Pencil className="h-3 w-3" />
+                        Edit
+                      </Button>
+                    )}
+                  </div>
                 </div>
                 {isReadOnly ? (
                   description ? (
