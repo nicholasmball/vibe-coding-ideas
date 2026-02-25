@@ -31,6 +31,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/utils";
 import { formatActivityDetails, groupIntoSessions } from "@/lib/activity-format";
@@ -351,7 +352,7 @@ export function BotActivityDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-6 overflow-hidden">
           {/* Assigned Tasks Section */}
           <section>
             <h3 className="text-sm font-medium mb-2 flex items-center gap-1.5">
@@ -423,8 +424,8 @@ export function BotActivityDialog({
               </p>
             ) : (
               <>
-                <div className="max-h-96 overflow-y-auto">
-                  <div className="space-y-4 min-w-0">
+                <ScrollArea className="max-h-96 [&_[data-slot=scroll-area-viewport]>div]:!block [&_[data-slot=scroll-area-viewport]>div]:!min-w-0">
+                  <div className="space-y-4">
                     {sessions.map((session, sessionIdx) => {
                       const taskGroups = groupByTask(session);
 
@@ -440,7 +441,7 @@ export function BotActivityDialog({
                           </div>
 
                           {/* Task groups within session */}
-                          <div className="space-y-3 min-w-0">
+                          <div className="space-y-3">
                             {taskGroups.map((group, groupIdx) => (
                               <div key={groupIdx}>
                                 {/* Task title header (shown once per group) */}
@@ -463,7 +464,7 @@ export function BotActivityDialog({
                                 )}
 
                                 {/* Compact entries */}
-                                <div className="space-y-1.5 pl-2 border-l-2 border-border min-w-0 overflow-hidden">
+                                <div className="space-y-1.5 pl-2 border-l-2 border-border">
                                   {group.entries.map((entry) => {
                                     if (entry.kind === "comment") {
                                       return (
@@ -516,7 +517,7 @@ export function BotActivityDialog({
                       );
                     })}
                   </div>
-                </div>
+                </ScrollArea>
                 {hasMore && (
                   <Button
                     variant="ghost"
