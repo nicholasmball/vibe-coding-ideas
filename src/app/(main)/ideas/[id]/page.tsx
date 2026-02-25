@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { Users, Pencil, LayoutDashboard, Trash2, Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -79,6 +79,8 @@ export default async function IdeaDetailPage({ params }: PageProps) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login");
 
   // Fetch idea with author
   const { data: idea } = await supabase

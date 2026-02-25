@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { IdeaFeed } from "@/components/ideas/idea-feed";
 import { CompleteProfileBanner } from "@/components/profile/complete-profile-banner";
@@ -37,6 +38,8 @@ export default async function FeedPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  if (!user) redirect("/login");
 
   // For "collaborating" view, fetch idea IDs where user is a collaborator
   let collaboratingIdeaIds: string[] = [];
