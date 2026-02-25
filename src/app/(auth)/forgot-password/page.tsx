@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -14,12 +14,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { TurnstileWidget } from "@/components/auth/turnstile-widget";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+
+  const handleCaptchaToken = useCallback(
+    (token: string | null) => setCaptchaToken(token),
+    [],
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +36,7 @@ export default function ForgotPasswordPage() {
     const supabase = createClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
+      captchaToken: captchaToken ?? undefined,
     });
 
     if (error) {
@@ -82,6 +90,7 @@ export default function ForgotPasswordPage() {
               {error && (
                 <p className="text-sm text-destructive">{error}</p>
               )}
+              <TurnstileWidget onToken={handleCaptchaToken} />
               <Button type="submit" size="lg" className="w-full" disabled={loading}>
                 {loading ? "Sending..." : "Send reset link"}
               </Button>

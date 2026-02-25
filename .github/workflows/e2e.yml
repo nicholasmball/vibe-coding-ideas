@@ -85,7 +85,7 @@ jobs:
             const runUrl = `https://github.com/${owner}/${repo}/actions/runs/${runId}`;
 
             const { data: commit } = await github.rest.repos.getCommit({ owner, repo, ref: context.sha });
-            const commitMsg = commit.message.split('\n')[0].substring(0, 80);
+            const commitMsg = (commit.commit?.message || 'Unknown commit').split('\n')[0].substring(0, 80);
 
             // Check if an issue already exists for this run (another matrix job may have created one)
             const { data: existing } = await github.rest.issues.listForRepo({
