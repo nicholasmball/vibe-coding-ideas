@@ -75,8 +75,10 @@ const layoutMeasuring = {
   droppable: { strategy: MeasuringStrategy.WhileDragging },
 };
 
-// Memoized overlay — prevents parent re-renders from cascading on every drag frame
-const OverlayContent = React.memo(function OverlayContent({
+// Overlay content — intentionally NOT wrapped in React.memo because DragOverlay's
+// portal mounts lazily on first drag. React.memo can prevent the overlay from
+// rendering the task on the initial mount when the portal and setActiveTask batch together.
+function OverlayContent({
   activeTask,
   activeColumn,
   targetColumnName,
@@ -108,7 +110,7 @@ const OverlayContent = React.memo(function OverlayContent({
     );
   }
   return null;
-});
+}
 
 interface KanbanBoardProps {
   columns: BoardColumnWithTasks[];
