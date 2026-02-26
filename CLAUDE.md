@@ -108,7 +108,7 @@ Key columns:
 - `admin.ts` — toggleAiEnabled, setUserAiDailyLimit
 - `users.ts` — deleteUser (admin only)
 - `prompt-templates.ts` — list, create, delete
-- `feedback.ts` — submitFeedback
+- `feedback.ts` — submitFeedback, updateFeedbackStatus, deleteFeedback
 
 ## Environment Variables
 
