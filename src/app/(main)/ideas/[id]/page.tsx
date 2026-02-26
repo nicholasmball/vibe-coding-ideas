@@ -20,6 +20,7 @@ import { RemoveCollaboratorButton } from "@/components/ideas/remove-collaborator
 import { InlineIdeaHeader } from "@/components/ideas/inline-idea-header";
 import { InlineIdeaBody } from "@/components/ideas/inline-idea-body";
 import { InlineIdeaTags } from "@/components/ideas/inline-idea-tags";
+import { IdeaAttachmentsSection } from "@/components/ideas/idea-attachments-section";
 import { formatRelativeTime, stripMarkdownForMeta } from "@/lib/utils";
 import { PendingRequests } from "@/components/ideas/pending-requests";
 import type { CommentWithAuthor, CollaboratorWithUser, CollaborationRequestWithRequester, BotProfile, User } from "@/types";
@@ -377,6 +378,15 @@ export default async function IdeaDetailPage({ params }: PageProps) {
         description={idea.description}
         githubUrl={idea.github_url}
         isAuthor={isAuthor}
+      />
+
+      {/* Attachments — team members always see it; others see it if attachments exist (component handles this) */}
+      <Separator className="my-6" />
+      <IdeaAttachmentsSection
+        ideaId={idea.id}
+        currentUserId={user?.id ?? ""}
+        isAuthor={isAuthor}
+        isTeamMember={isAuthor || isCollaborator}
       />
 
       {/* Comments */}

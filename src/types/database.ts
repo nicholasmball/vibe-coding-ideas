@@ -109,6 +109,7 @@ export type Database = {
           upvotes: number;
           comment_count: number;
           collaborator_count: number;
+          attachment_count: number;
           created_at: string;
           updated_at: string;
         };
@@ -124,6 +125,7 @@ export type Database = {
           upvotes?: number;
           comment_count?: number;
           collaborator_count?: number;
+          attachment_count?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -139,6 +141,7 @@ export type Database = {
           upvotes?: number;
           comment_count?: number;
           collaborator_count?: number;
+          attachment_count?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -705,6 +708,54 @@ export type Database = {
           },
           {
             foreignKeyName: "board_task_attachments_uploaded_by_fkey";
+            columns: ["uploaded_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      idea_attachments: {
+        Row: {
+          id: string;
+          idea_id: string;
+          uploaded_by: string;
+          file_name: string;
+          file_size: number;
+          content_type: string;
+          storage_path: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          idea_id: string;
+          uploaded_by: string;
+          file_name: string;
+          file_size: number;
+          content_type: string;
+          storage_path: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          idea_id?: string;
+          uploaded_by?: string;
+          file_name?: string;
+          file_size?: number;
+          content_type?: string;
+          storage_path?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "idea_attachments_idea_id_fkey";
+            columns: ["idea_id"];
+            isOneToOne: false;
+            referencedRelation: "ideas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "idea_attachments_uploaded_by_fkey";
             columns: ["uploaded_by"];
             isOneToOne: false;
             referencedRelation: "users";

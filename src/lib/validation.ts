@@ -7,6 +7,17 @@ export const MAX_BIO_LENGTH = 500;
 export const MAX_TAG_LENGTH = 50;
 export const MAX_TAGS = 10;
 export const MAX_LABEL_NAME_LENGTH = 50;
+export const MAX_IDEA_ATTACHMENTS = 10;
+export const MAX_IDEA_ATTACHMENT_SIZE = 10 * 1024 * 1024; // 10 MB
+export const ALLOWED_IDEA_ATTACHMENT_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/svg+xml",
+  "application/pdf",
+  "text/markdown",
+] as const;
 
 const VALID_LABEL_COLORS = [
   "red", "orange", "amber", "yellow", "lime", "green",
