@@ -128,90 +128,6 @@ interface KanbanBoardProps {
   isReadOnly?: boolean;
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// Desktop auto-scroll: smooth rAF-based edge scrolling for mouse drags.
-// Bypasses @dnd-kit's built-in autoScroll which has a hardcoded scrollIntent
-// gate that zeros out speed when the pointer is stationary at the edge.
-// ────────────────────────────────────────────────────────────────────────────
-const DESKTOP_EDGE_ZONE = 80;     // px from container edge where scrolling starts
-const DESKTOP_MAX_SPEED = 1200;   // px/s at the very edge of the container
-
-function useDesktopAutoScroll(
-  scrollContainerRef: React.RefObject<HTMLDivElement | null>,
-  isDragging: boolean,
-  isTouchDrag: boolean,
-) {
-  const pointerRef = useRef<{ x: number; y: number } | null>(null);
-  const rafRef = useRef<number | null>(null);
-  const lastTimeRef = useRef<number>(0);
-
-  useEffect(() => {
-    // Only active for desktop (mouse) drags
-    if (!isDragging || isTouchDrag) {
-      pointerRef.current = null;
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-      return;
-    }
-
-    const onPointerMove = (e: PointerEvent) => {
-      pointerRef.current = { x: e.clientX, y: e.clientY };
-    };
-
-    const tick = (timestamp: number) => {
-      const el = scrollContainerRef.current;
-      const pos = pointerRef.current;
-
-      if (!el || !pos) {
-        rafRef.current = requestAnimationFrame(tick);
-        return;
-      }
-
-      // Frame-rate-independent delta (seconds)
-      const dt = lastTimeRef.current ? (timestamp - lastTimeRef.current) / 1000 : 0;
-      lastTimeRef.current = timestamp;
-
-      const rect = el.getBoundingClientRect();
-      let speedX = 0;
-
-      // Right edge — pointer approaching right boundary
-      const distFromRight = rect.right - pos.x;
-      if (distFromRight < DESKTOP_EDGE_ZONE && distFromRight > 0) {
-        const t = 1 - distFromRight / DESKTOP_EDGE_ZONE; // 0 at boundary, 1 at edge
-        speedX = DESKTOP_MAX_SPEED * t * t; // quadratic easing: gentle start, fast at edge
-      }
-
-      // Left edge — pointer approaching left boundary
-      const distFromLeft = pos.x - rect.left;
-      if (distFromLeft < DESKTOP_EDGE_ZONE && distFromLeft > 0) {
-        const t = 1 - distFromLeft / DESKTOP_EDGE_ZONE;
-        speedX = -DESKTOP_MAX_SPEED * t * t;
-      }
-
-      if (speedX !== 0 && dt > 0) {
-        el.scrollBy(speedX * dt, 0);
-      }
-
-      rafRef.current = requestAnimationFrame(tick);
-    };
-
-    window.addEventListener("pointermove", onPointerMove);
-    lastTimeRef.current = 0;
-    rafRef.current = requestAnimationFrame(tick);
-
-    return () => {
-      window.removeEventListener("pointermove", onPointerMove);
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
-      }
-      pointerRef.current = null;
-    };
-  }, [isDragging, isTouchDrag, scrollContainerRef]);
-}
-
 // Dwell-scroll constants (hoisted out of hook to avoid stale closure issues)
 const DWELL_EDGE_ZONE = 40;      // px from container edge to trigger zone
 const DWELL_INNER_ZONE = 80;     // px from edge where cancel kicks in
@@ -402,10 +318,8 @@ export function KanbanBoard({
     return () => window.removeEventListener("resize", handleScrollCheck);
   }, [handleScrollCheck, columns]);
 
-  // Custom edge scrolling — replaces @dnd-kit's broken autoScroll
-  const isDragging = !!(activeTask || activeColumn);
-  useDesktopAutoScroll(scrollContainerRef, isDragging, isTouchDrag);
   // Dwell-based column scroll — only fires on touch, only after a deliberate pause
+  const isDragging = !!(activeTask || activeColumn);
   useDwellEdgeScroll(scrollContainerRef, isDragging, isTouchDrag);
 
   // Update columns when server data changes (via realtime refresh)
@@ -963,7 +877,7 @@ export function KanbanBoard({
         sensors={isReadOnly ? [] : sensors}
         collisionDetection={multiContainerCollision}
         measuring={layoutMeasuring}
-        autoScroll={false}
+        autoScroll
         onDragStart={isReadOnly ? undefined : handleDragStart}
         onDragOver={isReadOnly ? undefined : handleDragOver}
         onDragEnd={isReadOnly ? undefined : handleDragEnd}
