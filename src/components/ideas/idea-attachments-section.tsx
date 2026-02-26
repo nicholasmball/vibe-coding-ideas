@@ -162,7 +162,13 @@ export function IdeaAttachmentsSection({
       return;
     }
 
-    if (!ALLOWED_IDEA_ATTACHMENT_TYPES.includes(file.type as (typeof ALLOWED_IDEA_ATTACHMENT_TYPES)[number])) {
+    const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+    const allowedExts = ["md", "pdf", "png", "jpg", "jpeg", "gif", "webp", "svg"];
+    const typeAllowed =
+      ALLOWED_IDEA_ATTACHMENT_TYPES.includes(file.type as (typeof ALLOWED_IDEA_ATTACHMENT_TYPES)[number]) ||
+      allowedExts.includes(ext);
+
+    if (!typeAllowed) {
       toast.error("Unsupported file type. Allowed: images, PDF, Markdown");
       return;
     }
@@ -172,12 +178,17 @@ export function IdeaAttachmentsSection({
       return;
     }
 
+    // Normalize content type — browsers often report .md as text/plain or empty
+    let contentType = file.type;
+    if (ext === "md" && contentType !== "text/markdown") {
+      contentType = "text/markdown";
+    }
+
     const placeholderId = crypto.randomUUID();
     setUploadingFiles((prev) => [...prev, { id: placeholderId, name: file.name, size: file.size }]);
     setUploading(true);
     const supabase = createClient();
 
-    const ext = file.name.split(".").pop() ?? "";
     const uniqueName = `${crypto.randomUUID()}.${ext}`;
     const storagePath = `${ideaId}/${uniqueName}`;
 
@@ -197,7 +208,7 @@ export function IdeaAttachmentsSection({
       uploaded_by: currentUserId,
       file_name: file.name,
       file_size: file.size,
-      content_type: file.type,
+      content_type: contentType,
       storage_path: storagePath,
     });
 
