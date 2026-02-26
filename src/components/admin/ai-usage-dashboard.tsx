@@ -57,10 +57,6 @@ export function AiUsageDashboard({
     } else {
       params.delete(key);
     }
-    // Remove feedback-specific params when updating AI usage filters
-    params.delete("category");
-    params.delete("status");
-    params.delete("tab");
     router.push(`/admin?${params.toString()}`);
   }
 
