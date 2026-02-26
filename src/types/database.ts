@@ -30,6 +30,7 @@ export type Database = {
           encrypted_anthropic_key: string | null;
           active_bot_id: string | null;
           ai_daily_limit: number;
+          onboarding_completed_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -59,6 +60,7 @@ export type Database = {
           encrypted_anthropic_key?: string | null;
           active_bot_id?: string | null;
           ai_daily_limit?: number;
+          onboarding_completed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -88,6 +90,7 @@ export type Database = {
           encrypted_anthropic_key?: string | null;
           active_bot_id?: string | null;
           ai_daily_limit?: number;
+          onboarding_completed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

@@ -1,0 +1,1568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VibeCodes — Onboarding Flow Mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --zinc-950: #09090b;
+    --zinc-900: #18181b;
+    --zinc-850: #1f1f23;
+    --zinc-800: #27272a;
+    --zinc-700: #3f3f46;
+    --zinc-600: #52525b;
+    --zinc-500: #71717a;
+    --zinc-400: #a1a1aa;
+    --zinc-300: #d4d4d8;
+    --zinc-200: #e4e4e7;
+    --zinc-100: #f4f4f5;
+    --violet-600: #7c3aed;
+    --violet-500: #8b5cf6;
+    --violet-400: #a78bfa;
+    --violet-300: #c4b5fd;
+    --violet-200: #ddd6fe;
+    --violet-glow: rgba(139, 92, 246, 0.15);
+    --violet-glow-strong: rgba(139, 92, 246, 0.25);
+    --amber-500: #f59e0b;
+    --emerald-500: #10b981;
+    --emerald-400: #34d399;
+    --rose-500: #f43f5e;
+    --sky-500: #0ea5e9;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--zinc-950);
+    color: var(--zinc-300);
+    min-height: 100vh;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ═══════════════════════════════════════════
+     BACKDROP — Simulated dashboard behind modal
+     ═══════════════════════════════════════════ */
+  .dashboard-backdrop {
+    position: fixed;
+    inset: 0;
+    background: var(--zinc-950);
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .dashboard-backdrop::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    background: var(--zinc-900);
+    border-bottom: 1px solid var(--zinc-800);
+  }
+
+  .backdrop-nav {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 32px;
+    z-index: 1;
+  }
+
+  .backdrop-logo {
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--zinc-100);
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .backdrop-logo svg {
+    width: 22px;
+    height: 22px;
+    color: var(--violet-500);
+  }
+
+  .backdrop-nav-items {
+    display: flex;
+    gap: 4px;
+  }
+
+  .backdrop-nav-item {
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--zinc-500);
+  }
+
+  .backdrop-content {
+    position: absolute;
+    top: 56px;
+    left: 0; right: 0; bottom: 0;
+    padding: 32px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    opacity: 0.3;
+    filter: blur(1px);
+  }
+
+  .backdrop-card {
+    background: var(--zinc-900);
+    border: 1px solid var(--zinc-800);
+    border-radius: 12px;
+    height: 160px;
+  }
+
+  .backdrop-card:first-child { grid-column: span 2; }
+
+  /* ═══════════════════════════════════════════
+     OVERLAY
+     ═══════════════════════════════════════════ */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    animation: overlayIn 0.4s ease-out forwards;
+  }
+
+  @keyframes overlayIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* ═══════════════════════════════════════════
+     DIALOG CONTAINER
+     ═══════════════════════════════════════════ */
+  .onboarding-dialog {
+    position: relative;
+    width: 580px;
+    max-height: 88vh;
+    background: var(--zinc-900);
+    border: 1px solid var(--zinc-800);
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.03),
+      0 24px 80px -12px rgba(0, 0, 0, 0.6),
+      0 0 120px -40px var(--violet-glow);
+    animation: dialogIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transform: translateY(20px) scale(0.97);
+    opacity: 0;
+  }
+
+  @keyframes dialogIn {
+    from { transform: translateY(20px) scale(0.97); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+  }
+
+  /* Ambient glow at top */
+  .onboarding-dialog::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 260px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--violet-500), transparent);
+    z-index: 10;
+  }
+
+  .onboarding-dialog::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 300px;
+    height: 80px;
+    background: radial-gradient(ellipse, var(--violet-glow) 0%, transparent 70%);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ═══════════════════════════════════════════
+     STEP INDICATOR
+     ═══════════════════════════════════════════ */
+  .step-indicator {
+    position: relative;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 20px 0 0;
+  }
+
+  .step-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--zinc-700);
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .step-dot.active {
+    width: 24px;
+    border-radius: 3px;
+    background: var(--violet-500);
+  }
+
+  .step-dot.completed {
+    background: var(--violet-400);
+    opacity: 0.5;
+  }
+
+  /* ═══════════════════════════════════════════
+     STEP CONTENT AREA
+     ═══════════════════════════════════════════ */
+  .steps-viewport {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .steps-track {
+    display: flex;
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .step-panel {
+    min-width: 100%;
+    padding: 32px 40px 36px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* ═══════════════════════════════════════════
+     STEP 1 — WELCOME
+     ═══════════════════════════════════════════ */
+  .welcome-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: 100px;
+    background: var(--violet-glow);
+    border: 1px solid rgba(139, 92, 246, 0.2);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--violet-400);
+    letter-spacing: 0.02em;
+    margin-bottom: 20px;
+    animation: badgePulse 3s ease-in-out infinite;
+  }
+
+  @keyframes badgePulse {
+    0%, 100% { box-shadow: 0 0 0 0 transparent; }
+    50% { box-shadow: 0 0 20px -4px var(--violet-glow-strong); }
+  }
+
+  .welcome-badge svg {
+    width: 14px;
+    height: 14px;
+    animation: sparkleRotate 4s linear infinite;
+  }
+
+  @keyframes sparkleRotate {
+    0% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(90deg) scale(1.1); }
+    50% { transform: rotate(180deg) scale(1); }
+    75% { transform: rotate(270deg) scale(1.1); }
+    100% { transform: rotate(360deg) scale(1); }
+  }
+
+  .welcome-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--zinc-100);
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    margin-bottom: 8px;
+  }
+
+  .welcome-subtitle {
+    font-size: 15px;
+    color: var(--zinc-400);
+    line-height: 1.5;
+    margin-bottom: 28px;
+  }
+
+  .benefit-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 32px;
+  }
+
+  .benefit-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--zinc-850);
+    border: 1px solid var(--zinc-800);
+    transition: all 0.25s ease;
+    cursor: default;
+    opacity: 0;
+    transform: translateY(8px);
+    animation: benefitIn 0.5s ease-out forwards;
+  }
+
+  .benefit-card:nth-child(1) { animation-delay: 0.15s; }
+  .benefit-card:nth-child(2) { animation-delay: 0.25s; }
+  .benefit-card:nth-child(3) { animation-delay: 0.35s; }
+
+  @keyframes benefitIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .benefit-card:hover {
+    border-color: var(--zinc-700);
+    background: rgba(39, 39, 42, 0.8);
+  }
+
+  .benefit-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .benefit-icon.violet { background: rgba(139, 92, 246, 0.12); color: var(--violet-400); }
+  .benefit-icon.amber { background: rgba(245, 158, 11, 0.12); color: var(--amber-500); }
+  .benefit-icon.emerald { background: rgba(16, 185, 129, 0.12); color: var(--emerald-400); }
+
+  .benefit-icon svg { width: 18px; height: 18px; }
+
+  .benefit-text h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--zinc-200);
+    margin-bottom: 2px;
+  }
+
+  .benefit-text p {
+    font-size: 12.5px;
+    color: var(--zinc-500);
+    line-height: 1.4;
+  }
+
+  /* ═══════════════════════════════════════════
+     STEP 2 — PROFILE SETUP
+     ═══════════════════════════════════════════ */
+  .step-header {
+    margin-bottom: 24px;
+  }
+
+  .step-header h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--zinc-100);
+    letter-spacing: -0.02em;
+    margin-bottom: 6px;
+  }
+
+  .step-header p {
+    font-size: 14px;
+    color: var(--zinc-500);
+  }
+
+  .form-group {
+    margin-bottom: 18px;
+  }
+
+  .form-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--zinc-300);
+    margin-bottom: 7px;
+  }
+
+  .form-label .optional {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--zinc-600);
+    padding: 1px 6px;
+    border-radius: 4px;
+    background: var(--zinc-850);
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--zinc-800);
+    background: var(--zinc-850);
+    color: var(--zinc-200);
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s ease;
+  }
+
+  .form-input:focus {
+    border-color: var(--violet-500);
+    box-shadow: 0 0 0 3px var(--violet-glow), 0 0 0 1px var(--violet-500);
+  }
+
+  .form-input::placeholder {
+    color: var(--zinc-600);
+  }
+
+  .form-input-with-icon {
+    position: relative;
+  }
+
+  .form-input-with-icon svg {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: var(--zinc-600);
+  }
+
+  .form-input-with-icon .form-input {
+    padding-left: 36px;
+  }
+
+  .avatar-upload {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+  }
+
+  .avatar-circle {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--violet-600), var(--violet-400));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 700;
+    color: white;
+    flex-shrink: 0;
+  }
+
+  .avatar-info {
+    font-size: 13px;
+    color: var(--zinc-500);
+    line-height: 1.4;
+  }
+
+  .avatar-info strong {
+    color: var(--zinc-300);
+    font-weight: 500;
+  }
+
+  /* ═══════════════════════════════════════════
+     STEP 3 — FIRST IDEA
+     ═══════════════════════════════════════════ */
+  .form-textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--zinc-800);
+    background: var(--zinc-850);
+    color: var(--zinc-200);
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s ease;
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.5;
+  }
+
+  .form-textarea:focus {
+    border-color: var(--violet-500);
+    box-shadow: 0 0 0 3px var(--violet-glow), 0 0 0 1px var(--violet-500);
+  }
+
+  .form-textarea::placeholder { color: var(--zinc-600); }
+
+  .tag-selector {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .tag-chip {
+    padding: 5px 14px;
+    border-radius: 100px;
+    border: 1px solid var(--zinc-800);
+    background: var(--zinc-850);
+    color: var(--zinc-400);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+  }
+
+  .tag-chip:hover {
+    border-color: var(--zinc-700);
+    color: var(--zinc-300);
+  }
+
+  .tag-chip.selected {
+    border-color: var(--violet-500);
+    background: var(--violet-glow);
+    color: var(--violet-300);
+  }
+
+  .ai-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgba(139, 92, 246, 0.06);
+    border: 1px solid rgba(139, 92, 246, 0.1);
+    margin-top: 20px;
+    font-size: 12.5px;
+    color: var(--zinc-400);
+  }
+
+  .ai-hint svg {
+    width: 16px;
+    height: 16px;
+    color: var(--violet-400);
+    flex-shrink: 0;
+  }
+
+  /* ═══════════════════════════════════════════
+     STEP 4 — SUCCESS
+     ═══════════════════════════════════════════ */
+  .success-check {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(52, 211, 153, 0.08));
+    border: 2px solid rgba(16, 185, 129, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+    animation: checkPop 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transform: scale(0);
+  }
+
+  @keyframes checkPop {
+    0% { transform: scale(0) rotate(-10deg); }
+    60% { transform: scale(1.1) rotate(2deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+
+  .success-check svg {
+    width: 28px;
+    height: 28px;
+    color: var(--emerald-400);
+    stroke-dasharray: 40;
+    stroke-dashoffset: 40;
+    animation: checkDraw 0.6s ease-out 0.3s forwards;
+  }
+
+  @keyframes checkDraw {
+    to { stroke-dashoffset: 0; }
+  }
+
+  .success-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--zinc-100);
+    text-align: center;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+
+  .success-subtitle {
+    font-size: 14px;
+    color: var(--zinc-500);
+    text-align: center;
+    margin-bottom: 28px;
+  }
+
+  .next-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+
+  .next-step-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--zinc-850);
+    border: 1px solid var(--zinc-800);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    opacity: 0;
+    transform: translateX(-10px);
+    animation: stepSlideIn 0.4s ease-out forwards;
+  }
+
+  .next-step-card:nth-child(1) { animation-delay: 0.3s; }
+  .next-step-card:nth-child(2) { animation-delay: 0.45s; }
+  .next-step-card:nth-child(3) { animation-delay: 0.6s; }
+
+  @keyframes stepSlideIn {
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .next-step-card:hover {
+    border-color: var(--zinc-700);
+    background: rgba(39, 39, 42, 0.8);
+    transform: translateX(2px);
+  }
+
+  .next-step-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .next-step-icon.violet { background: rgba(139, 92, 246, 0.12); color: var(--violet-400); }
+  .next-step-icon.amber { background: rgba(245, 158, 11, 0.12); color: var(--amber-500); }
+  .next-step-icon.sky { background: rgba(14, 165, 233, 0.12); color: var(--sky-500); }
+
+  .next-step-icon svg { width: 18px; height: 18px; }
+
+  .next-step-text {
+    flex: 1;
+  }
+
+  .next-step-text h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--zinc-200);
+    margin-bottom: 2px;
+  }
+
+  .next-step-text p {
+    font-size: 12.5px;
+    color: var(--zinc-500);
+  }
+
+  .next-step-arrow {
+    color: var(--zinc-600);
+    transition: all 0.2s ease;
+  }
+
+  .next-step-card:hover .next-step-arrow {
+    color: var(--zinc-400);
+    transform: translateX(2px);
+  }
+
+  .mcp-command {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--zinc-950);
+    border: 1px solid var(--zinc-800);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--zinc-400);
+    margin-top: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .mcp-command:hover {
+    border-color: var(--zinc-700);
+    color: var(--zinc-300);
+  }
+
+  .mcp-command .copy-icon {
+    margin-left: auto;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .mcp-command:hover .copy-icon { opacity: 1; }
+
+  .mcp-command.copied {
+    border-color: var(--emerald-500);
+  }
+
+  .mcp-command.copied::after {
+    content: 'Copied!';
+    position: absolute;
+    right: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 11px;
+    color: var(--emerald-400);
+    font-weight: 500;
+  }
+
+  /* ═══════════════════════════════════════════
+     BUTTONS
+     ═══════════════════════════════════════════ */
+  .btn-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .btn-primary {
+    flex: 1;
+    padding: 11px 24px;
+    border-radius: 10px;
+    border: none;
+    background: var(--violet-600);
+    color: white;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(255,255,255,0.08) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .btn-primary:hover {
+    background: var(--violet-500);
+    box-shadow: 0 4px 24px -4px rgba(139, 92, 246, 0.4);
+    transform: translateY(-1px);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+
+  .btn-primary svg { width: 16px; height: 16px; }
+
+  .btn-ghost {
+    padding: 11px 20px;
+    border-radius: 10px;
+    border: 1px solid var(--zinc-800);
+    background: transparent;
+    color: var(--zinc-400);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--zinc-700);
+    color: var(--zinc-300);
+    background: var(--zinc-850);
+  }
+
+  .btn-back {
+    padding: 8px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--zinc-500);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-back:hover {
+    color: var(--zinc-300);
+    background: var(--zinc-850);
+  }
+
+  .btn-back svg { width: 18px; height: 18px; }
+
+  .btn-row-spaced {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  /* ═══════════════════════════════════════════
+     CONFETTI PARTICLES
+     ═══════════════════════════════════════════ */
+  .confetti-container {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  .confetti {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 1px;
+    opacity: 0;
+  }
+
+  .confetti.active {
+    animation: confettiFall 2.5s ease-out forwards;
+  }
+
+  @keyframes confettiFall {
+    0% {
+      opacity: 1;
+      transform: translateY(-20px) rotate(0deg) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(400px) rotate(720deg) scale(0.5);
+    }
+  }
+
+  /* ═══════════════════════════════════════════
+     CHECKLIST WIDGET
+     ═══════════════════════════════════════════ */
+  .checklist-widget {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 200;
+  }
+
+  .checklist-toggle {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    border: 1px solid var(--zinc-800);
+    background: var(--zinc-900);
+    color: var(--violet-400);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.5);
+    position: relative;
+  }
+
+  .checklist-toggle:hover {
+    border-color: var(--violet-500);
+    box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.5), 0 0 0 3px var(--violet-glow);
+    transform: scale(1.05);
+  }
+
+  .checklist-toggle svg { width: 22px; height: 22px; }
+
+  .checklist-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--violet-600);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--zinc-900);
+  }
+
+  .checklist-panel {
+    position: absolute;
+    bottom: 62px;
+    right: 0;
+    width: 320px;
+    background: var(--zinc-900);
+    border: 1px solid var(--zinc-800);
+    border-radius: 16px;
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.03),
+      0 24px 60px -12px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    transform-origin: bottom right;
+    transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .checklist-panel.collapsed {
+    opacity: 0;
+    transform: scale(0.92) translateY(8px);
+    pointer-events: none;
+  }
+
+  .checklist-header {
+    padding: 16px 18px 14px;
+    border-bottom: 1px solid var(--zinc-800);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .checklist-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--zinc-200);
+  }
+
+  .checklist-header .dismiss-btn {
+    padding: 4px;
+    border: none;
+    background: transparent;
+    color: var(--zinc-600);
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+  }
+
+  .checklist-header .dismiss-btn:hover {
+    color: var(--zinc-400);
+    background: var(--zinc-850);
+  }
+
+  .checklist-progress {
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(39, 39, 42, 0.5);
+  }
+
+  .progress-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: var(--zinc-500);
+  }
+
+  .progress-count {
+    font-weight: 600;
+    color: var(--zinc-300);
+  }
+
+  .progress-bar-track {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--zinc-800);
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--violet-600), var(--violet-400));
+    transition: width 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .checklist-items {
+    padding: 8px 10px;
+  }
+
+  .checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .checklist-item:hover {
+    background: var(--zinc-850);
+  }
+
+  .check-circle {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--zinc-700);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .check-circle.done {
+    border-color: var(--emerald-500);
+    background: rgba(16, 185, 129, 0.12);
+  }
+
+  .check-circle svg {
+    width: 12px;
+    height: 12px;
+    color: var(--emerald-400);
+    opacity: 0;
+    transform: scale(0.5);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .check-circle.done svg {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .checklist-item-text {
+    font-size: 13px;
+    color: var(--zinc-300);
+    transition: all 0.2s ease;
+  }
+
+  .checklist-item.completed .checklist-item-text {
+    color: var(--zinc-600);
+    text-decoration: line-through;
+  }
+
+  .checklist-item-badge {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: var(--zinc-850);
+    color: var(--zinc-600);
+    letter-spacing: 0.02em;
+  }
+
+  /* ═══════════════════════════════════════════
+     SKIP LINK
+     ═══════════════════════════════════════════ */
+  .skip-link {
+    display: block;
+    text-align: center;
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--zinc-600);
+    cursor: pointer;
+    transition: color 0.2s ease;
+    border: none;
+    background: none;
+    font-family: inherit;
+    width: 100%;
+  }
+
+  .skip-link:hover {
+    color: var(--zinc-400);
+  }
+
+  /* ═══════════════════════════════════════════
+     UTILITY
+     ═══════════════════════════════════════════ */
+  .text-center { text-align: center; }
+  .mt-auto { margin-top: auto; }
+</style>
+</head>
+<body>
+
+<!-- Simulated Dashboard Backdrop -->
+<div class="dashboard-backdrop">
+  <div class="backdrop-nav">
+    <div class="backdrop-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      VibeCodes
+    </div>
+    <div class="backdrop-nav-items">
+      <div class="backdrop-nav-item">Dashboard</div>
+      <div class="backdrop-nav-item">Ideas</div>
+      <div class="backdrop-nav-item">Members</div>
+    </div>
+  </div>
+  <div class="backdrop-content">
+    <div class="backdrop-card"></div>
+    <div class="backdrop-card"></div>
+    <div class="backdrop-card"></div>
+    <div class="backdrop-card"></div>
+    <div class="backdrop-card"></div>
+  </div>
+</div>
+
+<!-- Modal Overlay -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="onboarding-dialog" id="dialog">
+    <!-- Step Indicator -->
+    <div class="step-indicator" id="stepIndicator">
+      <div class="step-dot active" data-step="0"></div>
+      <div class="step-dot" data-step="1"></div>
+      <div class="step-dot" data-step="2"></div>
+      <div class="step-dot" data-step="3"></div>
+    </div>
+
+    <!-- Steps Viewport -->
+    <div class="steps-viewport">
+      <div class="steps-track" id="stepsTrack">
+
+        <!-- STEP 1: Welcome -->
+        <div class="step-panel" id="step0">
+          <div class="welcome-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z"/></svg>
+            Getting started
+          </div>
+          <h1 class="welcome-title">Welcome to VibeCodes!</h1>
+          <p class="welcome-subtitle">Where your AI agents become real team members. Let's get you set up in under a minute.</p>
+
+          <div class="benefit-cards">
+            <div class="benefit-card">
+              <div class="benefit-icon violet">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.855z"/></svg>
+              </div>
+              <div class="benefit-text">
+                <h4>Share ideas & get feedback</h4>
+                <p>Post concepts, vote on others, and collaborate with the community</p>
+              </div>
+            </div>
+            <div class="benefit-card">
+              <div class="benefit-icon amber">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              </div>
+              <div class="benefit-text">
+                <h4>AI generates your task board</h4>
+                <p>Turn ideas into structured kanban boards with tasks, labels, and milestones</p>
+              </div>
+            </div>
+            <div class="benefit-card">
+              <div class="benefit-icon emerald">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+              </div>
+              <div class="benefit-text">
+                <h4>Agents pick up work autonomously</h4>
+                <p>Create AI personas that self-assign tasks, write code, and ship features</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn-primary" onclick="goToStep(1)">
+              Let's get started
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+          </div>
+          <button class="skip-link" onclick="closeOnboarding()">Skip for now</button>
+        </div>
+
+        <!-- STEP 2: Profile Setup -->
+        <div class="step-panel" id="step1">
+          <div class="btn-row-spaced" style="margin-bottom: 16px;">
+            <button class="btn-back" onclick="goToStep(0)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <span style="font-size: 12px; color: var(--zinc-600);">Step 2 of 4</span>
+          </div>
+
+          <div class="step-header">
+            <h2>Quick profile setup</h2>
+            <p>Help others know who you are. Takes 10 seconds.</p>
+          </div>
+
+          <div class="avatar-upload">
+            <div class="avatar-circle" id="avatarCircle">N</div>
+            <div class="avatar-info">
+              <strong>Looking good!</strong><br>
+              Your avatar was imported from your account.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Display name</label>
+            <input type="text" class="form-input" placeholder="Your name" value="Nick" id="nameInput">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Bio <span class="optional">optional</span></label>
+            <input type="text" class="form-input" placeholder="e.g., Full-stack dev, AI enthusiast" id="bioInput">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">GitHub <span class="optional">optional</span></label>
+            <div class="form-input-with-icon">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+              <input type="text" class="form-input" placeholder="github.com/username">
+            </div>
+          </div>
+
+          <div class="btn-row" style="margin-top: 24px;">
+            <button class="btn-primary" onclick="goToStep(2)">
+              Continue
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+          </div>
+          <button class="skip-link" onclick="goToStep(2)">Skip this step</button>
+        </div>
+
+        <!-- STEP 3: First Idea -->
+        <div class="step-panel" id="step2">
+          <div class="btn-row-spaced" style="margin-bottom: 16px;">
+            <button class="btn-back" onclick="goToStep(1)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <span style="font-size: 12px; color: var(--zinc-600);">Step 3 of 4</span>
+          </div>
+
+          <div class="step-header">
+            <h2>Drop your first idea</h2>
+            <p>What would you like to build? Don't overthink it — AI can help refine it later.</p>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Title</label>
+            <input type="text" class="form-input" placeholder="e.g., A recipe sharing app with AI suggestions" id="ideaTitle">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Description <span class="optional">optional</span></label>
+            <textarea class="form-textarea" placeholder="Briefly describe what it does, who it's for, or what problem it solves..." rows="3" id="ideaDesc"></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Tags</label>
+            <div class="tag-selector">
+              <span class="tag-chip" onclick="toggleTag(this)">ai</span>
+              <span class="tag-chip" onclick="toggleTag(this)">web</span>
+              <span class="tag-chip" onclick="toggleTag(this)">mobile</span>
+              <span class="tag-chip" onclick="toggleTag(this)">tool</span>
+              <span class="tag-chip" onclick="toggleTag(this)">game</span>
+              <span class="tag-chip" onclick="toggleTag(this)">automation</span>
+              <span class="tag-chip" onclick="toggleTag(this)">open-source</span>
+            </div>
+          </div>
+
+          <div class="ai-hint">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z"/></svg>
+            <span>AI can enhance your description and generate a full task board after creation.</span>
+          </div>
+
+          <div class="btn-row" style="margin-top: 24px;">
+            <button class="btn-primary" onclick="goToStep(3)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3z"/></svg>
+              Create & Generate Board
+            </button>
+          </div>
+          <button class="skip-link" onclick="goToStep(3)">I'll do this later</button>
+        </div>
+
+        <!-- STEP 4: Success -->
+        <div class="step-panel" id="step3">
+          <div class="confetti-container" id="confettiContainer"></div>
+
+          <div class="success-check" id="successCheck">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </div>
+
+          <h2 class="success-title">You're all set!</h2>
+          <p class="success-subtitle">Your idea is live. Here's what happens next:</p>
+
+          <div class="next-steps">
+            <div class="next-step-card" onclick="closeOnboarding()">
+              <div class="next-step-icon violet">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              </div>
+              <div class="next-step-text">
+                <h4>View your board</h4>
+                <p>AI has generated tasks, labels, and milestones for your idea</p>
+              </div>
+              <svg class="next-step-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+
+            <div class="next-step-card" onclick="closeOnboarding()">
+              <div class="next-step-icon amber">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></svg>
+              </div>
+              <div class="next-step-text">
+                <h4>Set up an AI agent</h4>
+                <p>Give your agent a name and role — it'll start picking up tasks</p>
+              </div>
+              <svg class="next-step-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            </div>
+
+            <div class="next-step-card" onclick="closeOnboarding()">
+              <div class="next-step-icon sky">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/></svg>
+              </div>
+              <div class="next-step-text">
+                <h4>Connect Claude Code</h4>
+                <p>Link your AI assistant via MCP for full board control</p>
+                <div class="mcp-command" onclick="copyMcp(event, this)">
+                  <span>claude mcp add vibecodes https://vibecodes.co.uk/api/mcp</span>
+                  <svg class="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn-primary" onclick="closeOnboarding()">
+              Go to Dashboard
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Checklist Widget -->
+<div class="checklist-widget" id="checklistWidget" style="display: none;">
+  <div class="checklist-panel collapsed" id="checklistPanel">
+    <div class="checklist-header">
+      <h3>Getting started</h3>
+      <button class="dismiss-btn" onclick="toggleChecklist()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 7 10 10"/><path d="M7 17 17 7"/></svg>
+      </button>
+    </div>
+    <div class="checklist-progress">
+      <div class="progress-text">
+        <span class="progress-count" id="progressCount">2 of 5 complete</span>
+        <span id="progressPercent">40%</span>
+      </div>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progressFill" style="width: 40%"></div>
+      </div>
+    </div>
+    <div class="checklist-items">
+      <div class="checklist-item completed" data-checked="true" onclick="toggleCheckItem(this)">
+        <div class="check-circle done">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <span class="checklist-item-text">Create account</span>
+      </div>
+      <div class="checklist-item completed" data-checked="true" onclick="toggleCheckItem(this)">
+        <div class="check-circle done">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <span class="checklist-item-text">Complete profile</span>
+      </div>
+      <div class="checklist-item" data-checked="false" onclick="toggleCheckItem(this)">
+        <div class="check-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <span class="checklist-item-text">Create your first idea</span>
+      </div>
+      <div class="checklist-item" data-checked="false" onclick="toggleCheckItem(this)">
+        <div class="check-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <span class="checklist-item-text">Set up an AI agent</span>
+      </div>
+      <div class="checklist-item" data-checked="false" onclick="toggleCheckItem(this)">
+        <div class="check-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </div>
+        <span class="checklist-item-text">Connect Claude Code</span>
+        <span class="checklist-item-badge">OPTIONAL</span>
+      </div>
+    </div>
+  </div>
+
+  <button class="checklist-toggle" id="checklistToggle" onclick="toggleChecklist()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.855z"/><path d="m15 5 3 3"/></svg>
+    <span class="checklist-badge" id="checklistBadge">3</span>
+  </button>
+</div>
+
+<script>
+  // ═══════════════════════════════════════════
+  // STATE
+  // ═══════════════════════════════════════════
+  let currentStep = 0;
+  const totalSteps = 4;
+
+  // ═══════════════════════════════════════════
+  // STEP NAVIGATION
+  // ═══════════════════════════════════════════
+  function goToStep(step) {
+    if (step < 0 || step >= totalSteps) return;
+    currentStep = step;
+
+    // Move track
+    const track = document.getElementById('stepsTrack');
+    track.style.transform = `translateX(-${step * 100}%)`;
+
+    // Update dots
+    document.querySelectorAll('.step-dot').forEach((dot, i) => {
+      dot.classList.remove('active', 'completed');
+      if (i === step) dot.classList.add('active');
+      else if (i < step) dot.classList.add('completed');
+    });
+
+    // Step 4 triggers confetti
+    if (step === 3) {
+      setTimeout(launchConfetti, 200);
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  // TAG TOGGLE
+  // ═══════════════════════════════════════════
+  function toggleTag(el) {
+    el.classList.toggle('selected');
+  }
+
+  // ═══════════════════════════════════════════
+  // MCP COPY
+  // ═══════════════════════════════════════════
+  function copyMcp(e, el) {
+    e.stopPropagation();
+    const text = el.querySelector('span').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      el.classList.add('copied');
+      setTimeout(() => el.classList.remove('copied'), 2000);
+    });
+  }
+
+  // ═══════════════════════════════════════════
+  // CLOSE ONBOARDING
+  // ═══════════════════════════════════════════
+  function closeOnboarding() {
+    const overlay = document.getElementById('modalOverlay');
+    const dialog = document.getElementById('dialog');
+
+    dialog.style.transition = 'all 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+    dialog.style.transform = 'translateY(10px) scale(0.97)';
+    dialog.style.opacity = '0';
+
+    overlay.style.transition = 'opacity 0.3s ease';
+    overlay.style.opacity = '0';
+
+    setTimeout(() => {
+      overlay.style.display = 'none';
+      // Show checklist widget
+      const widget = document.getElementById('checklistWidget');
+      widget.style.display = 'block';
+    }, 300);
+  }
+
+  // ═══════════════════════════════════════════
+  // CHECKLIST
+  // ═══════════════════════════════════════════
+  function toggleChecklist() {
+    const panel = document.getElementById('checklistPanel');
+    panel.classList.toggle('collapsed');
+  }
+
+  function toggleCheckItem(item) {
+    const isChecked = item.dataset.checked === 'true';
+    item.dataset.checked = isChecked ? 'false' : 'true';
+
+    if (!isChecked) {
+      item.classList.add('completed');
+      item.querySelector('.check-circle').classList.add('done');
+    } else {
+      item.classList.remove('completed');
+      item.querySelector('.check-circle').classList.remove('done');
+    }
+
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const items = document.querySelectorAll('.checklist-item');
+    const done = document.querySelectorAll('.checklist-item[data-checked="true"]').length;
+    const total = items.length;
+    const pct = Math.round((done / total) * 100);
+
+    document.getElementById('progressCount').textContent = `${done} of ${total} complete`;
+    document.getElementById('progressPercent').textContent = `${pct}%`;
+    document.getElementById('progressFill').style.width = `${pct}%`;
+    document.getElementById('checklistBadge').textContent = total - done;
+
+    if (done === total) {
+      document.getElementById('checklistBadge').style.background = 'var(--emerald-500)';
+      document.getElementById('checklistBadge').textContent = '✓';
+    } else {
+      document.getElementById('checklistBadge').style.background = 'var(--violet-600)';
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  // CONFETTI
+  // ═══════════════════════════════════════════
+  function launchConfetti() {
+    const container = document.getElementById('confettiContainer');
+    const colors = ['#8b5cf6', '#a78bfa', '#f59e0b', '#10b981', '#f43f5e', '#0ea5e9', '#c4b5fd', '#34d399'];
+    const count = 50;
+
+    for (let i = 0; i < count; i++) {
+      const confetti = document.createElement('div');
+      confetti.className = 'confetti';
+      confetti.style.left = `${Math.random() * 100}%`;
+      confetti.style.top = `${-10 + Math.random() * 20}%`;
+      confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+      confetti.style.width = `${4 + Math.random() * 5}px`;
+      confetti.style.height = `${4 + Math.random() * 5}px`;
+      confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '1px';
+      confetti.style.animationDuration = `${1.5 + Math.random() * 2}s`;
+      confetti.style.animationDelay = `${Math.random() * 0.4}s`;
+
+      container.appendChild(confetti);
+
+      // Trigger animation
+      requestAnimationFrame(() => {
+        confetti.classList.add('active');
+      });
+
+      // Cleanup
+      setTimeout(() => confetti.remove(), 4000);
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  // AVATAR INITIAL
+  // ═══════════════════════════════════════════
+  const nameInput = document.getElementById('nameInput');
+  nameInput.addEventListener('input', () => {
+    const avatar = document.getElementById('avatarCircle');
+    avatar.textContent = nameInput.value.charAt(0).toUpperCase() || '?';
+  });
+</script>
+
+</body>
+</html>

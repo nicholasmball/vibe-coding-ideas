@@ -16,6 +16,8 @@ import { getDueDateStatus } from "@/lib/utils";
 import { DEFAULT_PANEL_ORDER } from "@/lib/dashboard-order";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { WelcomeExperience } from "@/components/dashboard/welcome-experience";
+import { OnboardingWrapper } from "@/components/onboarding/onboarding-wrapper";
+import { OnboardingChecklist } from "@/components/onboarding/onboarding-checklist";
 import { ActiveBoards } from "@/components/dashboard/active-boards";
 import type { ActiveBoard } from "@/components/dashboard/active-boards";
 import { MyBots } from "@/components/dashboard/my-bots";
@@ -55,6 +57,7 @@ export default async function DashboardPage() {
     notificationsResult,
     tasksResult,
     botProfilesResult,
+    userProfileResult,
   ] = await Promise.all([
     // My ideas (limit 5)
     supabase
@@ -111,6 +114,12 @@ export default async function DashboardPage() {
       .select("*")
       .eq("owner_id", user.id)
       .order("created_at"),
+    // User profile for onboarding state
+    supabase
+      .from("users")
+      .select("onboarding_completed_at, full_name, avatar_url, github_username")
+      .eq("id", user.id)
+      .maybeSingle(),
   ]);
 
   const myIdeas = (myIdeasResult.data ?? []) as unknown as IdeaWithAuthor[];
@@ -132,6 +141,16 @@ export default async function DashboardPage() {
   // Bot profiles
   const botProfiles = (botProfilesResult.data ?? []) as BotProfile[];
   const botUserIds = botProfiles.map((b) => b.id);
+
+  // User profile for onboarding
+  const userProfile = userProfileResult.data as {
+    onboarding_completed_at: string | null;
+    full_name: string | null;
+    avatar_url: string | null;
+    github_username: string | null;
+  } | null;
+  const onboardingCompleted = !!userProfile?.onboarding_completed_at;
+  const isNewUser = !onboardingCompleted && ideasCount === 0 && collaborationsCount === 0;
 
   // All idea IDs the user owns or collaborates on (for board queries)
   const myIdeaIds = (myIdeaIdsResult.data ?? []).map((i) => i.id);
@@ -501,10 +520,16 @@ export default async function DashboardPage() {
     <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8 sm:px-6 lg:px-8">
       <h1 className="mb-4 sm:mb-6 text-2xl sm:text-3xl font-bold">Dashboard</h1>
 
-      {/* Welcome experience for first-time users */}
-      {ideasCount === 0 && collaborationsCount === 0 && (
+      {/* Onboarding: new users get the guided wizard, legacy users get the static card */}
+      {isNewUser ? (
+        <OnboardingWrapper
+          userFullName={userProfile?.full_name ?? null}
+          userAvatarUrl={userProfile?.avatar_url ?? null}
+          userGithubUsername={userProfile?.github_username ?? null}
+        />
+      ) : !onboardingCompleted && ideasCount === 0 && collaborationsCount === 0 ? (
         <WelcomeExperience />
-      )}
+      ) : null}
 
       {/* Stats — full width */}
       <StatsCards
@@ -516,6 +541,15 @@ export default async function DashboardPage() {
 
       {/* Reorderable two-column grid */}
       <DashboardGrid sections={sections} defaultOrder={DEFAULT_PANEL_ORDER} />
+
+      {/* Persistent onboarding checklist for users who completed the wizard but still have steps */}
+      {onboardingCompleted && (
+        <OnboardingChecklist
+          hasProfile={!!userProfile?.full_name}
+          hasIdea={ideasCount > 0}
+          hasAgent={botProfiles.length > 0}
+        />
+      )}
     </div>
   );
 }
