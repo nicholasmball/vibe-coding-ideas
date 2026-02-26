@@ -18,18 +18,13 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { StepIndicator } from "./step-indicator";
 import { Confetti } from "./confetti";
 import {
   completeOnboarding,
   createIdeaFromOnboarding,
   updateProfileFromOnboarding,
+  enhanceOnboardingDescription,
 } from "@/actions/onboarding";
 
 const SUGGESTED_TAGS = [
@@ -72,6 +67,9 @@ export function OnboardingDialog({
   const [ideaDescription, setIdeaDescription] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
+  // AI enhance state
+  const [enhancing, setEnhancing] = useState(false);
+
   // Success state
   const [createdIdeaId, setCreatedIdeaId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -89,6 +87,29 @@ export function OnboardingDialog({
       // Non-critical
     }
     onComplete();
+  };
+
+  const handleEnhance = async () => {
+    if (enhancing) return;
+    if (!ideaTitle.trim()) {
+      toast.error("Add a title first so AI knows what to enhance");
+      return;
+    }
+    setEnhancing(true);
+    try {
+      const { enhanced } = await enhanceOnboardingDescription({
+        title: ideaTitle,
+        description: ideaDescription,
+      });
+      setIdeaDescription(enhanced);
+      toast.success("Description enhanced!");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Failed to enhance description"
+      );
+    } finally {
+      setEnhancing(false);
+    }
   };
 
   const handleProfileContinue = async () => {
@@ -424,26 +445,19 @@ export function OnboardingDialog({
                       optional
                     </span>
                   </label>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span tabIndex={0}>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled
-                            className="h-7 gap-1.5 px-2.5 text-[11px]"
-                          >
-                            <Sparkles className="h-3 w-3" />
-                            Enhance with AI
-                          </Button>
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">
-                        Add your Claude API key in Profile Settings to enable AI
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-7 gap-1.5 px-2.5 text-[11px]"
+                    onClick={handleEnhance}
+                    disabled={enhancing}
+                  >
+                    <Sparkles
+                      className={`h-3 w-3 ${enhancing ? "animate-spin" : ""}`}
+                      style={enhancing ? { animationDuration: "2s" } : undefined}
+                    />
+                    {enhancing ? "Enhancing..." : "Enhance with AI"}
+                  </Button>
                 </div>
                 <Textarea
                   placeholder="Briefly describe what it does, who it's for, or what problem it solves..."

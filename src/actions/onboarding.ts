@@ -2,6 +2,9 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { generateText } from "ai";
+import { createAnthropic } from "@ai-sdk/anthropic";
+import { AI_MODEL } from "@/lib/ai-helpers";
 import {
   validateTitle,
   validateOptionalDescription,
@@ -119,4 +122,63 @@ export async function updateProfileFromOnboarding(data: {
   if (error) {
     throw new Error(error.message);
   }
+}
+
+const ONBOARDING_ENHANCE_TIMEOUT_MS = 30_000;
+
+export async function enhanceOnboardingDescription(data: {
+  title: string;
+  description: string;
+}): Promise<{ enhanced: string }> {
+  const platformKey = process.env.ANTHROPIC_API_KEY;
+  if (!platformKey) {
+    throw new Error("AI enhancement is not available right now");
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  // Only allow during onboarding — user must not have completed it yet
+  const { data: profile } = await supabase
+    .from("users")
+    .select("onboarding_completed_at")
+    .eq("id", user.id)
+    .single();
+
+  if (profile?.onboarding_completed_at) {
+    throw new Error("AI enhancement during onboarding is no longer available");
+  }
+
+  const title = data.title.trim();
+  if (!title) throw new Error("Title is required");
+
+  const description = data.description.trim();
+
+  const anthropic = createAnthropic({ apiKey: platformKey });
+
+  let text: string;
+  try {
+    ({ text } = await generateText({
+      model: anthropic(AI_MODEL),
+      system:
+        "You are a concise product writer. The user is creating their first idea on a project management platform. Expand their rough description into a clear, compelling 2-3 paragraph summary. Keep the original voice and intent — just make it clearer and more complete. Return ONLY the improved description, no preamble.",
+      prompt: `**Title:** ${title}\n\n**Description:**\n${description || title}`,
+      maxOutputTokens: 1000,
+      abortSignal: AbortSignal.timeout(ONBOARDING_ENHANCE_TIMEOUT_MS),
+    }));
+  } catch (err) {
+    console.error("[Onboarding AI Error]", err);
+    if (err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError")) {
+      throw new Error("AI request timed out — please try again");
+    }
+    throw new Error("Failed to enhance description");
+  }
+
+  return { enhanced: text };
 }

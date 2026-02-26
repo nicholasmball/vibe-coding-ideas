@@ -32,6 +32,20 @@ vi.mock("next/navigation", () => ({
   }),
 }));
 
+vi.mock("ai", () => ({
+  generateText: vi.fn().mockResolvedValue({
+    text: "Enhanced description text",
+    usage: { inputTokens: 100, outputTokens: 50 },
+    finishReason: "stop",
+  }),
+}));
+
+vi.mock("@ai-sdk/anthropic", () => ({
+  createAnthropic: vi.fn().mockReturnValue(
+    vi.fn().mockReturnValue("mock-model")
+  ),
+}));
+
 describe("onboarding actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -188,6 +202,82 @@ describe("onboarding actions", () => {
         bio: null,
         github_username: null,
       });
+    });
+  });
+
+  describe("enhanceOnboardingDescription", () => {
+    const originalEnv = process.env;
+
+    beforeEach(() => {
+      process.env = { ...originalEnv, ANTHROPIC_API_KEY: "sk-test-key" };
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+    });
+
+    it("enhances a description for users who haven't completed onboarding", async () => {
+      const { enhanceOnboardingDescription } = await import("./onboarding");
+
+      // Mock chain: from("users").select(...).eq(...).single()
+      mockSelect.mockReturnValue({ eq: mockEq });
+      mockEq.mockReturnValue({ single: mockSingle });
+      mockSingle.mockResolvedValue({
+        data: { onboarding_completed_at: null },
+        error: null,
+      });
+
+      const result = await enhanceOnboardingDescription({
+        title: "My cool app",
+        description: "An app that does stuff",
+      });
+
+      expect(result).toEqual({ enhanced: "Enhanced description text" });
+    });
+
+    it("throws when platform key is missing", async () => {
+      delete process.env.ANTHROPIC_API_KEY;
+      const { enhanceOnboardingDescription } = await import("./onboarding");
+
+      await expect(
+        enhanceOnboardingDescription({
+          title: "Test",
+          description: "Test desc",
+        })
+      ).rejects.toThrow("AI enhancement is not available right now");
+    });
+
+    it("throws when user already completed onboarding", async () => {
+      const { enhanceOnboardingDescription } = await import("./onboarding");
+
+      mockSelect.mockReturnValue({ eq: mockEq });
+      mockEq.mockReturnValue({ single: mockSingle });
+      mockSingle.mockResolvedValue({
+        data: { onboarding_completed_at: "2026-01-01T00:00:00Z" },
+        error: null,
+      });
+
+      await expect(
+        enhanceOnboardingDescription({
+          title: "Test",
+          description: "Test desc",
+        })
+      ).rejects.toThrow("AI enhancement during onboarding is no longer available");
+    });
+
+    it("rejects empty titles", async () => {
+      const { enhanceOnboardingDescription } = await import("./onboarding");
+
+      mockSelect.mockReturnValue({ eq: mockEq });
+      mockEq.mockReturnValue({ single: mockSingle });
+      mockSingle.mockResolvedValue({
+        data: { onboarding_completed_at: null },
+        error: null,
+      });
+
+      await expect(
+        enhanceOnboardingDescription({ title: "  ", description: "" })
+      ).rejects.toThrow("Title is required");
     });
   });
 });
