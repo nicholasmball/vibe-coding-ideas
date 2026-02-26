@@ -402,7 +402,7 @@ export function OnboardingDialog({
           )}
 
           {step === 2 && (
-            <div className="px-8 pt-4 pb-8 sm:px-10">
+            <div className="max-h-[calc(85vh-60px)] overflow-y-auto px-8 pt-4 pb-8 sm:px-10">
               <div className="mb-4 flex items-center justify-between">
                 <Button
                   variant="ghost"
@@ -464,6 +464,7 @@ export function OnboardingDialog({
                   value={ideaDescription}
                   onChange={(e) => setIdeaDescription(e.target.value)}
                   rows={3}
+                  className="max-h-40 overflow-y-auto"
                 />
               </div>
 
