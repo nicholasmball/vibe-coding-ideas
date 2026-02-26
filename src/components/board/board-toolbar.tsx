@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { getLabelColorConfig } from "@/lib/utils";
 import { ImportDialog } from "./import-dialog";
 import { AiGenerateDialog } from "./ai-generate-dialog";
@@ -211,21 +212,31 @@ export function BoardToolbar({
 
       {!isReadOnly && (
         <div className="ml-auto flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className={`h-8 gap-1.5 text-xs ${!hasApiKey ? "opacity-50" : ""}`}
-            onClick={() => {
-              if (!hasApiKey) {
-                toast.info("Add your API key in profile settings to enable AI");
-                return;
-              }
-              setAiGenerateOpen(true);
-            }}
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">AI Generate</span>
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span tabIndex={!hasApiKey ? 0 : undefined}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className={`h-8 gap-1.5 text-xs ${!hasApiKey ? "pointer-events-none opacity-50" : ""}`}
+                    onClick={() => {
+                      if (!hasApiKey) return;
+                      setAiGenerateOpen(true);
+                    }}
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">AI Generate</span>
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              {!hasApiKey && (
+                <TooltipContent side="bottom">
+                  Add your API key in profile settings to enable AI
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </TooltipProvider>
           <Button
             variant="outline"
             size="sm"
