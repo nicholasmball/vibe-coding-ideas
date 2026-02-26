@@ -14,12 +14,18 @@ interface DiscussionReplyFormProps {
   discussionId: string;
   ideaId: string;
   currentUser: User;
+  parentReplyId?: string | null;
+  onCancel?: () => void;
+  compact?: boolean;
 }
 
 export function DiscussionReplyForm({
   discussionId,
   ideaId,
   currentUser,
+  parentReplyId,
+  onCancel,
+  compact = false,
 }: DiscussionReplyFormProps) {
   const router = useRouter();
   const [content, setContent] = useState("");
@@ -31,15 +37,42 @@ export function DiscussionReplyForm({
 
     setIsSubmitting(true);
     try {
-      await createDiscussionReply(discussionId, ideaId, content);
+      await createDiscussionReply(discussionId, ideaId, content, parentReplyId);
       setContent("");
       toast.success("Reply posted");
       router.refresh();
+      onCancel?.();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to post reply");
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (compact) {
+    return (
+      <form onSubmit={handleSubmit} className="mt-2 space-y-2">
+        <Textarea
+          placeholder="Write a reply..."
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          maxLength={MAX_DISCUSSION_REPLY_LENGTH}
+          rows={2}
+          className="min-h-[60px] resize-y text-sm"
+          autoFocus
+        />
+        <div className="flex items-center gap-2">
+          <Button type="submit" size="sm" disabled={isSubmitting || !content.trim()}>
+            {isSubmitting ? "Replying..." : "Reply"}
+          </Button>
+          {onCancel && (
+            <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
+        </div>
+      </form>
+    );
   }
 
   return (

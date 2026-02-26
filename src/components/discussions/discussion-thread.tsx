@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -11,6 +11,7 @@ import {
   Pin,
   Trash2,
   Pencil,
+  Reply,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -32,6 +33,7 @@ import { ConvertToTaskDialog } from "./convert-to-task-dialog";
 import type {
   IdeaDiscussionDetail,
   IdeaDiscussionReplyWithAuthor,
+  IdeaDiscussionReplyWithChildren,
   User,
   BoardColumn,
 } from "@/types";
@@ -53,6 +55,30 @@ const STATUS_CONFIG = {
     className: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   },
 } as const;
+
+/** Organize flat replies into a tree (single-level nesting) */
+function buildReplyTree(
+  replies: IdeaDiscussionReplyWithAuthor[]
+): IdeaDiscussionReplyWithChildren[] {
+  const topLevel: IdeaDiscussionReplyWithChildren[] = [];
+  const childMap = new Map<string, IdeaDiscussionReplyWithAuthor[]>();
+
+  for (const reply of replies) {
+    if (reply.parent_reply_id) {
+      const existing = childMap.get(reply.parent_reply_id) ?? [];
+      existing.push(reply);
+      childMap.set(reply.parent_reply_id, existing);
+    } else {
+      topLevel.push({ ...reply, children: [] });
+    }
+  }
+
+  for (const parent of topLevel) {
+    parent.children = childMap.get(parent.id) ?? [];
+  }
+
+  return topLevel;
+}
 
 interface DiscussionThreadProps {
   discussion: IdeaDiscussionDetail;
@@ -83,6 +109,14 @@ export function DiscussionThread({
   const [isSaving, setIsSaving] = useState(false);
   const config = STATUS_CONFIG[discussion.status];
   const StatusIcon = config.icon;
+
+  const replyTree = useMemo(
+    () => buildReplyTree(discussion.replies),
+    [discussion.replies]
+  );
+
+  const canReply =
+    isTeamMember && discussion.status !== "converted" && !!currentUser;
 
   async function handleResolve() {
     try {
@@ -362,9 +396,9 @@ export function DiscussionThread({
           {discussion.reply_count} {discussion.reply_count === 1 ? "Reply" : "Replies"}
         </h2>
 
-        {discussion.replies.length > 0 && (
+        {replyTree.length > 0 && (
           <div className="space-y-4">
-            {discussion.replies.map((reply) => (
+            {replyTree.map((reply) => (
               <ReplyItem
                 key={reply.id}
                 reply={reply}
@@ -372,6 +406,7 @@ export function DiscussionThread({
                 discussionId={discussion.id}
                 currentUser={currentUser}
                 isAuthorOrOwner={isAuthorOrOwner}
+                canReply={canReply}
                 onDelete={handleDeleteReply}
               />
             ))}
@@ -380,7 +415,7 @@ export function DiscussionThread({
       </div>
 
       {/* Reply composer */}
-      {isTeamMember && discussion.status !== "converted" && currentUser && (
+      {canReply && (
         <>
           <Separator />
           <DiscussionReplyForm
@@ -400,9 +435,181 @@ function ReplyItem({
   discussionId,
   currentUser,
   isAuthorOrOwner,
+  canReply,
+  onDelete,
+}: {
+  reply: IdeaDiscussionReplyWithChildren;
+  ideaId: string;
+  discussionId: string;
+  currentUser: User | null;
+  isAuthorOrOwner: boolean;
+  canReply: boolean;
+  onDelete: (id: string) => void;
+}) {
+  const router = useRouter();
+  const canDelete =
+    currentUser?.id === reply.author_id || isAuthorOrOwner || currentUser?.is_admin;
+  const canEdit = currentUser?.id === reply.author_id;
+
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(reply.content);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isReplying, setIsReplying] = useState(false);
+
+  async function handleSave() {
+    if (!editContent.trim()) {
+      toast.error("Reply cannot be empty");
+      return;
+    }
+    setIsSaving(true);
+    try {
+      await updateDiscussionReply(reply.id, ideaId, discussionId, editContent);
+      toast.success("Reply updated");
+      setIsEditing(false);
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to save");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function handleCancel() {
+    setEditContent(reply.content);
+    setIsEditing(false);
+  }
+
+  return (
+    <div>
+      <div className="flex gap-3">
+        <Avatar className="h-7 w-7 shrink-0">
+          <AvatarImage src={reply.author.avatar_url ?? undefined} />
+          <AvatarFallback className="text-xs">
+            {(reply.author.full_name ?? "?")[0]}
+          </AvatarFallback>
+        </Avatar>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium">
+              {reply.author.full_name ?? "Anonymous"}
+            </span>
+            {reply.author.is_bot && (
+              <Badge variant="outline" className="text-[10px]">
+                Bot
+              </Badge>
+            )}
+            <span className="text-xs text-muted-foreground">
+              {formatRelativeTime(reply.created_at)}
+            </span>
+            <div className="ml-auto flex items-center gap-1">
+              {canReply && !isEditing && (
+                <button
+                  onClick={() => setIsReplying(!isReplying)}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                  title="Reply"
+                >
+                  <Reply className="h-3 w-3" />
+                </button>
+              )}
+              {canEdit && !isEditing && (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                  title="Edit reply"
+                >
+                  <Pencil className="h-3 w-3" />
+                </button>
+              )}
+              {canDelete && !isEditing && (
+                <button
+                  onClick={() => onDelete(reply.id)}
+                  className="text-xs text-muted-foreground hover:text-destructive"
+                  title="Delete reply"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          </div>
+          {isEditing ? (
+            <div className="mt-1 space-y-2">
+              <Textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                rows={3}
+                className="min-h-[60px] resize-y text-sm"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={isSaving || !editContent.trim()}
+                >
+                  {isSaving ? "Saving..." : "Save"}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCancel}
+                  disabled={isSaving}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="mt-1 text-sm">
+              <Markdown>{reply.content}</Markdown>
+            </div>
+          )}
+
+          {/* Inline reply form */}
+          {isReplying && currentUser && (
+            <DiscussionReplyForm
+              discussionId={discussionId}
+              ideaId={ideaId}
+              currentUser={currentUser}
+              parentReplyId={reply.id}
+              onCancel={() => setIsReplying(false)}
+              compact
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Child replies */}
+      {reply.children.length > 0 && (
+        <div className="ml-10 mt-3 space-y-3 border-l-2 border-border pl-4">
+          {reply.children.map((child) => (
+            <ChildReplyItem
+              key={child.id}
+              reply={child}
+              parentAuthorName={reply.author.full_name}
+              ideaId={ideaId}
+              discussionId={discussionId}
+              currentUser={currentUser}
+              isAuthorOrOwner={isAuthorOrOwner}
+              onDelete={onDelete}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ChildReplyItem({
+  reply,
+  parentAuthorName,
+  ideaId,
+  discussionId,
+  currentUser,
+  isAuthorOrOwner,
   onDelete,
 }: {
   reply: IdeaDiscussionReplyWithAuthor;
+  parentAuthorName: string | null;
   ideaId: string;
   discussionId: string;
   currentUser: User | null;
@@ -410,7 +617,7 @@ function ReplyItem({
   onDelete: (id: string) => void;
 }) {
   const router = useRouter();
-  const canDelete =
+  const canDeleteReply =
     currentUser?.id === reply.author_id || isAuthorOrOwner || currentUser?.is_admin;
   const canEdit = currentUser?.id === reply.author_id;
 
@@ -443,9 +650,9 @@ function ReplyItem({
 
   return (
     <div className="flex gap-3">
-      <Avatar className="h-7 w-7 shrink-0">
+      <Avatar className="h-6 w-6 shrink-0">
         <AvatarImage src={reply.author.avatar_url ?? undefined} />
-        <AvatarFallback className="text-xs">
+        <AvatarFallback className="text-[10px]">
           {(reply.author.full_name ?? "?")[0]}
         </AvatarFallback>
       </Avatar>
@@ -458,6 +665,12 @@ function ReplyItem({
             <Badge variant="outline" className="text-[10px]">
               Bot
             </Badge>
+          )}
+          {parentAuthorName && (
+            <span className="text-xs text-muted-foreground">
+              <Reply className="mr-0.5 inline h-3 w-3" />
+              {parentAuthorName}
+            </span>
           )}
           <span className="text-xs text-muted-foreground">
             {formatRelativeTime(reply.created_at)}
@@ -472,7 +685,7 @@ function ReplyItem({
                 <Pencil className="h-3 w-3" />
               </button>
             )}
-            {canDelete && !isEditing && (
+            {canDeleteReply && !isEditing && (
               <button
                 onClick={() => onDelete(reply.id)}
                 className="text-xs text-muted-foreground hover:text-destructive"

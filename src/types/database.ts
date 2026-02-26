@@ -1134,6 +1134,7 @@ export type Database = {
           discussion_id: string;
           author_id: string;
           content: string;
+          parent_reply_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1142,6 +1143,7 @@ export type Database = {
           discussion_id: string;
           author_id: string;
           content: string;
+          parent_reply_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1150,6 +1152,7 @@ export type Database = {
           discussion_id?: string;
           author_id?: string;
           content?: string;
+          parent_reply_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1166,6 +1169,13 @@ export type Database = {
             columns: ["author_id"];
             isOneToOne: false;
             referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "idea_discussion_replies_parent_reply_id_fkey";
+            columns: ["parent_reply_id"];
+            isOneToOne: false;
+            referencedRelation: "idea_discussion_replies";
             referencedColumns: ["id"];
           },
         ];

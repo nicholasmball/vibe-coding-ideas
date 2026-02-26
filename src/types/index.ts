@@ -102,6 +102,9 @@ export type IdeaDiscussionWithAuthor = IdeaDiscussion & {
 export type IdeaDiscussionReplyWithAuthor = IdeaDiscussionReply & {
   author: User;
 };
+export type IdeaDiscussionReplyWithChildren = IdeaDiscussionReplyWithAuthor & {
+  children: IdeaDiscussionReplyWithAuthor[];
+};
 export type IdeaDiscussionDetail = IdeaDiscussion & {
   author: User;
   replies: IdeaDiscussionReplyWithAuthor[];

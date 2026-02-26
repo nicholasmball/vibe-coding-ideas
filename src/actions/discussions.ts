@@ -162,7 +162,8 @@ export async function deleteDiscussion(discussionId: string, ideaId: string) {
 export async function createDiscussionReply(
   discussionId: string,
   ideaId: string,
-  content: string
+  content: string,
+  parentReplyId?: string | null
 ) {
   const supabase = await createClient();
   const {
@@ -173,12 +174,26 @@ export async function createDiscussionReply(
 
   content = validateDiscussionReply(content);
 
+  // If replying to a nested reply, flatten to single level by using its parent
+  let resolvedParentId = parentReplyId ?? null;
+  if (resolvedParentId) {
+    const { data: parent } = await supabase
+      .from("idea_discussion_replies")
+      .select("parent_reply_id")
+      .eq("id", resolvedParentId)
+      .single();
+    if (parent?.parent_reply_id) {
+      resolvedParentId = parent.parent_reply_id;
+    }
+  }
+
   const { data, error } = await supabase
     .from("idea_discussion_replies")
     .insert({
       discussion_id: discussionId,
       author_id: user.id,
       content,
+      parent_reply_id: resolvedParentId,
     })
     .select("id")
     .single();
