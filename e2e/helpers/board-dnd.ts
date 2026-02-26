@@ -1,12 +1,10 @@
 import type { Page, Locator } from "@playwright/test";
 
 /**
- * Simulate @dnd-kit drag-and-drop with mouse events.
- * @dnd-kit uses MouseSensor with distance: 8, so we need to:
- * 1. Mouse down on drag handle
- * 2. Move past 8px activation distance
- * 3. Move to target position
- * 4. Mouse up to drop
+ * Simulate @happy-doc/dnd (react-beautiful-dnd fork) drag-and-drop.
+ * rbd activates drag on mouse-down + small movement (no distance threshold
+ * like @dnd-kit's 8px MouseSensor). The library listens for mousedown on
+ * drag handles, then mousemove to start the drag, and mouseup to drop.
  */
 export async function dragAndDrop(
   page: Page,
@@ -26,21 +24,21 @@ export async function dragAndDrop(
   const endX = targetBox.x + (options?.offsetX ?? targetBox.width / 2);
   const endY = targetBox.y + (options?.offsetY ?? targetBox.height / 2);
 
-  // Mouse down on source
+  // Mouse down on source drag handle
   await page.mouse.move(startX, startY);
   await page.mouse.down();
 
-  // Move past 8px activation distance
-  await page.mouse.move(startX + 10, startY, { steps: 3 });
+  // Small movement to trigger rbd's drag activation
+  await page.mouse.move(startX, startY + 5, { steps: 2 });
 
-  // Small pause for DnD to activate
-  await page.waitForTimeout(100);
+  // Wait for rbd to recognise the drag
+  await page.waitForTimeout(200);
 
-  // Move to target
-  await page.mouse.move(endX, endY, { steps: 10 });
+  // Move to target in smooth steps
+  await page.mouse.move(endX, endY, { steps: 15 });
 
-  // Small pause for position to register
-  await page.waitForTimeout(100);
+  // Pause for rbd to register the hover position
+  await page.waitForTimeout(150);
 
   // Drop
   await page.mouse.up();
