@@ -1046,6 +1046,7 @@ export type Database = {
           category: "bug" | "suggestion" | "question" | "other";
           content: string;
           page_url: string | null;
+          status: "new" | "reviewed" | "archived";
           created_at: string;
         };
         Insert: {
@@ -1054,6 +1055,7 @@ export type Database = {
           category: "bug" | "suggestion" | "question" | "other";
           content: string;
           page_url?: string | null;
+          status?: "new" | "reviewed" | "archived";
           created_at?: string;
         };
         Update: {
@@ -1062,6 +1064,7 @@ export type Database = {
           category?: "bug" | "suggestion" | "question" | "other";
           content?: string;
           page_url?: string | null;
+          status?: "new" | "reviewed" | "archived";
           created_at?: string;
         };
         Relationships: [

@@ -1,23 +1,26 @@
 import { redirect } from "next/navigation";
 import { requireAuth } from "@/lib/auth";
-import { AiUsageDashboard } from "@/components/admin/ai-usage-dashboard";
+import { AdminTabs } from "@/components/admin/admin-tabs";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Admin: AI Usage",
+  title: "Admin",
   robots: { index: false, follow: false },
 };
 
 interface PageProps {
   searchParams: Promise<{
+    tab?: string;
     from?: string;
     to?: string;
     action?: string;
+    category?: string;
+    status?: string;
   }>;
 }
 
 export default async function AdminPage({ searchParams }: PageProps) {
-  const { from, to, action } = await searchParams;
+  const { tab, from, to, action, category, status } = await searchParams;
   const { user, supabase } = await requireAuth();
 
   // Check admin
@@ -47,18 +50,44 @@ export default async function AdminPage({ searchParams }: PageProps) {
 
   const { data: usageLogs } = await usageQuery;
 
+  // Fetch feedback with filters
+  let feedbackQuery = supabase
+    .from("feedback")
+    .select("*, user:users!feedback_user_id_fkey(id, full_name, email, avatar_url)")
+    .order("created_at", { ascending: false })
+    .limit(500);
+
+  if (category && category !== "all") {
+    feedbackQuery = feedbackQuery.eq("category", category as "bug" | "suggestion" | "question" | "other");
+  }
+  if (status && status !== "all") {
+    feedbackQuery = feedbackQuery.eq("status", status as "new" | "reviewed" | "archived");
+  }
+
+  const { data: feedback } = await feedbackQuery;
+
+  // Count unreviewed feedback for badge
+  const { count: newFeedbackCount } = await supabase
+    .from("feedback")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "new");
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
-      <h1 className="mb-6 text-2xl font-bold">Admin: AI Usage</h1>
-      <AiUsageDashboard
+      <h1 className="mb-6 text-2xl font-bold">Admin</h1>
+      <AdminTabs
+        activeTab={tab ?? "ai-usage"}
         usageLogs={(usageLogs ?? []) as UsageLogWithUser[]}
-        filters={{ from: from ?? "", to: to ?? "", action: action ?? "all" }}
+        usageFilters={{ from: from ?? "", to: to ?? "", action: action ?? "all" }}
+        feedback={(feedback ?? []) as FeedbackWithUser[]}
+        feedbackFilters={{ category: category ?? "all", status: status ?? "all" }}
+        newFeedbackCount={newFeedbackCount ?? 0}
       />
     </div>
   );
 }
 
-// Types for the serialized data passed to the client component
+// Types for the serialized data passed to the client components
 export type UsageLogWithUser = {
   id: string;
   user_id: string;
@@ -68,6 +97,22 @@ export type UsageLogWithUser = {
   model: string;
   key_type: string;
   idea_id: string | null;
+  created_at: string;
+  user: {
+    id: string;
+    full_name: string | null;
+    email: string;
+    avatar_url: string | null;
+  };
+};
+
+export type FeedbackWithUser = {
+  id: string;
+  user_id: string;
+  category: "bug" | "suggestion" | "question" | "other";
+  content: string;
+  page_url: string | null;
+  status: "new" | "reviewed" | "archived";
   created_at: string;
   user: {
     id: string;
