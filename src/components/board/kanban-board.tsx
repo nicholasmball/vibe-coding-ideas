@@ -452,10 +452,11 @@ export function KanbanBoard({
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: { distance: 8 },
   });
-  // Touch: short delay so the drag "sticks" to the finger, with generous
-  // tolerance so natural finger wobble doesn't cancel the activation.
+  // Touch: minimal delay with very generous tolerance — the drag handle is
+  // a dedicated target so there's no conflict with scrolling. Natural finger
+  // wobble on mobile can easily exceed 25px, so we allow up to 40px.
   const touchSensor = useSensor(TouchSensor, {
-    activationConstraint: { delay: 150, tolerance: 25 },
+    activationConstraint: { delay: 100, tolerance: 40 },
   });
   const keyboardSensor = useSensor(KeyboardSensor);
   const sensors = useSensors(mouseSensor, touchSensor, keyboardSensor);
