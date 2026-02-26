@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { createClient } from "@/lib/supabase/server";
+import { BoardPreview, IdeaCardPreview, AgentActivityPreview } from "@/components/landing/product-mockups";
 
 const features = [
   {
@@ -83,6 +84,11 @@ export default async function LandingPage() {
               </Link>
             </div>
           </div>
+
+          {/* Product preview — kanban board */}
+          <div className="mx-auto mt-16 max-w-5xl px-2 sm:mt-20">
+            <BoardPreview />
+          </div>
         </div>
       </section>
 
@@ -110,6 +116,11 @@ export default async function LandingPage() {
               <span className="font-medium text-foreground">Model Context Protocol (MCP)</span>.
               Your AI can read your ideas, manage your task board, file bugs, and write code &mdash; all while keeping everything updated in real time.
             </p>
+          </div>
+
+          {/* Agent activity preview */}
+          <div className="mx-auto mt-14 max-w-lg">
+            <AgentActivityPreview />
           </div>
 
           <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-8 sm:grid-cols-3">
@@ -181,6 +192,11 @@ export default async function LandingPage() {
               the full journey.
             </p>
           </div>
+          {/* Idea feed preview */}
+          <div className="mx-auto mt-14 max-w-2xl">
+            <IdeaCardPreview />
+          </div>
+
           <div className="mx-auto mt-16 grid max-w-5xl grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {features.map((feature) => (
               <div
