@@ -44,6 +44,8 @@ const messageMap = {
   comment_mention: "mentioned you in a comment on",
   collaboration_request: "requested to collaborate on",
   collaboration_response: "responded to your collaboration request on",
+  discussion: "started a discussion on",
+  discussion_reply: "replied to a discussion on",
 };
 
 export function NotificationBell() {

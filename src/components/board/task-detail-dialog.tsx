@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
-import { Tag, Trash2, Archive, ArchiveRestore, Pencil, X, Bot, Link2, Sparkles, Loader2, Eye } from "lucide-react";
+import { Tag, Trash2, Archive, ArchiveRestore, Pencil, X, Bot, Link2, Sparkles, Loader2, Eye, MessageSquare } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -613,6 +614,17 @@ export function TaskDetailDialog({
                   </div>
                 </div>
               </div>
+
+              {/* Discussion backlink */}
+              {task.discussion_id && (
+                <Link
+                  href={`/ideas/${ideaId}/discussions/${task.discussion_id}`}
+                  className="flex items-center gap-2 rounded-md border border-blue-500/20 bg-blue-500/5 px-3 py-2 text-xs text-blue-400 hover:bg-blue-500/10"
+                >
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  From discussion &mdash; View source thread
+                </Link>
+              )}
 
               <Separator />
 

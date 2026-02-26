@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Users, Pencil, LayoutDashboard, Trash2, Sparkles } from "lucide-react";
+import { Users, Pencil, LayoutDashboard, MessageSquare, Trash2, Sparkles } from "lucide-react";
 import { requireAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -267,12 +267,25 @@ export default async function IdeaDetailPage({ params }: PageProps) {
           />
         )}
         {(isAuthor || isCollaborator || idea.visibility === "public") && (
-          <Link href={`/ideas/${idea.id}/board`}>
-            <Button variant="outline" size="sm" className="gap-2">
-              <LayoutDashboard className="h-4 w-4" />
-              Board
-            </Button>
-          </Link>
+          <>
+            <Link href={`/ideas/${idea.id}/board`}>
+              <Button variant="outline" size="sm" className="gap-2">
+                <LayoutDashboard className="h-4 w-4" />
+                Board
+              </Button>
+            </Link>
+            <Link href={`/ideas/${idea.id}/discussions`}>
+              <Button variant="outline" size="sm" className="gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Discussions
+                {idea.discussion_count > 0 && (
+                  <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] leading-none">
+                    {idea.discussion_count}
+                  </span>
+                )}
+              </Button>
+            </Link>
+          </>
         )}
         {/* Desktop: show Edit, Enhance, Delete inline */}
         {isAuthor && (

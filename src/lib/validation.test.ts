@@ -10,6 +10,9 @@ import {
   validateLabelName,
   validateBio,
   validateAvatarUrl,
+  validateDiscussionTitle,
+  validateDiscussionBody,
+  validateDiscussionReply,
   ValidationError,
   MAX_TITLE_LENGTH,
   MAX_DESCRIPTION_LENGTH,
@@ -19,6 +22,8 @@ import {
   MAX_TAGS,
   MAX_LABEL_NAME_LENGTH,
   MAX_AVATAR_URL_LENGTH,
+  MAX_DISCUSSION_BODY_LENGTH,
+  MAX_DISCUSSION_REPLY_LENGTH,
 } from "./validation";
 
 describe("validateTitle", () => {
@@ -207,6 +212,57 @@ describe("validateBio", () => {
 
   it("throws on too-long bio", () => {
     expect(() => validateBio("a".repeat(MAX_BIO_LENGTH + 1))).toThrow(
+      ValidationError
+    );
+  });
+});
+
+describe("validateDiscussionTitle", () => {
+  it("returns trimmed title", () => {
+    expect(validateDiscussionTitle("  Phase 2 Planning  ")).toBe("Phase 2 Planning");
+  });
+
+  it("throws on empty title", () => {
+    expect(() => validateDiscussionTitle("")).toThrow(ValidationError);
+    expect(() => validateDiscussionTitle("   ")).toThrow(ValidationError);
+  });
+
+  it("throws on too-long title", () => {
+    expect(() => validateDiscussionTitle("a".repeat(MAX_TITLE_LENGTH + 1))).toThrow(
+      ValidationError
+    );
+  });
+});
+
+describe("validateDiscussionBody", () => {
+  it("returns trimmed body", () => {
+    expect(validateDiscussionBody("  Hello world  ")).toBe("Hello world");
+  });
+
+  it("throws on empty body", () => {
+    expect(() => validateDiscussionBody("")).toThrow(ValidationError);
+    expect(() => validateDiscussionBody("   ")).toThrow(ValidationError);
+  });
+
+  it("throws on too-long body", () => {
+    expect(() => validateDiscussionBody("a".repeat(MAX_DISCUSSION_BODY_LENGTH + 1))).toThrow(
+      ValidationError
+    );
+  });
+});
+
+describe("validateDiscussionReply", () => {
+  it("returns trimmed content", () => {
+    expect(validateDiscussionReply("  Great idea!  ")).toBe("Great idea!");
+  });
+
+  it("throws on empty reply", () => {
+    expect(() => validateDiscussionReply("")).toThrow(ValidationError);
+    expect(() => validateDiscussionReply("   ")).toThrow(ValidationError);
+  });
+
+  it("throws on too-long reply", () => {
+    expect(() => validateDiscussionReply("a".repeat(MAX_DISCUSSION_REPLY_LENGTH + 1))).toThrow(
       ValidationError
     );
   });

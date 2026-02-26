@@ -15,6 +15,8 @@ const EMAIL_WORTHY_TYPES: NotificationType[] = [
   "comment_mention",
   "collaboration_request",
   "collaboration_response",
+  "discussion",
+  "discussion_reply",
 ];
 
 export async function POST(request: NextRequest) {
@@ -285,6 +287,32 @@ function buildNotificationEmail(
           ctaText: "View Idea",
           ctaUrl: ideaUrl,
           footerText: "You received this because your collaboration request was reviewed.",
+        }),
+      };
+    }
+
+    case "discussion": {
+      return {
+        subject: `${actorName} started a discussion on your idea`,
+        html: buildEmailHtml({
+          heading: "New discussion",
+          bodyHtml: `<p style="margin:0;">${escapeBody(actorName)} started a new discussion on ${ideaDisplay}.</p>`,
+          ctaText: "View Discussion",
+          ctaUrl: ideaUrl ? `${ideaUrl}/discussions` : ideaUrl,
+          footerText: "You received this because a new discussion was started on your idea.",
+        }),
+      };
+    }
+
+    case "discussion_reply": {
+      return {
+        subject: `${actorName} replied to a discussion`,
+        html: buildEmailHtml({
+          heading: "New discussion reply",
+          bodyHtml: `<p style="margin:0;">${escapeBody(actorName)} replied to a discussion on ${ideaDisplay}.</p>`,
+          ctaText: "View Discussion",
+          ctaUrl: ideaUrl ? `${ideaUrl}/discussions` : ideaUrl,
+          footerText: "You received this because someone replied to a discussion you participated in.",
         }),
       };
     }
