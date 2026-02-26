@@ -18,6 +18,12 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { StepIndicator } from "./step-indicator";
 import { Confetti } from "./confetti";
 import {
@@ -411,12 +417,34 @@ export function OnboardingDialog({
               </div>
 
               <div className="mb-4">
-                <label className="mb-1.5 flex items-center gap-1.5 text-[13px] font-medium text-foreground">
-                  Description
-                  <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">
-                    optional
-                  </span>
-                </label>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <label className="flex items-center gap-1.5 text-[13px] font-medium text-foreground">
+                    Description
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground">
+                      optional
+                    </span>
+                  </label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={0}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled
+                            className="h-7 gap-1.5 px-2.5 text-[11px]"
+                          >
+                            <Sparkles className="h-3 w-3" />
+                            Enhance with AI
+                          </Button>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        Add your Claude API key in Profile Settings to enable AI
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <Textarea
                   placeholder="Briefly describe what it does, who it's for, or what problem it solves..."
                   value={ideaDescription}
