@@ -14,7 +14,7 @@ import {
   LayoutGrid,
   Copy,
 } from "lucide-react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -175,6 +175,9 @@ export function OnboardingDialog({
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
+        {/* Hidden accessible title */}
+        <DialogTitle className="sr-only">Welcome to VibeCodes</DialogTitle>
+
         {/* Ambient glow at top */}
         <div className="pointer-events-none absolute top-0 right-0 left-0 z-0">
           <div className="mx-auto h-px w-64 bg-gradient-to-r from-transparent via-primary to-transparent" />
@@ -183,24 +186,23 @@ export function OnboardingDialog({
 
         <StepIndicator totalSteps={4} currentStep={step} />
 
-        {/* Steps viewport */}
-        <div className="w-full overflow-hidden">
-          <div
-            className="flex transition-transform duration-500"
-            style={{
-              transform: `translateX(-${step * 100}%)`,
-              transitionTimingFunction: "cubic-bezier(0.16, 1, 0.3, 1)",
-            }}
-          >
-            {/* ═══ Step 0: Welcome ═══ */}
-            <div className="relative z-[1] w-full shrink-0 px-8 pt-6 pb-8 sm:px-10">
+        {/* Step content — conditionally rendered */}
+        <div
+          key={step}
+          className="animate-in fade-in-0 duration-300 relative z-[1]"
+        >
+          {step === 0 && (
+            <div className="px-8 pt-6 pb-8 sm:px-10">
               <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/[0.08] px-3.5 py-1 text-xs font-semibold text-primary">
-                <Sparkles className="h-3.5 w-3.5 animate-spin" style={{ animationDuration: "4s" }} />
+                <Sparkles
+                  className="h-3.5 w-3.5 animate-spin"
+                  style={{ animationDuration: "4s" }}
+                />
                 Getting started
               </div>
-              <h1 className="-tracking-wide mb-2 text-2xl font-bold text-foreground sm:text-[28px]">
+              <h2 className="-tracking-wide mb-2 text-2xl font-bold text-foreground sm:text-[28px]">
                 Welcome to VibeCodes!
-              </h1>
+              </h2>
               <p className="mb-7 text-[15px] text-muted-foreground">
                 Where your AI agents become real team members. Let&apos;s get
                 you set up in under a minute.
@@ -229,18 +231,17 @@ export function OnboardingDialog({
                     title: "Agents pick up work autonomously",
                     desc: "Create AI personas that self-assign tasks, write code, and ship features",
                   },
-                ].map((item, i) => (
+                ].map((item) => (
                   <div
                     key={item.title}
                     className="flex items-center gap-3.5 rounded-xl border border-border/60 bg-card/60 p-3.5 transition-colors hover:border-border hover:bg-card/80"
-                    style={{
-                      animation: `fadeSlideIn 0.5s ease-out ${0.15 + i * 0.1}s both`,
-                    }}
                   >
                     <div
                       className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${item.bg}`}
                     >
-                      <item.icon className={`h-[18px] w-[18px] ${item.color}`} />
+                      <item.icon
+                        className={`h-[18px] w-[18px] ${item.color}`}
+                      />
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-foreground">
@@ -269,9 +270,10 @@ export function OnboardingDialog({
                 Skip for now
               </button>
             </div>
+          )}
 
-            {/* ═══ Step 1: Profile ═══ */}
-            <div className="relative z-[1] w-full shrink-0 px-8 pt-4 pb-8 sm:px-10">
+          {step === 1 && (
+            <div className="px-8 pt-4 pb-8 sm:px-10">
               <div className="mb-4 flex items-center justify-between">
                 <Button
                   variant="ghost"
@@ -370,9 +372,10 @@ export function OnboardingDialog({
                 Skip this step
               </button>
             </div>
+          )}
 
-            {/* ═══ Step 2: First Idea ═══ */}
-            <div className="relative z-[1] w-full shrink-0 px-8 pt-4 pb-8 sm:px-10">
+          {step === 2 && (
+            <div className="px-8 pt-4 pb-8 sm:px-10">
               <div className="mb-4 flex items-center justify-between">
                 <Button
                   variant="ghost"
@@ -472,9 +475,10 @@ export function OnboardingDialog({
                 I&apos;ll do this later
               </button>
             </div>
+          )}
 
-            {/* ═══ Step 3: Success ═══ */}
-            <div className="relative z-[1] w-full shrink-0 px-8 pt-8 pb-8 sm:px-10">
+          {step === 3 && (
+            <div className="px-8 pt-8 pb-8 sm:px-10">
               <Confetti />
 
               <div
@@ -501,9 +505,6 @@ export function OnboardingDialog({
                   <a
                     href={`/ideas/${createdIdeaId}`}
                     className="group flex items-center gap-3.5 rounded-xl border border-border/60 bg-card/60 p-3.5 transition-colors hover:border-border hover:bg-card/80"
-                    style={{
-                      animation: "fadeSlideLeft 0.4s ease-out 0.3s both",
-                    }}
                   >
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-400/10">
                       <LayoutGrid className="h-[18px] w-[18px] text-violet-400" />
@@ -524,9 +525,6 @@ export function OnboardingDialog({
                 <a
                   href="/agents"
                   className="group flex items-center gap-3.5 rounded-xl border border-border/60 bg-card/60 p-3.5 transition-colors hover:border-border hover:bg-card/80"
-                  style={{
-                    animation: `fadeSlideLeft 0.4s ease-out ${createdIdeaId ? "0.45s" : "0.3s"} both`,
-                  }}
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-400/10">
                     <Bot className="h-[18px] w-[18px] text-amber-400" />
@@ -543,12 +541,7 @@ export function OnboardingDialog({
                   <ChevronRight className="h-4 w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground" />
                 </a>
 
-                <div
-                  className="group rounded-xl border border-border/60 bg-card/60 p-3.5 transition-colors hover:border-border hover:bg-card/80"
-                  style={{
-                    animation: `fadeSlideLeft 0.4s ease-out ${createdIdeaId ? "0.6s" : "0.45s"} both`,
-                  }}
-                >
+                <div className="group rounded-xl border border-border/60 bg-card/60 p-3.5 transition-colors hover:border-border hover:bg-card/80">
                   <div className="flex items-center gap-3.5">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-400/10">
                       <Cable className="h-[18px] w-[18px] text-sky-400" />
@@ -579,36 +572,20 @@ export function OnboardingDialog({
                 </div>
               </div>
 
-              <Button className="w-full gap-2" size="lg" onClick={handleFinish}>
+              <Button
+                className="w-full gap-2"
+                size="lg"
+                onClick={handleFinish}
+              >
                 Go to Dashboard
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Global animations */}
         <style jsx global>{`
-          @keyframes fadeSlideIn {
-            from {
-              opacity: 0;
-              transform: translateY(8px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-          @keyframes fadeSlideLeft {
-            from {
-              opacity: 0;
-              transform: translateX(-10px);
-            }
-            to {
-              opacity: 1;
-              transform: translateX(0);
-            }
-          }
           @keyframes checkPop {
             0% {
               transform: scale(0) rotate(-10deg);
