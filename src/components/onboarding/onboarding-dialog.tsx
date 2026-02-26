@@ -507,7 +507,7 @@ export function OnboardingDialog({
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4" />
-                    Create & Generate Board
+                    Create Idea
                   </>
                 )}
               </Button>
@@ -546,7 +546,7 @@ export function OnboardingDialog({
               <div className="mb-7 flex flex-col gap-2.5">
                 {createdIdeaId && (
                   <a
-                    href={`/ideas/${createdIdeaId}`}
+                    href={`/ideas/${createdIdeaId}/board`}
                     className="group flex items-center gap-3.5 rounded-xl border border-border/60 bg-card/60 p-3.5 transition-colors hover:border-border hover:bg-card/80"
                   >
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-400/10">
@@ -557,8 +557,7 @@ export function OnboardingDialog({
                         View your board
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        AI has generated tasks, labels, and milestones for your
-                        idea
+                        Use AI Generate to create tasks, labels, and milestones
                       </p>
                     </div>
                     <ChevronRight className="h-4 w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground" />
