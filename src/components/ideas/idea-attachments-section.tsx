@@ -203,19 +203,29 @@ export function IdeaAttachmentsSection({
       return;
     }
 
-    const { error: dbError } = await supabase.from("idea_attachments").insert({
-      idea_id: ideaId,
-      uploaded_by: currentUserId,
-      file_name: file.name,
-      file_size: file.size,
-      content_type: contentType,
-      storage_path: storagePath,
-    });
+    const { data: inserted, error: dbError } = await supabase
+      .from("idea_attachments")
+      .insert({
+        idea_id: ideaId,
+        uploaded_by: currentUserId,
+        file_name: file.name,
+        file_size: file.size,
+        content_type: contentType,
+        storage_path: storagePath,
+      })
+      .select()
+      .single();
 
-    if (dbError) {
+    if (dbError || !inserted) {
       toast.error("Failed to save attachment record");
       // Clean up orphaned storage file
       await supabase.storage.from("idea-attachments").remove([storagePath]);
+    } else {
+      // Optimistically add to list immediately (don't wait for Realtime)
+      setAttachments((prev) => {
+        if (prev.some((a) => a.id === inserted.id)) return prev;
+        return [inserted, ...prev];
+      });
     }
 
     setUploadingFiles((prev) => prev.filter((f) => f.id !== placeholderId));
