@@ -515,21 +515,16 @@ export function KanbanBoard({
     showArchived,
   ]);
 
-  // ────────────────────────────────────────────────────────────────────────────
   // Sensor configuration
-  //
-  // TouchSensor: delay 250ms (slightly longer than the previous 200ms) and a
-  // tighter 8px tolerance. The extra 50ms prevents accidental drag activation
-  // when the user is scrolling vertically within a column. The tighter tolerance
-  // ensures the pointer hasn't drifted much before we commit to a drag, which
-  // pairs well with the dwell-scroll (the card picks up cleanly before the edge
-  // zone becomes relevant).
-  // ────────────────────────────────────────────────────────────────────────────
+  // MouseSensor: 8px distance to avoid accidental drags from clicks
+  // TouchSensor: 200ms delay to distinguish drag from scroll, with 25px tolerance
+  //   to accommodate natural finger drift on mobile touch screens (8px was too tight
+  //   and caused immediate cancellation on most devices)
   const mouseSensor = useSensor(MouseSensor, {
     activationConstraint: { distance: 8 },
   });
   const touchSensor = useSensor(TouchSensor, {
-    activationConstraint: { delay: 250, tolerance: 8 },
+    activationConstraint: { delay: 200, tolerance: 25 },
   });
   const keyboardSensor = useSensor(KeyboardSensor);
   const sensors = useSensors(mouseSensor, touchSensor, keyboardSensor);

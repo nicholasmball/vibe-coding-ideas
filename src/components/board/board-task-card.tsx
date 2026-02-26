@@ -243,7 +243,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
           {!isArchived && !isReadOnly && (
             <button
               data-testid="task-drag-handle"
-              className="mt-0.5 cursor-grab text-muted-foreground opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 active:cursor-grabbing touch-none"
+              className="-ml-2 -mt-1 cursor-grab p-2 text-muted-foreground opacity-100 transition-opacity sm:-ml-0.5 sm:-mt-0.5 sm:p-0.5 sm:opacity-0 sm:group-hover:opacity-100 active:cursor-grabbing touch-none"
               {...attributes}
               {...listeners}
               onClick={(e) => e.stopPropagation()}

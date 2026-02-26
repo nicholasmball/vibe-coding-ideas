@@ -146,7 +146,7 @@ export const BoardColumn = memo(function BoardColumn({
             {!isReadOnly && (
               <button
                 data-testid="column-drag-handle"
-                className="cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing touch-none"
+                className="-ml-1 cursor-grab p-1 text-muted-foreground hover:text-foreground active:cursor-grabbing touch-none sm:-ml-0 sm:p-0"
                 {...attributes}
                 {...listeners}
               >
