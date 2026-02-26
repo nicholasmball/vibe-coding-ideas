@@ -86,44 +86,41 @@ export default async function DiscussionDetailPage({ params }: PageProps) {
   const isAuthorOrOwner =
     user.id === discussion.author_id || user.id === idea.author_id;
 
-  // Fetch board columns for the "Convert to Task" dialog
-  const { data: columns } = await supabase
-    .from("board_columns")
-    .select("*")
-    .eq("idea_id", ideaId)
-    .order("position", { ascending: true });
-
-  const typedColumns = (columns ?? []) as BoardColumn[];
-
-  // Fetch current user record
-  const { data: currentUser } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", user.id)
-    .single();
-
-  // Check if current user has voted on this discussion
-  let hasVotedOnDiscussion = false;
-  {
-    const { data: vote } = await supabase
+  // Fetch columns, current user, vote status, and converted task in parallel
+  const [
+    { data: columns },
+    { data: currentUser },
+    { data: vote },
+    convertedTaskResult,
+  ] = await Promise.all([
+    supabase
+      .from("board_columns")
+      .select("*")
+      .eq("idea_id", ideaId)
+      .order("position", { ascending: true }),
+    supabase
+      .from("users")
+      .select("*")
+      .eq("id", user.id)
+      .single(),
+    supabase
       .from("discussion_votes")
       .select("id")
       .eq("discussion_id", discussionId)
       .eq("user_id", user.id)
-      .maybeSingle();
-    hasVotedOnDiscussion = !!vote;
-  }
+      .maybeSingle(),
+    discussion.status === "converted"
+      ? supabase
+          .from("board_tasks")
+          .select("id")
+          .eq("discussion_id", discussionId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
 
-  // If discussion was converted, find the linked task
-  let convertedTaskId: string | null = null;
-  if (discussion.status === "converted") {
-    const { data: task } = await supabase
-      .from("board_tasks")
-      .select("id")
-      .eq("discussion_id", discussionId)
-      .maybeSingle();
-    convertedTaskId = task?.id ?? null;
-  }
+  const typedColumns = (columns ?? []) as BoardColumn[];
+  const hasVotedOnDiscussion = !!vote;
+  const convertedTaskId = convertedTaskResult.data?.id ?? null;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">

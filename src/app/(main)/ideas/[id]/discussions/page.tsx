@@ -64,14 +64,14 @@ export default async function DiscussionsPage({ params }: PageProps) {
 
   // Fetch user's voted discussion IDs
   const discussionIds = typedDiscussions.map((d) => d.id);
-  let votedDiscussionIds: Set<string> = new Set();
+  let votedDiscussionIds: string[] = [];
   if (discussionIds.length > 0) {
     const { data: votes } = await supabase
       .from("discussion_votes")
       .select("discussion_id")
       .eq("user_id", user.id)
       .in("discussion_id", discussionIds);
-    votedDiscussionIds = new Set((votes ?? []).map((v) => v.discussion_id));
+    votedDiscussionIds = (votes ?? []).map((v) => v.discussion_id);
   }
 
   return (
@@ -110,7 +110,7 @@ export default async function DiscussionsPage({ params }: PageProps) {
         <DiscussionList
           discussions={typedDiscussions}
           ideaId={ideaId}
-          votedDiscussionIds={Array.from(votedDiscussionIds)}
+          votedDiscussionIds={votedDiscussionIds}
         />
       )}
     </div>

@@ -10,6 +10,42 @@ import {
   validateTitle,
 } from "@/lib/validation";
 import type { DiscussionStatus } from "@/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+/** Check if user is the discussion author, idea owner, or admin */
+async function checkDiscussionPermission(
+  supabase: SupabaseClient,
+  userId: string,
+  discussionId: string,
+  ideaId: string
+): Promise<{ isAuthorOrOwner: boolean; isAdmin: boolean }> {
+  const [{ data: discussion }, { data: idea }, { data: profile }] =
+    await Promise.all([
+      supabase
+        .from("idea_discussions")
+        .select("author_id")
+        .eq("id", discussionId)
+        .single(),
+      supabase
+        .from("ideas")
+        .select("author_id")
+        .eq("id", ideaId)
+        .single(),
+      supabase
+        .from("users")
+        .select("is_admin")
+        .eq("id", userId)
+        .single(),
+    ]);
+
+  if (!discussion) throw new Error("Discussion not found");
+
+  const isAuthorOrOwner =
+    userId === discussion.author_id || userId === idea?.author_id;
+  const isAdmin = profile?.is_admin ?? false;
+
+  return { isAuthorOrOwner, isAdmin };
+}
 
 export async function createDiscussion(
   ideaId: string,
@@ -62,31 +98,9 @@ export async function updateDiscussion(
 
   if (!user) throw new Error("Not authenticated");
 
-  // Verify user is discussion author, idea owner, or admin
-  const { data: discussion } = await supabase
-    .from("idea_discussions")
-    .select("author_id")
-    .eq("id", discussionId)
-    .single();
-
-  if (!discussion) throw new Error("Discussion not found");
-
-  const { data: idea } = await supabase
-    .from("ideas")
-    .select("author_id")
-    .eq("id", ideaId)
-    .single();
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
-
-  const isAuthorOrOwner =
-    user.id === discussion.author_id || user.id === idea?.author_id;
-  const isAdmin = profile?.is_admin ?? false;
-
+  const { isAuthorOrOwner, isAdmin } = await checkDiscussionPermission(
+    supabase, user.id, discussionId, ideaId
+  );
   if (!isAuthorOrOwner && !isAdmin) {
     throw new Error("You don't have permission to update this discussion");
   }
@@ -127,31 +141,9 @@ export async function deleteDiscussion(discussionId: string, ideaId: string) {
 
   if (!user) throw new Error("Not authenticated");
 
-  // Verify user is discussion author, idea owner, or admin
-  const { data: discussion } = await supabase
-    .from("idea_discussions")
-    .select("author_id")
-    .eq("id", discussionId)
-    .single();
-
-  if (!discussion) throw new Error("Discussion not found");
-
-  const { data: idea } = await supabase
-    .from("ideas")
-    .select("author_id")
-    .eq("id", ideaId)
-    .single();
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
-
-  const isAuthorOrOwner =
-    user.id === discussion.author_id || user.id === idea?.author_id;
-  const isAdmin = profile?.is_admin ?? false;
-
+  const { isAuthorOrOwner, isAdmin } = await checkDiscussionPermission(
+    supabase, user.id, discussionId, ideaId
+  );
   if (!isAuthorOrOwner && !isAdmin) {
     throw new Error("You don't have permission to delete this discussion");
   }
@@ -257,31 +249,15 @@ export async function deleteDiscussionReply(
 
   if (!reply) throw new Error("Reply not found");
 
-  const { data: discussion } = await supabase
-    .from("idea_discussions")
-    .select("author_id")
-    .eq("id", discussionId)
-    .single();
-
-  const { data: idea } = await supabase
-    .from("ideas")
-    .select("author_id")
-    .eq("id", ideaId)
-    .single();
-
-  const { data: profile } = await supabase
-    .from("users")
-    .select("is_admin")
-    .eq("id", user.id)
-    .single();
-
   const isReplyAuthor = user.id === reply.author_id;
-  const isDiscussionAuthor = user.id === discussion?.author_id;
-  const isIdeaOwner = user.id === idea?.author_id;
-  const isAdmin = profile?.is_admin ?? false;
 
-  if (!isReplyAuthor && !isDiscussionAuthor && !isIdeaOwner && !isAdmin) {
-    throw new Error("You don't have permission to delete this reply");
+  if (!isReplyAuthor) {
+    const { isAuthorOrOwner, isAdmin } = await checkDiscussionPermission(
+      supabase, user.id, discussionId, ideaId
+    );
+    if (!isAuthorOrOwner && !isAdmin) {
+      throw new Error("You don't have permission to delete this reply");
+    }
   }
 
   const { error } = await supabase
@@ -339,6 +315,14 @@ export async function convertDiscussionToTask(
   } = await supabase.auth.getUser();
 
   if (!user) throw new Error("Not authenticated");
+
+  // Verify user is discussion author, idea owner, or admin
+  const { isAuthorOrOwner, isAdmin } = await checkDiscussionPermission(
+    supabase, user.id, discussionId, ideaId
+  );
+  if (!isAuthorOrOwner && !isAdmin) {
+    throw new Error("You don't have permission to convert this discussion");
+  }
 
   // Get the discussion
   const { data: discussion, error: fetchError } = await supabase

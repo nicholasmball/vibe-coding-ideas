@@ -503,7 +503,6 @@ test.describe("Discussions", () => {
 
       // Type a reply
       await replyTextarea.fill("[E2E] This is a test reply from User A");
-      await userAPage.waitForTimeout(300);
 
       // Submit
       const replyButton = userAPage.getByRole("button", { name: "Reply", exact: true });
@@ -533,9 +532,10 @@ test.describe("Discussions", () => {
       await expect(replyTextarea).toBeVisible({ timeout: 15_000 });
 
       await replyTextarea.fill("[E2E] Reply from collaborator");
-      await userBPage.waitForTimeout(300);
 
-      await userBPage.getByRole("button", { name: "Reply", exact: true }).click();
+      const replyButton = userBPage.getByRole("button", { name: "Reply", exact: true });
+      await expect(replyButton).toBeEnabled();
+      await replyButton.click();
 
       await expect(
         userBPage.getByText("[E2E] Reply from collaborator")
@@ -563,8 +563,9 @@ test.describe("Discussions", () => {
       // Post a reply
       const replyTextarea = userAPage.getByPlaceholder(/write a reply/i);
       await replyTextarea.fill("[E2E] A reply to count");
-      await userAPage.waitForTimeout(300);
-      await userAPage.getByRole("button", { name: "Reply", exact: true }).click();
+      const replyButton = userAPage.getByRole("button", { name: "Reply", exact: true });
+      await expect(replyButton).toBeEnabled();
+      await replyButton.click();
 
       // Reply count should update to "1 reply" (singular)
       await expect(

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { MessageSquare, Check, ArrowRightLeft, Pin, Search } from "lucide-react";
+import { MessageSquare, Pin, Search } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -10,26 +10,20 @@ import { formatRelativeTime } from "@/lib/utils";
 import { DiscussionVoteButton } from "./discussion-vote-button";
 import type { IdeaDiscussionWithAuthor } from "@/types";
 
-type FilterStatus = "all" | "open" | "resolved" | "converted";
+type FilterStatus = "all" | "open" | "resolved";
 
 const STATUS_CONFIG = {
   open: {
     label: "Open",
-    icon: MessageSquare,
     className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    iconBg: "bg-emerald-500/10 text-emerald-400",
   },
   resolved: {
     label: "Resolved",
-    icon: Check,
     className: "bg-violet-500/10 text-violet-400 border-violet-500/20",
-    iconBg: "bg-violet-500/10 text-violet-400",
   },
   converted: {
     label: "Converted",
-    icon: ArrowRightLeft,
     className: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    iconBg: "bg-blue-500/10 text-blue-400",
   },
 } as const;
 
@@ -112,7 +106,6 @@ export function DiscussionList({ discussions, ideaId, votedDiscussionIds = [] }:
         <div className="space-y-2">
           {sorted.map((discussion) => {
             const config = STATUS_CONFIG[discussion.status];
-            const StatusIcon = config.icon;
 
             return (
               <div
