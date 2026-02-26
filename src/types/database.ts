@@ -18,6 +18,7 @@ export type Database = {
             collaborators: boolean;
             status_changes: boolean;
             task_mentions: boolean;
+            comment_mentions: boolean;
             email_notifications: boolean;
             collaboration_requests: boolean;
             collaboration_responses: boolean;
@@ -46,6 +47,7 @@ export type Database = {
             collaborators: boolean;
             status_changes: boolean;
             task_mentions: boolean;
+            comment_mentions: boolean;
             email_notifications: boolean;
             collaboration_requests: boolean;
             collaboration_responses: boolean;
@@ -74,6 +76,7 @@ export type Database = {
             collaborators: boolean;
             status_changes: boolean;
             task_mentions: boolean;
+            comment_mentions: boolean;
             email_notifications: boolean;
             collaboration_requests: boolean;
             collaboration_responses: boolean;
@@ -718,6 +721,7 @@ export type Database = {
             | "user_deleted"
             | "status_change"
             | "task_mention"
+            | "comment_mention"
             | "collaboration_request"
             | "collaboration_response";
           idea_id: string | null;
@@ -738,6 +742,7 @@ export type Database = {
             | "user_deleted"
             | "status_change"
             | "task_mention"
+            | "comment_mention"
             | "collaboration_request"
             | "collaboration_response";
           idea_id?: string | null;
@@ -758,6 +763,7 @@ export type Database = {
             | "user_deleted"
             | "status_change"
             | "task_mention"
+            | "comment_mention"
             | "collaboration_request"
             | "collaboration_response";
           idea_id?: string | null;
@@ -1120,6 +1126,7 @@ export type Database = {
         | "user_deleted"
         | "status_change"
         | "task_mention"
+        | "comment_mention"
         | "collaboration_request"
         | "collaboration_response";
       collaboration_request_status: "pending" | "accepted" | "declined";

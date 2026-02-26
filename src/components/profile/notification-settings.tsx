@@ -29,6 +29,7 @@ const inAppLabels: Record<string, string> = {
   collaborators: "New collaborators",
   status_changes: "Idea status updates",
   task_mentions: "Task mentions",
+  comment_mentions: "Comment mentions",
   collaboration_requests: "Collaboration requests",
   collaboration_responses: "Collaboration request responses",
 };

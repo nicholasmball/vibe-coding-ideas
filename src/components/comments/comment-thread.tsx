@@ -1,7 +1,7 @@
 import { Separator } from "@/components/ui/separator";
 import { CommentItem } from "./comment-item";
 import { CommentForm } from "./comment-form";
-import type { CommentWithAuthor } from "@/types";
+import type { CommentWithAuthor, User } from "@/types";
 
 interface CommentThreadProps {
   comments: CommentWithAuthor[];
@@ -9,6 +9,7 @@ interface CommentThreadProps {
   ideaAuthorId: string;
   currentUserId?: string;
   userBotIds?: string[];
+  teamMembers?: User[];
 }
 
 export function CommentThread({
@@ -17,6 +18,7 @@ export function CommentThread({
   ideaAuthorId,
   currentUserId,
   userBotIds,
+  teamMembers = [],
 }: CommentThreadProps) {
   return (
     <div>
@@ -26,7 +28,11 @@ export function CommentThread({
 
       {currentUserId && (
         <>
-          <CommentForm ideaId={ideaId} />
+          <CommentForm
+            ideaId={ideaId}
+            teamMembers={teamMembers}
+            currentUserId={currentUserId}
+          />
           <Separator className="my-6" />
         </>
       )}
@@ -45,6 +51,7 @@ export function CommentThread({
               ideaAuthorId={ideaAuthorId}
               currentUserId={currentUserId}
               userBotIds={userBotIds}
+              teamMembers={teamMembers}
             />
           ))}
         </div>

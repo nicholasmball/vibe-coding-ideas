@@ -12,6 +12,9 @@ const EMAIL_WORTHY_TYPES: NotificationType[] = [
   "collaborator",
   "status_change",
   "task_mention",
+  "comment_mention",
+  "collaboration_request",
+  "collaboration_response",
 ];
 
 export async function POST(request: NextRequest) {
@@ -243,6 +246,45 @@ function buildNotificationEmail(
           ctaText: "View Task",
           ctaUrl: ideaId ? `${appUrl}/ideas/${ideaId}/board` : appUrl,
           footerText: "You received this because you were mentioned in a task comment.",
+        }),
+      };
+    }
+
+    case "comment_mention": {
+      return {
+        subject: `${actorName} mentioned you in a comment`,
+        html: buildEmailHtml({
+          heading: "You were mentioned",
+          bodyHtml: `<p style="margin:0;">${escapeBody(actorName)} mentioned you in a comment on ${ideaDisplay}.</p>`,
+          ctaText: "View Comment",
+          ctaUrl: ideaUrl,
+          footerText: "You received this because you were mentioned in a comment.",
+        }),
+      };
+    }
+
+    case "collaboration_request": {
+      return {
+        subject: `${actorName} wants to collaborate on your idea`,
+        html: buildEmailHtml({
+          heading: "New collaboration request",
+          bodyHtml: `<p style="margin:0;">${escapeBody(actorName)} has requested to collaborate on ${ideaDisplay}.</p>`,
+          ctaText: "Review Request",
+          ctaUrl: ideaUrl,
+          footerText: "You received this because someone wants to collaborate on your idea.",
+        }),
+      };
+    }
+
+    case "collaboration_response": {
+      return {
+        subject: `Your collaboration request was reviewed`,
+        html: buildEmailHtml({
+          heading: "Collaboration request update",
+          bodyHtml: `<p style="margin:0;">${escapeBody(actorName)} responded to your collaboration request on ${ideaDisplay}.</p>`,
+          ctaText: "View Idea",
+          ctaUrl: ideaUrl,
+          footerText: "You received this because your collaboration request was reviewed.",
         }),
       };
     }

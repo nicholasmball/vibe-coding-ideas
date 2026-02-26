@@ -46,18 +46,34 @@ describe("DashboardTask type", () => {
 });
 
 describe("Notification types", () => {
-  it("Row type includes task_mention", () => {
+  it("Row type includes all notification types", () => {
     type RowType = Database["public"]["Tables"]["notifications"]["Row"]["type"];
-    expectTypeOf<RowType>().toMatchTypeOf<
-      "comment" | "vote" | "collaborator" | "user_deleted" | "status_change" | "task_mention"
-    >();
+    type ExpectedType =
+      | "comment"
+      | "vote"
+      | "collaborator"
+      | "user_deleted"
+      | "status_change"
+      | "task_mention"
+      | "comment_mention"
+      | "collaboration_request"
+      | "collaboration_response";
+    expectTypeOf<RowType>().toEqualTypeOf<ExpectedType>();
   });
 
-  it("Insert type includes task_mention", () => {
+  it("Insert type includes all notification types", () => {
     type InsertType = Database["public"]["Tables"]["notifications"]["Insert"]["type"];
-    expectTypeOf<InsertType>().toMatchTypeOf<
-      "comment" | "vote" | "collaborator" | "user_deleted" | "status_change" | "task_mention"
-    >();
+    type ExpectedType =
+      | "comment"
+      | "vote"
+      | "collaborator"
+      | "user_deleted"
+      | "status_change"
+      | "task_mention"
+      | "comment_mention"
+      | "collaboration_request"
+      | "collaboration_response";
+    expectTypeOf<InsertType>().toEqualTypeOf<ExpectedType>();
   });
 
   it("Update type includes task_mention", () => {

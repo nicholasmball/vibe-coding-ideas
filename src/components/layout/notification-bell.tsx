@@ -29,6 +29,7 @@ const iconMap = {
   user_deleted: Trash2,
   status_change: ArrowRightLeft,
   task_mention: AtSign,
+  comment_mention: AtSign,
   collaboration_request: UserPlus,
   collaboration_response: UserCheck,
 };
@@ -40,6 +41,7 @@ const messageMap = {
   user_deleted: "removed an idea you were collaborating on",
   status_change: "updated the status of",
   task_mention: "mentioned you in a task on",
+  comment_mention: "mentioned you in a comment on",
   collaboration_request: "requested to collaborate on",
   collaboration_response: "responded to your collaboration request on",
 };

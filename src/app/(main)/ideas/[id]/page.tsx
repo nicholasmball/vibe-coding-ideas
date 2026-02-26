@@ -22,7 +22,7 @@ import { InlineIdeaBody } from "@/components/ideas/inline-idea-body";
 import { InlineIdeaTags } from "@/components/ideas/inline-idea-tags";
 import { formatRelativeTime, stripMarkdownForMeta } from "@/lib/utils";
 import { PendingRequests } from "@/components/ideas/pending-requests";
-import type { CommentWithAuthor, CollaboratorWithUser, CollaborationRequestWithRequester, BotProfile } from "@/types";
+import type { CommentWithAuthor, CollaboratorWithUser, CollaborationRequestWithRequester, BotProfile, User } from "@/types";
 import type { Metadata } from "next";
 
 export const maxDuration = 120;
@@ -195,6 +195,17 @@ export default async function IdeaDetailPage({ params }: PageProps) {
       .order("created_at", { ascending: true });
     userBots = (bots ?? []) as BotProfile[];
   }
+  // Build team members list for @mention autocomplete (author + collaborators, deduplicated)
+  const teamMembersMap = new Map<string, User>();
+  const ideaAuthor = idea.author as unknown as User;
+  teamMembersMap.set(ideaAuthor.id, ideaAuthor);
+  (collaborators as unknown as CollaboratorWithUser[])?.forEach((collab) => {
+    if (!teamMembersMap.has(collab.user_id)) {
+      teamMembersMap.set(collab.user_id, collab.user);
+    }
+  });
+  const teamMembers = Array.from(teamMembersMap.values());
+
   const author = idea.author as unknown as { full_name: string | null; avatar_url: string | null; id: string };
   const authorInitials =
     author.full_name
@@ -376,6 +387,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
         ideaAuthorId={idea.author_id}
         currentUserId={user?.id}
         userBotIds={userBots.map((b) => b.id)}
+        teamMembers={teamMembers}
       />
     </div>
   );

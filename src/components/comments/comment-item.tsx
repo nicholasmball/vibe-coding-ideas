@@ -13,7 +13,7 @@ import { undoableAction } from "@/lib/undo-toast";
 import { toast } from "sonner";
 import { formatRelativeTime } from "@/lib/utils";
 import { Markdown } from "@/components/ui/markdown";
-import type { CommentWithAuthor } from "@/types";
+import type { CommentWithAuthor, User } from "@/types";
 
 interface CommentItemProps {
   comment: CommentWithAuthor;
@@ -21,6 +21,7 @@ interface CommentItemProps {
   ideaAuthorId: string;
   currentUserId?: string;
   userBotIds?: string[];
+  teamMembers?: User[];
   depth?: number;
 }
 
@@ -30,6 +31,7 @@ export function CommentItem({
   ideaAuthorId,
   currentUserId,
   userBotIds = [],
+  teamMembers = [],
   depth = 0,
 }: CommentItemProps) {
   const [showReplyForm, setShowReplyForm] = useState(false);
@@ -241,6 +243,8 @@ export function CommentItem({
               ideaId={ideaId}
               parentCommentId={comment.id}
               onCancel={() => setShowReplyForm(false)}
+              teamMembers={teamMembers}
+              currentUserId={currentUserId}
             />
           </div>
         )}
@@ -257,6 +261,7 @@ export function CommentItem({
               ideaAuthorId={ideaAuthorId}
               currentUserId={currentUserId}
               userBotIds={userBotIds}
+              teamMembers={teamMembers}
               depth={depth + 1}
             />
           ))}

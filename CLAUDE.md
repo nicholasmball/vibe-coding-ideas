@@ -49,7 +49,7 @@ Move to "Blocked/Requires User Input" with a comment explaining why.
 - Middleware protects `/dashboard`, `/ideas`, `/profile`, `/admin`, `/agents`
 - Middleware excludes `.well-known`, `api/mcp`, `api/oauth`, `oauth`, `monitoring`, `sw.js`
 - `useUser()` hook for client-side auth state
-- OAuth (GitHub + Google) + email/password with forgot/reset flow
+- OAuth (GitHub + Google) + email/password with forgot/reset flow + Cloudflare Turnstile CAPTCHA
 
 ### Board
 - `BoardOpsContext` (`board-context.tsx`) for optimistic UI — returns rollback functions
@@ -78,7 +78,7 @@ Move to "Blocked/Requires User Input" with a comment explaining why.
 
 ## Database
 
-21 tables with RLS:
+21 tables with RLS (56 migrations in `supabase/migrations/`):
 - **Core**: users, ideas, comments, collaborators, votes, notifications, feedback
 - **Board**: board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items, board_task_activity, board_task_comments, board_task_attachments
 - **Agents**: bot_profiles
@@ -97,10 +97,10 @@ Key columns:
 
 13 files, 57 exported functions:
 - `ideas.ts` — create, update, updateStatus, updateIdeaFields (partial inline edit), delete
-- `board.ts` — columns (init, CRUD, reorder), tasks (CRUD, move, archive), labels (CRUD, assign), checklists (CRUD, toggle), task comments (create, delete)
+- `board.ts` — columns (init, CRUD, reorder), tasks (CRUD, move, archive), labels (CRUD, assign), checklists (CRUD, toggle), task comments (create, update, delete)
 - `collaborators.ts` — requestCollaboration, withdrawRequest, respondToRequest, leaveCollaboration, addCollaborator, removeCollaborator
 - `ai.ts` — enhanceIdeaDescription, generateClarifyingQuestions, enhanceIdeaWithContext, applyEnhancedDescription, generateBoardTasks, enhanceTaskDescription, getAiRemainingCredits
-- `comments.ts` — create, incorporate, delete
+- `comments.ts` — create, incorporate, delete, update
 - `votes.ts` — toggleVote
 - `notifications.ts` — markNotificationsRead, markAllNotificationsRead, updateNotificationPreferences
 - `profile.ts` — updateProfile, updateDefaultBoardColumns, saveApiKey, removeApiKey
@@ -117,6 +117,14 @@ NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, NEXT_PUBLIC_APP_URL
 SUPABASE_SERVICE_ROLE_KEY, ANTHROPIC_API_KEY, API_KEY_ENCRYPTION_KEY
 NOTIFICATION_WEBHOOK_SECRET
 ```
+
+## Deployment
+
+- **Platform**: Vercel (zero-config Next.js, auto-deploys on push to `master`)
+- **Production domain**: `vibecodes.co.uk`
+- **CI**: GitHub Actions E2E tests (`.github/workflows/e2e.yml`) — 3-browser matrix (Desktop Chrome, Desktop Firefox, Mobile Chrome)
+- **Monitoring**: Sentry (`@sentry/nextjs` with source maps), Vercel Analytics + Speed Insights
+- **No deployment gates** — E2E runs in parallel but doesn't block Vercel deployment
 
 ## Adding DB Tables
 
@@ -149,4 +157,4 @@ Auto-inject `idea_id` into MCP tool calls from `.vibecodes/config.json`.
 
 ## Testing Convention
 
-Write tests for all new pure logic, validators, parsers, utilities. Tests co-located as `*.test.ts`. Component changes verified via build + manual testing.
+Write tests for all new pure logic, validators, parsers, utilities. Tests co-located as `*.test.ts`. Component changes verified via build + manual testing. Currently 16 unit test files (14 in `src/` + 2 in `mcp-server/`) and 42 E2E spec files across 15 directories.
