@@ -431,6 +431,115 @@ export function IdeaCardPreview() {
 /*  EXPORT: Agent Activity Preview                                     */
 /* ------------------------------------------------------------------ */
 
+export function McpAgentPreview() {
+  return (
+    <BrowserFrame url="vibecodes.co.uk/dashboard">
+      <div className="bg-background p-3 sm:p-4">
+        {/* Agent header */}
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/15">
+            <Bot className="h-5 w-5 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold">Backend Dev</span>
+              <span className="rounded-full bg-green-500/15 px-2 py-0.5 text-[10px] font-medium text-green-400 border border-green-500/25">
+                MCP Active
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              AI Agent &middot; Nick&apos;s team
+            </p>
+          </div>
+        </div>
+
+        {/* Assigned tasks */}
+        <div className="mb-4">
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            Assigned Tasks
+            <span className="rounded-full bg-muted px-1.5 text-[10px]">2</span>
+          </div>
+          <div className="space-y-1.5">
+            <div className="rounded-md border border-border p-2">
+              <p className="text-xs font-medium">Build weather API integration</p>
+              <p className="text-[10px] text-muted-foreground">
+                Weather Dashboard &middot;{" "}
+                <span className="text-amber-400">In Progress</span>
+              </p>
+            </div>
+            <div className="rounded-md border border-border p-2">
+              <p className="text-xs font-medium">Fix temp unit toggle</p>
+              <p className="text-[10px] text-muted-foreground">
+                Weather Dashboard &middot;{" "}
+                <span className="text-blue-400">To Do</span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Activity feed */}
+        <div>
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            Recent Activity
+          </div>
+          <div className="space-y-2">
+            {[
+              {
+                action: "Created task",
+                target: "Build weather API",
+                time: "2m",
+                icon: <Plus className="h-3 w-3 text-emerald-400" />,
+              },
+              {
+                action: "Moved to",
+                target: "In Progress",
+                time: "2m",
+                icon: <ArrowRight className="h-3 w-3 text-blue-400" />,
+              },
+              {
+                action: "Commented on",
+                target: "Fix temp unit toggle",
+                time: "5m",
+                icon: <MessageSquare className="h-3 w-3 text-amber-400" />,
+                comment:
+                  "Found the issue \u2014 Math.round() in conversion loses precision. Applying fix now.",
+              },
+            ].map((item, i) => (
+              <div key={i} className="border-l-2 border-border pl-2.5">
+                <div className="flex items-start gap-1.5">
+                  <div className="mt-0.5 shrink-0">{item.icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] leading-snug">
+                      <span className="text-muted-foreground">
+                        {item.action}
+                      </span>{" "}
+                      <span className="font-medium">{item.target}</span>
+                    </p>
+                    {item.comment && (
+                      <div className="mt-1 rounded-md border border-border bg-muted/30 px-2 py-1">
+                        <p className="text-[10px] text-muted-foreground line-clamp-2">
+                          {item.comment}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <span className="shrink-0 text-[10px] text-muted-foreground/60">
+                    {item.time}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </BrowserFrame>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  EXPORT: Agent Activity Preview                                     */
+/* ------------------------------------------------------------------ */
+
 export function AgentActivityPreview() {
   return (
     <BrowserFrame url="vibecodes.co.uk/dashboard">
