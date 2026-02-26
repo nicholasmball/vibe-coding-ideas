@@ -761,9 +761,9 @@ export function KanbanBoard({
         autoScroll={{
           enabled: true,
           layoutShiftCompensation: false,
-          threshold: { x: 0.3, y: 0.25 },
-          acceleration: 50,
-          interval: 5,
+          threshold: { x: 0.35, y: 0.25 },
+          acceleration: 200,
+          interval: 2,
         }}
         onDragStart={isReadOnly ? undefined : handleDragStart}
         onDragOver={isReadOnly ? undefined : handleDragOver}
