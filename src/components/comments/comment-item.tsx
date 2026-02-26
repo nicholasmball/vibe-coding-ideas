@@ -1,13 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { Reply, Check, Trash2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { Reply, Check, Trash2, Pencil, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { CommentTypeBadge } from "./comment-type-badge";
 import { CommentForm } from "./comment-form";
-import { incorporateComment, deleteComment } from "@/actions/comments";
+import { incorporateComment, deleteComment, updateComment } from "@/actions/comments";
 import { undoableAction } from "@/lib/undo-toast";
 import { toast } from "sonner";
 import { formatRelativeTime } from "@/lib/utils";
@@ -19,6 +20,7 @@ interface CommentItemProps {
   ideaId: string;
   ideaAuthorId: string;
   currentUserId?: string;
+  userBotIds?: string[];
   depth?: number;
 }
 
@@ -27,13 +29,25 @@ export function CommentItem({
   ideaId,
   ideaAuthorId,
   currentUserId,
+  userBotIds = [],
   depth = 0,
 }: CommentItemProps) {
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [removed, setRemoved] = useState(false);
   const [isIncorporating, setIsIncorporating] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editContent, setEditContent] = useState(comment.content);
+  const [saving, setSaving] = useState(false);
+  const [displayContent, setDisplayContent] = useState(comment.content);
+  const [wasEdited, setWasEdited] = useState(
+    comment.updated_at !== comment.created_at
+  );
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
   const isIdeaAuthor = currentUserId === ideaAuthorId;
   const isCommentAuthor = currentUserId === comment.author_id;
+  const isBotOwner = userBotIds.includes(comment.author_id);
+  const canModify = isCommentAuthor || isBotOwner;
 
   const initials =
     comment.author.full_name
@@ -63,6 +77,36 @@ export function CommentItem({
     });
   };
 
+  const handleEdit = () => {
+    setEditContent(displayContent);
+    setEditing(true);
+    requestAnimationFrame(() => textareaRef.current?.focus());
+  };
+
+  const handleCancelEdit = () => {
+    setEditing(false);
+    setEditContent(displayContent);
+  };
+
+  const handleSaveEdit = async () => {
+    const trimmed = editContent.trim();
+    if (!trimmed || trimmed === displayContent) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateComment(comment.id, ideaId, trimmed);
+      setDisplayContent(trimmed);
+      setWasEdited(true);
+      setEditing(false);
+    } catch {
+      toast.error("Failed to update comment");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (removed) return null;
 
   return (
@@ -90,49 +134,105 @@ export function CommentItem({
               )}
               <span className="text-xs text-muted-foreground">
                 {formatRelativeTime(comment.created_at)}
+                {wasEdited && (
+                  <span className="ml-1 text-muted-foreground/60">(edited)</span>
+                )}
               </span>
             </div>
-            <div className="mt-1 text-sm text-foreground/90">
-              <Markdown>{comment.content}</Markdown>
-            </div>
-            <div className="mt-2 flex items-center gap-2">
-              {currentUserId && depth < 3 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 gap-1 text-xs text-muted-foreground"
-                  onClick={() => setShowReplyForm(!showReplyForm)}
-                >
-                  <Reply className="h-3 w-3" />
-                  Reply
-                </Button>
-              )}
-              {isIdeaAuthor &&
-                comment.type === "suggestion" &&
-                !comment.is_incorporated &&
-                !isIncorporating && (
+
+            {editing ? (
+              <div className="mt-1.5">
+                <Textarea
+                  ref={textareaRef}
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  rows={3}
+                  className="min-h-[60px] text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") handleCancelEdit();
+                    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSaveEdit();
+                  }}
+                />
+                <div className="mt-1.5 flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={handleSaveEdit}
+                    disabled={saving || !editContent.trim()}
+                  >
+                    {saving ? "Saving..." : "Save"}
+                  </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 gap-1 text-xs text-emerald-400"
-                    onClick={handleIncorporate}
+                    className="h-7 text-xs"
+                    onClick={handleCancelEdit}
+                    disabled={saving}
                   >
-                    <Check className="h-3 w-3" />
-                    Mark as incorporated
+                    Cancel
+                  </Button>
+                  <span className="text-[10px] text-muted-foreground">
+                    Ctrl+Enter to save
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-1 text-sm text-foreground/90">
+                <Markdown>{displayContent}</Markdown>
+              </div>
+            )}
+
+            {!editing && (
+              <div className="mt-2 flex items-center gap-2">
+                {currentUserId && depth < 3 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1 text-xs text-muted-foreground"
+                    onClick={() => setShowReplyForm(!showReplyForm)}
+                  >
+                    <Reply className="h-3 w-3" />
+                    Reply
                   </Button>
                 )}
-              {isCommentAuthor && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 gap-1 text-xs text-destructive"
-                  onClick={handleDelete}
-                >
-                  <Trash2 className="h-3 w-3" />
-                  Delete
-                </Button>
-              )}
-            </div>
+                {isIdeaAuthor &&
+                  comment.type === "suggestion" &&
+                  !comment.is_incorporated &&
+                  !isIncorporating && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 gap-1 text-xs text-emerald-400"
+                      onClick={handleIncorporate}
+                    >
+                      <Check className="h-3 w-3" />
+                      Mark as incorporated
+                    </Button>
+                  )}
+                {canModify && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1 text-xs text-muted-foreground"
+                    onClick={handleEdit}
+                  >
+                    <Pencil className="h-3 w-3" />
+                    Edit
+                  </Button>
+                )}
+                {canModify && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 gap-1 text-xs text-destructive"
+                    onClick={handleDelete}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                    Delete
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         </div>
         {showReplyForm && (
@@ -156,6 +256,7 @@ export function CommentItem({
               ideaId={ideaId}
               ideaAuthorId={ideaAuthorId}
               currentUserId={currentUserId}
+              userBotIds={userBotIds}
               depth={depth + 1}
             />
           ))}

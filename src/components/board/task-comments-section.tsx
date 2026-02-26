@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
-import { MessageSquare, Trash2, Send, Bot } from "lucide-react";
+import { MessageSquare, Trash2, Send, Bot, Pencil, X, Check } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/utils";
 import { logTaskActivity } from "@/lib/activity";
-import { createTaskComment, deleteTaskComment } from "@/actions/board";
+import { createTaskComment, deleteTaskComment, updateTaskComment } from "@/actions/board";
 import { undoableAction } from "@/lib/undo-toast";
 import type { BoardTaskCommentWithAuthor, User } from "@/types";
 
@@ -21,6 +21,7 @@ interface TaskCommentsSectionProps {
   ideaId: string;
   currentUserId: string;
   teamMembers: User[];
+  userBotIds?: string[];
   isReadOnly?: boolean;
 }
 
@@ -29,6 +30,7 @@ export function TaskCommentsSection({
   ideaId,
   currentUserId,
   teamMembers,
+  userBotIds = [],
   isReadOnly = false,
 }: TaskCommentsSectionProps) {
   const [comments, setComments] = useState<BoardTaskCommentWithAuthor[]>([]);
@@ -38,7 +40,11 @@ export function TaskCommentsSection({
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const [mentionIndex, setMentionIndex] = useState(0);
   const [mentionedUserIds, setMentionedUserIds] = useState<Set<string>>(new Set());
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const editTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const filteredMembers = useMemo(() => {
     if (mentionQuery === null) return [];
@@ -109,6 +115,24 @@ export function TaskCommentsSection({
         },
         (payload) => {
           setComments((prev) => prev.filter((c) => c.id !== payload.old.id));
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "board_task_comments",
+          filter: `task_id=eq.${taskId}`,
+        },
+        (payload) => {
+          setComments((prev) =>
+            prev.map((c) =>
+              c.id === payload.new.id
+                ? { ...c, content: payload.new.content, updated_at: payload.new.updated_at }
+                : c
+            )
+          );
         }
       )
       .subscribe();
@@ -262,6 +286,52 @@ export function TaskCommentsSection({
     });
   }
 
+  function handleStartEdit(comment: BoardTaskCommentWithAuthor) {
+    setEditingId(comment.id);
+    setEditContent(comment.content);
+    requestAnimationFrame(() => editTextareaRef.current?.focus());
+  }
+
+  function handleCancelEdit() {
+    setEditingId(null);
+    setEditContent("");
+  }
+
+  async function handleSaveEdit(commentId: string) {
+    const trimmed = editContent.trim();
+    const original = comments.find((c) => c.id === commentId);
+    if (!trimmed || trimmed === original?.content) {
+      handleCancelEdit();
+      return;
+    }
+    setSavingEdit(true);
+    try {
+      await updateTaskComment(commentId, ideaId, trimmed);
+      // Optimistically update local state
+      setComments((prev) =>
+        prev.map((c) =>
+          c.id === commentId
+            ? { ...c, content: trimmed, updated_at: new Date().toISOString() }
+            : c
+        )
+      );
+      setEditingId(null);
+      setEditContent("");
+    } catch {
+      toast.error("Failed to update comment");
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
+  function canModifyComment(comment: BoardTaskCommentWithAuthor) {
+    return comment.author_id === currentUserId || userBotIds.includes(comment.author_id);
+  }
+
+  function isEdited(comment: BoardTaskCommentWithAuthor) {
+    return comment.updated_at && comment.updated_at !== comment.created_at;
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -282,6 +352,8 @@ export function TaskCommentsSection({
                   .join("")
                   .toUpperCase() ?? "?";
 
+              const isEditingThis = editingId === comment.id;
+
               return (
                 <div key={comment.id} className="flex gap-2">
                   <Avatar className="h-6 w-6 shrink-0">
@@ -296,24 +368,86 @@ export function TaskCommentsSection({
                       </span>
                       <span className="text-[10px] text-muted-foreground">
                         {formatRelativeTime(comment.created_at)}
+                        {isEdited(comment) && (
+                          <span className="ml-1 text-muted-foreground/60">(edited)</span>
+                        )}
                       </span>
-                      {!isReadOnly && comment.author_id === currentUserId && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <button
-                              className="text-muted-foreground hover:text-destructive"
-                              onClick={() => handleDelete(comment.id)}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          </TooltipTrigger>
-                          <TooltipContent>Delete comment</TooltipContent>
-                        </Tooltip>
+                      {!isReadOnly && canModifyComment(comment) && !isEditingThis && (
+                        <>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                className="text-muted-foreground/60 hover:text-foreground"
+                                onClick={() => handleStartEdit(comment)}
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit comment</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                className="text-muted-foreground/60 hover:text-destructive"
+                                onClick={() => handleDelete(comment.id)}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>Delete comment</TooltipContent>
+                          </Tooltip>
+                        </>
                       )}
                     </div>
-                    <div className="mt-0.5 text-xs prose-sm">
-                      <Markdown>{comment.content}</Markdown>
-                    </div>
+
+                    {isEditingThis ? (
+                      <div className="mt-1">
+                        <Textarea
+                          ref={editTextareaRef}
+                          value={editContent}
+                          onChange={(e) => setEditContent(e.target.value)}
+                          rows={2}
+                          className="min-h-[50px] text-xs"
+                          onKeyDown={(e) => {
+                            if (e.key === "Escape") handleCancelEdit();
+                            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) handleSaveEdit(comment.id);
+                          }}
+                        />
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => handleSaveEdit(comment.id)}
+                                disabled={savingEdit || !editContent.trim()}
+                              >
+                                <Check className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Save (Ctrl+Enter)</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={handleCancelEdit}
+                                disabled={savingEdit}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Cancel (Esc)</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="mt-0.5 text-xs prose-sm">
+                        <Markdown>{comment.content}</Markdown>
+                      </div>
+                    )}
                   </div>
                 </div>
               );

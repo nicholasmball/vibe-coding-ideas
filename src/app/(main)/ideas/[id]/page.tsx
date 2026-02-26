@@ -184,9 +184,9 @@ export default async function IdeaDetailPage({ params }: PageProps) {
   const isAuthor = user?.id === idea.author_id;
   const canDelete = isAuthor || isAdmin;
 
-  // Fetch user's bot profiles for AI persona selector
+  // Fetch user's bot profiles (for AI persona selector + comment edit/delete on agent comments)
   let userBots: BotProfile[] = [];
-  if (user && userHasApiKey) {
+  if (user) {
     const { data: bots } = await supabase
       .from("bot_profiles")
       .select("*")
@@ -375,6 +375,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
         ideaId={idea.id}
         ideaAuthorId={idea.author_id}
         currentUserId={user?.id}
+        userBotIds={userBots.map((b) => b.id)}
       />
     </div>
   );

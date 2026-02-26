@@ -8,6 +8,7 @@ interface CommentThreadProps {
   ideaId: string;
   ideaAuthorId: string;
   currentUserId?: string;
+  userBotIds?: string[];
 }
 
 export function CommentThread({
@@ -15,6 +16,7 @@ export function CommentThread({
   ideaId,
   ideaAuthorId,
   currentUserId,
+  userBotIds,
 }: CommentThreadProps) {
   return (
     <div>
@@ -42,6 +44,7 @@ export function CommentThread({
               ideaId={ideaId}
               ideaAuthorId={ideaAuthorId}
               currentUserId={currentUserId}
+              userBotIds={userBotIds}
             />
           ))}
         </div>

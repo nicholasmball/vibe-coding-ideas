@@ -761,6 +761,7 @@ export function TaskDetailDialog({
               ideaId={ideaId}
               currentUserId={currentUserId}
               teamMembers={teamMembers}
+              userBotIds={userBots.map((b) => b.id)}
               isReadOnly={isReadOnly}
             />
           </TabsContent>

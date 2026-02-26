@@ -633,6 +633,30 @@ export async function createTaskComment(
   revalidatePath(`/ideas/${ideaId}/board`);
 }
 
+export async function updateTaskComment(
+  commentId: string,
+  ideaId: string,
+  content: string
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+
+  content = validateComment(content);
+
+  const { error } = await supabase
+    .from("board_task_comments")
+    .update({ content })
+    .eq("id", commentId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/ideas/${ideaId}/board`);
+}
+
 export async function deleteTaskComment(commentId: string, ideaId: string) {
   const supabase = await createClient();
   const {
@@ -641,11 +665,11 @@ export async function deleteTaskComment(commentId: string, ideaId: string) {
 
   if (!user) throw new Error("Not authenticated");
 
+  // RLS enforces: author_id = auth.uid() OR is_bot_owner(author_id, auth.uid())
   const { error } = await supabase
     .from("board_task_comments")
     .delete()
-    .eq("id", commentId)
-    .eq("author_id", user.id);
+    .eq("id", commentId);
 
   if (error) throw new Error(error.message);
 
