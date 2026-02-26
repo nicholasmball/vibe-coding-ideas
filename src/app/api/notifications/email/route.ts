@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
       idea_id: string | null;
       comment_id: string | null;
       task_id: string | null;
+      discussion_id: string | null;
     };
   };
 
@@ -140,6 +141,7 @@ export async function POST(request: NextRequest) {
     ideaTitle,
     taskTitle,
     notification.idea_id,
+    notification.discussion_id,
     appUrl,
   );
 
@@ -186,9 +188,13 @@ function buildNotificationEmail(
   ideaTitle: string | null,
   taskTitle: string | null,
   ideaId: string | null,
+  discussionId: string | null,
   appUrl: string,
 ): { subject: string; html: string } | null {
   const ideaUrl = ideaId ? `${appUrl}/ideas/${ideaId}` : appUrl;
+  const discussionUrl = ideaId && discussionId
+    ? `${appUrl}/ideas/${ideaId}/discussions/${discussionId}`
+    : ideaId ? `${appUrl}/ideas/${ideaId}/discussions` : appUrl;
   const ideaDisplay = ideaTitle
     ? `<strong style="color:#fafafa;">${escapeBody(ideaTitle)}</strong>`
     : "your idea";
@@ -298,7 +304,7 @@ function buildNotificationEmail(
           heading: "New discussion",
           bodyHtml: `<p style="margin:0;">${escapeBody(actorName)} started a new discussion on ${ideaDisplay}.</p>`,
           ctaText: "View Discussion",
-          ctaUrl: ideaUrl ? `${ideaUrl}/discussions` : ideaUrl,
+          ctaUrl: discussionUrl,
           footerText: "You received this because a new discussion was started on your idea.",
         }),
       };
@@ -311,7 +317,7 @@ function buildNotificationEmail(
           heading: "New discussion reply",
           bodyHtml: `<p style="margin:0;">${escapeBody(actorName)} replied to a discussion on ${ideaDisplay}.</p>`,
           ctaText: "View Discussion",
-          ctaUrl: ideaUrl ? `${ideaUrl}/discussions` : ideaUrl,
+          ctaUrl: discussionUrl,
           footerText: "You received this because someone replied to a discussion you participated in.",
         }),
       };

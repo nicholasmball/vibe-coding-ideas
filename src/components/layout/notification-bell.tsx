@@ -32,6 +32,8 @@ const iconMap = {
   comment_mention: AtSign,
   collaboration_request: UserPlus,
   collaboration_response: UserCheck,
+  discussion: MessageSquare,
+  discussion_reply: MessageSquare,
 };
 
 const messageMap = {
@@ -169,9 +171,14 @@ export function NotificationBell() {
               }`;
 
               if (notification.idea_id) {
-                const href = notification.task_id
-                  ? `/ideas/${notification.idea_id}/board?taskId=${notification.task_id}`
-                  : `/ideas/${notification.idea_id}`;
+                let href: string;
+                if (notification.task_id) {
+                  href = `/ideas/${notification.idea_id}/board?taskId=${notification.task_id}`;
+                } else if (notification.discussion_id) {
+                  href = `/ideas/${notification.idea_id}/discussions/${notification.discussion_id}`;
+                } else {
+                  href = `/ideas/${notification.idea_id}`;
+                }
                 return (
                   <Link
                     key={notification.id}
