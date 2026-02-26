@@ -94,6 +94,7 @@ export type DashboardBot = BotProfile & {
 // Discussion types
 export type IdeaDiscussion = Database["public"]["Tables"]["idea_discussions"]["Row"];
 export type IdeaDiscussionReply = Database["public"]["Tables"]["idea_discussion_replies"]["Row"];
+export type DiscussionVote = Database["public"]["Tables"]["discussion_votes"]["Row"];
 export type DiscussionStatus = Database["public"]["Enums"]["discussion_status"];
 export type IdeaDiscussionWithAuthor = IdeaDiscussion & {
   author: User;

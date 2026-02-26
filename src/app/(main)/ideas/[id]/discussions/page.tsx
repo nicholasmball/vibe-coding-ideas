@@ -62,6 +62,18 @@ export default async function DiscussionsPage({ params }: PageProps) {
 
   const typedDiscussions = (discussions ?? []) as IdeaDiscussionWithAuthor[];
 
+  // Fetch user's voted discussion IDs
+  const discussionIds = typedDiscussions.map((d) => d.id);
+  let votedDiscussionIds: Set<string> = new Set();
+  if (discussionIds.length > 0) {
+    const { data: votes } = await supabase
+      .from("discussion_votes")
+      .select("discussion_id")
+      .eq("user_id", user.id)
+      .in("discussion_id", discussionIds);
+    votedDiscussionIds = new Set((votes ?? []).map((v) => v.discussion_id));
+  }
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
       {/* Back link */}
@@ -95,7 +107,11 @@ export default async function DiscussionsPage({ params }: PageProps) {
       {typedDiscussions.length === 0 ? (
         <DiscussionEmpty ideaId={ideaId} canCreate={isTeamMember} />
       ) : (
-        <DiscussionList discussions={typedDiscussions} ideaId={ideaId} />
+        <DiscussionList
+          discussions={typedDiscussions}
+          ideaId={ideaId}
+          votedDiscussionIds={Array.from(votedDiscussionIds)}
+        />
       )}
     </div>
   );

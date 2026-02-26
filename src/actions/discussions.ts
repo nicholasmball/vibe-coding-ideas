@@ -62,6 +62,35 @@ export async function updateDiscussion(
 
   if (!user) throw new Error("Not authenticated");
 
+  // Verify user is discussion author, idea owner, or admin
+  const { data: discussion } = await supabase
+    .from("idea_discussions")
+    .select("author_id")
+    .eq("id", discussionId)
+    .single();
+
+  if (!discussion) throw new Error("Discussion not found");
+
+  const { data: idea } = await supabase
+    .from("ideas")
+    .select("author_id")
+    .eq("id", ideaId)
+    .single();
+
+  const { data: profile } = await supabase
+    .from("users")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single();
+
+  const isAuthorOrOwner =
+    user.id === discussion.author_id || user.id === idea?.author_id;
+  const isAdmin = profile?.is_admin ?? false;
+
+  if (!isAuthorOrOwner && !isAdmin) {
+    throw new Error("You don't have permission to update this discussion");
+  }
+
   const updateData: Record<string, unknown> = {};
 
   if (updates.title !== undefined) {
@@ -97,6 +126,35 @@ export async function deleteDiscussion(discussionId: string, ideaId: string) {
   } = await supabase.auth.getUser();
 
   if (!user) throw new Error("Not authenticated");
+
+  // Verify user is discussion author, idea owner, or admin
+  const { data: discussion } = await supabase
+    .from("idea_discussions")
+    .select("author_id")
+    .eq("id", discussionId)
+    .single();
+
+  if (!discussion) throw new Error("Discussion not found");
+
+  const { data: idea } = await supabase
+    .from("ideas")
+    .select("author_id")
+    .eq("id", ideaId)
+    .single();
+
+  const { data: profile } = await supabase
+    .from("users")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single();
+
+  const isAuthorOrOwner =
+    user.id === discussion.author_id || user.id === idea?.author_id;
+  const isAdmin = profile?.is_admin ?? false;
+
+  if (!isAuthorOrOwner && !isAdmin) {
+    throw new Error("You don't have permission to delete this discussion");
+  }
 
   const { error } = await supabase
     .from("idea_discussions")
@@ -153,6 +211,19 @@ export async function updateDiscussionReply(
 
   if (!user) throw new Error("Not authenticated");
 
+  // Verify user is the reply author
+  const { data: reply } = await supabase
+    .from("idea_discussion_replies")
+    .select("author_id")
+    .eq("id", replyId)
+    .single();
+
+  if (!reply) throw new Error("Reply not found");
+
+  if (user.id !== reply.author_id) {
+    throw new Error("You don't have permission to edit this reply");
+  }
+
   content = validateDiscussionReply(content);
 
   const { error } = await supabase
@@ -177,6 +248,42 @@ export async function deleteDiscussionReply(
 
   if (!user) throw new Error("Not authenticated");
 
+  // Verify user is reply author, discussion author, idea owner, or admin
+  const { data: reply } = await supabase
+    .from("idea_discussion_replies")
+    .select("author_id")
+    .eq("id", replyId)
+    .single();
+
+  if (!reply) throw new Error("Reply not found");
+
+  const { data: discussion } = await supabase
+    .from("idea_discussions")
+    .select("author_id")
+    .eq("id", discussionId)
+    .single();
+
+  const { data: idea } = await supabase
+    .from("ideas")
+    .select("author_id")
+    .eq("id", ideaId)
+    .single();
+
+  const { data: profile } = await supabase
+    .from("users")
+    .select("is_admin")
+    .eq("id", user.id)
+    .single();
+
+  const isReplyAuthor = user.id === reply.author_id;
+  const isDiscussionAuthor = user.id === discussion?.author_id;
+  const isIdeaOwner = user.id === idea?.author_id;
+  const isAdmin = profile?.is_admin ?? false;
+
+  if (!isReplyAuthor && !isDiscussionAuthor && !isIdeaOwner && !isAdmin) {
+    throw new Error("You don't have permission to delete this reply");
+  }
+
   const { error } = await supabase
     .from("idea_discussion_replies")
     .delete()
@@ -184,6 +291,39 @@ export async function deleteDiscussionReply(
 
   if (error) throw new Error(error.message);
 
+  revalidatePath(`/ideas/${ideaId}/discussions/${discussionId}`);
+}
+
+export async function toggleDiscussionVote(discussionId: string, ideaId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: existingVote } = await supabase
+    .from("discussion_votes")
+    .select("id")
+    .eq("discussion_id", discussionId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existingVote) {
+    const { error } = await supabase
+      .from("discussion_votes")
+      .delete()
+      .eq("discussion_id", discussionId)
+      .eq("user_id", user.id);
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await supabase
+      .from("discussion_votes")
+      .insert({ discussion_id: discussionId, user_id: user.id });
+    if (error) throw new Error(error.message);
+  }
+
+  revalidatePath(`/ideas/${ideaId}/discussions`);
   revalidatePath(`/ideas/${ideaId}/discussions/${discussionId}`);
 }
 

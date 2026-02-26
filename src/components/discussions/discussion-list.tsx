@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { formatRelativeTime } from "@/lib/utils";
+import { DiscussionVoteButton } from "./discussion-vote-button";
 import type { IdeaDiscussionWithAuthor } from "@/types";
 
 type FilterStatus = "all" | "open" | "resolved" | "converted";
@@ -35,9 +36,11 @@ const STATUS_CONFIG = {
 interface DiscussionListProps {
   discussions: IdeaDiscussionWithAuthor[];
   ideaId: string;
+  votedDiscussionIds?: string[];
 }
 
-export function DiscussionList({ discussions, ideaId }: DiscussionListProps) {
+export function DiscussionList({ discussions, ideaId, votedDiscussionIds = [] }: DiscussionListProps) {
+  const votedSet = new Set(votedDiscussionIds);
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [search, setSearch] = useState("");
 
@@ -112,22 +115,27 @@ export function DiscussionList({ discussions, ideaId }: DiscussionListProps) {
             const StatusIcon = config.icon;
 
             return (
-              <Link
+              <div
                 key={discussion.id}
-                href={`/ideas/${ideaId}/discussions/${discussion.id}`}
                 className={`group flex gap-3 rounded-lg border p-4 transition-colors hover:border-foreground/20 hover:bg-accent/30 ${
                   discussion.pinned ? "border-amber-500/30 bg-amber-500/5" : ""
                 }`}
               >
-                {/* Status icon */}
-                <div
-                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${config.iconBg}`}
-                >
-                  <StatusIcon className="h-4 w-4" />
+                {/* Vote button */}
+                <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <DiscussionVoteButton
+                    discussionId={discussion.id}
+                    ideaId={ideaId}
+                    upvotes={discussion.upvotes}
+                    hasVoted={votedSet.has(discussion.id)}
+                  />
                 </div>
 
                 {/* Content */}
-                <div className="min-w-0 flex-1">
+                <Link
+                  href={`/ideas/${ideaId}/discussions/${discussion.id}`}
+                  className="min-w-0 flex-1"
+                >
                   <div className="flex items-center gap-2">
                     <h3 className="truncate text-sm font-semibold group-hover:text-foreground">
                       {discussion.title}
@@ -164,8 +172,8 @@ export function DiscussionList({ discussions, ideaId }: DiscussionListProps) {
                       {discussion.reply_count}
                     </span>
                   </div>
-                </div>
-              </Link>
+                </Link>
+              </div>
             );
           })}
         </div>

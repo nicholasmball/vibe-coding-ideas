@@ -1077,6 +1077,7 @@ export type Database = {
           body: string;
           status: "open" | "resolved" | "converted";
           pinned: boolean;
+          upvotes: number;
           reply_count: number;
           last_activity_at: string;
           created_at: string;
@@ -1090,6 +1091,7 @@ export type Database = {
           body: string;
           status?: "open" | "resolved" | "converted";
           pinned?: boolean;
+          upvotes?: number;
           reply_count?: number;
           last_activity_at?: string;
           created_at?: string;
@@ -1103,6 +1105,7 @@ export type Database = {
           body?: string;
           status?: "open" | "resolved" | "converted";
           pinned?: boolean;
+          upvotes?: number;
           reply_count?: number;
           last_activity_at?: string;
           created_at?: string;
@@ -1161,6 +1164,42 @@ export type Database = {
           {
             foreignKeyName: "idea_discussion_replies_author_id_fkey";
             columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      discussion_votes: {
+        Row: {
+          id: string;
+          discussion_id: string;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          discussion_id: string;
+          user_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          discussion_id?: string;
+          user_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "discussion_votes_discussion_id_fkey";
+            columns: ["discussion_id"];
+            isOneToOne: false;
+            referencedRelation: "idea_discussions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "discussion_votes_user_id_fkey";
+            columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "users";
             referencedColumns: ["id"];

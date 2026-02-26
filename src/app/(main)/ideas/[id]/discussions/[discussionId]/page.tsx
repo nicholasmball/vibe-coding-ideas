@@ -102,6 +102,18 @@ export default async function DiscussionDetailPage({ params }: PageProps) {
     .eq("id", user.id)
     .single();
 
+  // Check if current user has voted on this discussion
+  let hasVotedOnDiscussion = false;
+  {
+    const { data: vote } = await supabase
+      .from("discussion_votes")
+      .select("id")
+      .eq("discussion_id", discussionId)
+      .eq("user_id", user.id)
+      .maybeSingle();
+    hasVotedOnDiscussion = !!vote;
+  }
+
   // If discussion was converted, find the linked task
   let convertedTaskId: string | null = null;
   if (discussion.status === "converted") {
@@ -131,6 +143,7 @@ export default async function DiscussionDetailPage({ params }: PageProps) {
         isTeamMember={isTeamMember}
         columns={typedColumns}
         convertedTaskId={convertedTaskId}
+        hasVoted={hasVotedOnDiscussion}
       />
     </div>
   );
