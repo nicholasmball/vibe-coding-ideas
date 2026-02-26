@@ -877,9 +877,7 @@ export function KanbanBoard({
         sensors={isReadOnly ? [] : sensors}
         collisionDetection={multiContainerCollision}
         measuring={layoutMeasuring}
-        // Disable dnd-kit's built-in auto-scroll entirely — our dwell hook
-        // handles scrolling for touch and the browser handles mouse natively.
-        autoScroll={false}
+        autoScroll
         onDragStart={isReadOnly ? undefined : handleDragStart}
         onDragOver={isReadOnly ? undefined : handleDragOver}
         onDragEnd={isReadOnly ? undefined : handleDragEnd}
