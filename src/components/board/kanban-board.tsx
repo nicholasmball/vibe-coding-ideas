@@ -17,14 +17,12 @@ import {
   type DragOverEvent,
   type CollisionDetection,
 } from "@dnd-kit/core";
-import React from "react";
 import {
   SortableContext,
   horizontalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
 import { useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { BoardColumn } from "./board-column";
 import { AddColumnButton } from "./add-column-button";
 import { BoardToolbar } from "./board-toolbar";
@@ -128,109 +126,6 @@ interface KanbanBoardProps {
   isReadOnly?: boolean;
 }
 
-// Dwell-scroll constants (hoisted out of hook to avoid stale closure issues)
-const DWELL_EDGE_ZONE = 40;      // px from container edge to trigger zone
-const DWELL_INNER_ZONE = 80;     // px from edge where cancel kicks in
-const DWELL_MS = 350;            // ms pointer must sit in edge zone before scroll
-const DWELL_BETWEEN_STEP_MS = 500; // ms pause between column steps
-const DWELL_COLUMN_STEP = 296;   // ~280px column + 16px gap
-
-function useDwellEdgeScroll(
-  scrollContainerRef: React.RefObject<HTMLDivElement | null>,
-  isDragging: boolean,
-  isTouchDrag: boolean,
-) {
-  const pointerRef = useRef<{ x: number; y: number } | null>(null);
-  const dwellTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const stepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const scrollingRef = useRef<"left" | "right" | null>(null);
-
-  const cancelAll = useCallback(() => {
-    if (dwellTimerRef.current !== null) {
-      clearTimeout(dwellTimerRef.current);
-      dwellTimerRef.current = null;
-    }
-    if (stepTimerRef.current !== null) {
-      clearTimeout(stepTimerRef.current);
-      stepTimerRef.current = null;
-    }
-    scrollingRef.current = null;
-  }, []);
-
-  const doScrollStep = useCallback(
-    (direction: "left" | "right") => {
-      const el = scrollContainerRef.current;
-      if (!el) return;
-      const delta = direction === "right" ? DWELL_COLUMN_STEP : -DWELL_COLUMN_STEP;
-      el.scrollBy({ left: delta, behavior: "smooth" });
-
-      stepTimerRef.current = setTimeout(() => {
-        const pos = pointerRef.current;
-        if (!pos) return;
-        const rect = el.getBoundingClientRect();
-        const inRightEdge = pos.x > rect.right - DWELL_EDGE_ZONE;
-        const inLeftEdge = pos.x < rect.left + DWELL_EDGE_ZONE;
-        if (direction === "right" && inRightEdge) {
-          doScrollStep("right");
-        } else if (direction === "left" && inLeftEdge) {
-          doScrollStep("left");
-        } else {
-          scrollingRef.current = null;
-        }
-      }, DWELL_BETWEEN_STEP_MS);
-    },
-    [scrollContainerRef],
-  );
-
-  const startDwell = useCallback(
-    (direction: "left" | "right") => {
-      if (scrollingRef.current === direction) return;
-      cancelAll();
-      scrollingRef.current = direction;
-
-      dwellTimerRef.current = setTimeout(() => {
-        dwellTimerRef.current = null;
-        doScrollStep(direction);
-      }, DWELL_MS);
-    },
-    [cancelAll, doScrollStep],
-  );
-
-  useEffect(() => {
-    if (!isDragging || !isTouchDrag) {
-      cancelAll();
-      pointerRef.current = null;
-      return;
-    }
-
-    const onPointerMove = (e: PointerEvent) => {
-      pointerRef.current = { x: e.clientX, y: e.clientY };
-
-      const el = scrollContainerRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const x = e.clientX;
-
-      const inRightEdge = x > rect.right - DWELL_EDGE_ZONE;
-      const inLeftEdge = x < rect.left + DWELL_EDGE_ZONE;
-
-      if (inRightEdge) {
-        startDwell("right");
-      } else if (inLeftEdge) {
-        startDwell("left");
-      } else if (x > rect.left + DWELL_INNER_ZONE && x < rect.right - DWELL_INNER_ZONE) {
-        cancelAll();
-      }
-    };
-
-    window.addEventListener("pointermove", onPointerMove);
-    return () => {
-      window.removeEventListener("pointermove", onPointerMove);
-      cancelAll();
-    };
-  }, [isDragging, isTouchDrag, cancelAll, startDwell, scrollContainerRef]);
-}
-
 export function KanbanBoard({
   columns: initialColumns,
   ideaId,
@@ -288,9 +183,6 @@ export function KanbanBoard({
   // Snapshot of columns at drag start — used for immediate revert on cancel
   const dragStartColumnsRef = useRef<BoardColumnWithTasks[] | null>(null);
 
-  // Track whether the active drag was initiated via touch (for mobile-only scroll logic)
-  const [isTouchDrag, setIsTouchDrag] = useState(false);
-
   // Track in-flight move operations to prevent server data from reverting optimistic updates
   const [pendingOps, setPendingOps] = useState(0);
   // Cooldown after last move to let Realtime catch up before syncing
@@ -318,9 +210,7 @@ export function KanbanBoard({
     return () => window.removeEventListener("resize", handleScrollCheck);
   }, [handleScrollCheck, columns]);
 
-  // Dwell-based column scroll — only fires on touch, only after a deliberate pause
   const isDragging = !!(activeTask || activeColumn);
-  useDwellEdgeScroll(scrollContainerRef, isDragging, isTouchDrag);
 
   // Update columns when server data changes (via realtime refresh)
   const serverKey = useMemo(
@@ -584,12 +474,6 @@ export function KanbanBoard({
     // Snapshot columns so we can revert immediately if drag is cancelled
     dragStartColumnsRef.current = columnsRef.current;
 
-    // Detect touch-initiated drag so the dwell-scroll hook activates
-    const nativeEvent = event.activatorEvent;
-    setIsTouchDrag(
-      typeof TouchEvent !== "undefined" && nativeEvent instanceof TouchEvent
-    );
-
     if (data?.type === "column") {
       const col = columnsRef.current.find((c) => c.id === data.columnId);
       if (col) setActiveColumn(col);
@@ -690,9 +574,6 @@ export function KanbanBoard({
       const { active, over } = event;
       const activeData = active.data.current;
       const currentColumns = columnsRef.current;
-
-      // Always reset touch-drag flag when the drag session ends
-      setIsTouchDrag(false);
 
       // Column drag end
       if (activeData?.type === "column") {
@@ -877,9 +758,13 @@ export function KanbanBoard({
         sensors={isReadOnly ? [] : sensors}
         collisionDetection={multiContainerCollision}
         measuring={layoutMeasuring}
-        // Disable dnd-kit's built-in auto-scroll entirely — our dwell hook
-        // handles scrolling for touch and the browser handles mouse natively.
-        autoScroll={false}
+        // Auto-scroll keeps @dnd-kit's droppable measurements in sync with the
+        // scroll position, enabling cross-column drops to any column (not just
+        // adjacent visible ones). Works for both mouse and touch.
+        autoScroll={{
+          enabled: true,
+          layoutShiftCompensation: false,
+        }}
         onDragStart={isReadOnly ? undefined : handleDragStart}
         onDragOver={isReadOnly ? undefined : handleDragOver}
         onDragEnd={isReadOnly ? undefined : handleDragEnd}
@@ -924,22 +809,6 @@ export function KanbanBoard({
           {/* Right-edge fade gradient — visible on mobile when more columns exist off-screen */}
           {canScrollRight && (
             <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-background to-transparent sm:hidden" />
-          )}
-          {/* Visible edge-scroll trigger zones during touch drags.
-              These give the user a clear affordance for where to hover to
-              scroll left/right. They are rendered only on touch devices
-              (sm:hidden) and only while a drag is active. */}
-          {isDragging && isTouchDrag && (
-            <>
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute left-0 top-0 z-10 h-full w-10 rounded-r-lg bg-primary/20"
-              />
-              <div
-                aria-hidden="true"
-                className="pointer-events-none absolute right-0 top-0 z-10 h-full w-10 rounded-l-lg bg-primary/20"
-              />
-            </>
           )}
         </div>
         {!isReadOnly && (
