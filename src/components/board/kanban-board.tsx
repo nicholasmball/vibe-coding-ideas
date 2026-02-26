@@ -754,10 +754,15 @@ export function KanbanBoard({
         measuring={layoutMeasuring}
         // Auto-scroll keeps @dnd-kit's droppable measurements in sync with the
         // scroll position, enabling cross-column drops to any column (not just
-        // adjacent visible ones). Works for both mouse and touch.
+        // adjacent visible ones). Wide threshold (25%) so the scroll zone starts
+        // early on small screens, with 25x acceleration so it reaches useful
+        // speed quickly — on mobile the finger hits the screen edge before it
+        // can push deep into the default zone.
         autoScroll={{
           enabled: true,
           layoutShiftCompensation: false,
+          threshold: { x: 0.25, y: 0.25 },
+          acceleration: 25,
         }}
         onDragStart={isReadOnly ? undefined : handleDragStart}
         onDragOver={isReadOnly ? undefined : handleDragOver}
