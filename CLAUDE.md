@@ -65,6 +65,16 @@ Move to "Blocked/Requires User Input" with a comment explaining why.
 - Actions: `requestCollaboration`, `withdrawRequest`, `respondToRequest`, `leaveCollaboration` in `src/actions/collaborators.ts`
 - Guards against concurrent responses via `.eq("status", "pending")`
 
+### Idea Attachments
+- `idea_attachments` table with `idea-attachments` private storage bucket (signed URLs for access)
+- Client-side upload/download/delete via Supabase JS (no server actions) — same pattern as board task attachments
+- Storage path: `{ideaId}/{uuid}.{ext}`; storage.objects RLS uses `is_idea_team_member()` check
+- `IdeaAttachmentsSection` component between Description and Comments on idea detail page
+- Upload: drag-and-drop, paste images, file picker; optimistic insert (`.select().single()` on insert)
+- Realtime subscription for cross-user updates; file extension fallback for MIME type validation (browsers report `.md` as `text/plain`)
+- RLS: team members insert, uploader or author delete, public idea viewers can read
+- Cleanup on idea deletion in `src/actions/ideas.ts` (removes from both `idea-attachments` and `task-attachments` buckets)
+
 ### Email Notifications
 - `/api/notifications/email` webhook endpoint, verified via `NOTIFICATION_WEBHOOK_SECRET`
 - Triggered by Supabase pg_net webhook on notification inserts
@@ -75,11 +85,12 @@ Move to "Blocked/Requires User Input" with a comment explaining why.
 ### Validation
 - `src/lib/validation.ts` — all server actions validate before DB ops
 - Limits: title 200, description 50K, comment 5K, bio 500, tags 50 chars / 10 max
+- Idea attachments: 10 MB per file, 10 files per idea, allowed types: images (png/jpg/gif/webp/svg), PDF, Markdown
 
 ## Database
 
-21 tables with RLS (56 migrations in `supabase/migrations/`):
-- **Core**: users, ideas, comments, collaborators, votes, notifications, feedback
+22 tables with RLS (58 migrations in `supabase/migrations/`):
+- **Core**: users, ideas, comments, collaborators, votes, notifications, feedback, idea_attachments
 - **Board**: board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items, board_task_activity, board_task_comments, board_task_attachments
 - **Agents**: bot_profiles
 - **AI**: ai_usage_log, ai_prompt_templates
@@ -89,7 +100,7 @@ Move to "Blocked/Requires User Input" with a comment explaining why.
 Key columns:
 - `users.is_bot`, `users.is_admin`, `users.ai_daily_limit` (default 10), `users.ai_enabled`, `users.default_board_columns`, `users.email_notifications`, `users.active_bot_id`, `users.encrypted_anthropic_key`
 - `ideas.visibility` (public/private) enforced by RLS
-- Denormalized counts on ideas (upvotes, comment_count, collaborator_count) via triggers
+- Denormalized counts on ideas (upvotes, comment_count, collaborator_count, attachment_count) via triggers
 - `admin_delete_user` RPC cascades from auth.users
 - Board tables use `is_idea_team_member()` RLS function
 
