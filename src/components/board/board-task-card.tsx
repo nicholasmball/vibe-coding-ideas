@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useContext, memo } from "react";
+import { useState, useEffect, useCallback, useRef, useContext, useMemo, memo } from "react";
 import { Draggable } from "@happy-doc/dnd";
 import {
   GripVertical,
@@ -168,12 +168,15 @@ export const BoardTaskCard = memo(function BoardTaskCard({
     };
   }, [task.cover_image_path]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const assigneeInitials =
-    task.assignee?.full_name
-      ?.split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase() ?? null;
+  const assigneeInitials = useMemo(
+    () =>
+      task.assignee?.full_name
+        ?.split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase() ?? null,
+    [task.assignee?.full_name]
+  );
 
   return (
     <Draggable

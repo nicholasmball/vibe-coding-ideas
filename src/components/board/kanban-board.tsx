@@ -51,7 +51,6 @@ interface KanbanBoardProps {
   botProfiles?: BotProfile[];
   coverImageUrls?: Record<string, string>;
   isReadOnly?: boolean;
-  isTestMode?: boolean;
 }
 
 export function KanbanBoard({
@@ -68,7 +67,6 @@ export function KanbanBoard({
   botProfiles = [],
   coverImageUrls = {},
   isReadOnly = false,
-  isTestMode = false,
 }: KanbanBoardProps) {
   // react-beautiful-dnd (and forks like @happy-doc/dnd) need a mounted DOM before
   // Droppable can measure. React 18+ strict mode double-mounts cause "Invariant failed".
@@ -185,6 +183,8 @@ export function KanbanBoard({
     const EDGE = 120;
     const MAX_SPEED = 30;
     let raf = 0;
+    // Cache column elements once at drag start — avoids querySelectorAll on every frame
+    const columnEls = Array.from(document.querySelectorAll<HTMLElement>("[data-column-id]"));
 
     const loop = () => {
       const el = scrollContainerRef.current;
@@ -202,7 +202,6 @@ export function KanbanBoard({
 
         // Detect column under pointer for highlight
         let hoveredCol: string | null = null;
-        const columnEls = document.querySelectorAll<HTMLElement>("[data-column-id]");
         for (const colEl of columnEls) {
           const colRect = colEl.getBoundingClientRect();
           if (pos.x >= colRect.left && pos.x <= colRect.right && pos.y >= colRect.top && pos.y <= colRect.bottom) {
@@ -217,8 +216,9 @@ export function KanbanBoard({
             const colRect = colEl.getBoundingClientRect();
             const centerX = (colRect.left + colRect.right) / 2;
             const dist = Math.abs(pos.x - centerX);
-            if (!closest || dist < closest.dist) {
-              closest = { id: colEl.dataset.columnId!, dist };
+            const colId = colEl.dataset.columnId;
+            if (colId && (!closest || dist < closest.dist)) {
+              closest = { id: colId, dist };
             }
           }
           hoveredCol = closest?.id ?? null;
@@ -305,50 +305,60 @@ export function KanbanBoard({
   // Optimistic operation callbacks (exposed via context)
   // ────────────────────────────────────────────────────
 
+  // Optimistic helpers update columnsRef eagerly so that handleDragEnd always
+  // reads the latest column state (it fires synchronously before the next render).
   const optimisticCreateTask = useCallback((columnId: string, tempTask: BoardTaskWithAssignee) => {
     const prev = columnsRef.current;
-    setColumns((cols) => cols.map((col) => (col.id === columnId ? { ...col, tasks: [...col.tasks, tempTask] } : col)));
-    return () => { setColumns(prev); };
+    const next = prev.map((col) => (col.id === columnId ? { ...col, tasks: [...col.tasks, tempTask] } : col));
+    columnsRef.current = next;
+    setColumns(next);
+    return () => { columnsRef.current = prev; setColumns(prev); };
   }, []);
 
   const optimisticDeleteTask = useCallback((taskId: string, columnId: string) => {
     const prev = columnsRef.current;
-    setColumns((cols) =>
-      cols.map((col) =>
-        col.id === columnId ? { ...col, tasks: col.tasks.filter((t) => t.id !== taskId) } : col
-      )
+    const next = prev.map((col) =>
+      col.id === columnId ? { ...col, tasks: col.tasks.filter((t) => t.id !== taskId) } : col
     );
-    return () => { setColumns(prev); };
+    columnsRef.current = next;
+    setColumns(next);
+    return () => { columnsRef.current = prev; setColumns(prev); };
   }, []);
 
   const optimisticCreateColumn = useCallback((tempColumn: BoardColumnWithTasks) => {
     const prev = columnsRef.current;
-    setColumns((cols) => [...cols, tempColumn]);
-    return () => { setColumns(prev); };
+    const next = [...prev, tempColumn];
+    columnsRef.current = next;
+    setColumns(next);
+    return () => { columnsRef.current = prev; setColumns(prev); };
   }, []);
 
   const optimisticDeleteColumn = useCallback((columnId: string) => {
     const prev = columnsRef.current;
-    setColumns((cols) => cols.filter((c) => c.id !== columnId));
-    return () => { setColumns(prev); };
+    const next = prev.filter((c) => c.id !== columnId);
+    columnsRef.current = next;
+    setColumns(next);
+    return () => { columnsRef.current = prev; setColumns(prev); };
   }, []);
 
   const optimisticUpdateColumn = useCallback((columnId: string, updates: Partial<BoardColumnType>) => {
     const prev = columnsRef.current;
-    setColumns((cols) => cols.map((col) => (col.id === columnId ? { ...col, ...updates } : col)));
-    return () => { setColumns(prev); };
+    const next = prev.map((col) => (col.id === columnId ? { ...col, ...updates } : col));
+    columnsRef.current = next;
+    setColumns(next);
+    return () => { columnsRef.current = prev; setColumns(prev); };
   }, []);
 
   const optimisticArchiveColumnTasks = useCallback((columnId: string) => {
     const prev = columnsRef.current;
-    setColumns((cols) =>
-      cols.map((col) =>
-        col.id === columnId
-          ? { ...col, tasks: col.tasks.map((t) => (t.archived ? t : { ...t, archived: true })) }
-          : col
-      )
+    const next = prev.map((col) =>
+      col.id === columnId
+        ? { ...col, tasks: col.tasks.map((t) => (t.archived ? t : { ...t, archived: true })) }
+        : col
     );
-    return () => { setColumns(prev); };
+    columnsRef.current = next;
+    setColumns(next);
+    return () => { columnsRef.current = prev; setColumns(prev); };
   }, []);
 
   const incrementPendingOps = useCallback(() => {
@@ -456,8 +466,9 @@ export function KanbanBoard({
       const rect = el.getBoundingClientRect();
       const centerX = (rect.left + rect.right) / 2;
       const dist = Math.abs(pos.x - centerX);
-      if (!closest || dist < closest.dist) {
-        closest = { id: el.dataset.columnId!, dist };
+      const colId = el.dataset.columnId;
+      if (colId && (!closest || dist < closest.dist)) {
+        closest = { id: colId, dist };
       }
     }
     return closest?.id ?? null;
@@ -508,20 +519,18 @@ export function KanbanBoard({
         columnsRef.current = newColumns;
         setColumns(newColumns);
 
-        if (!isTestMode) {
-          setPendingOps((n) => n + 1);
-          try {
-            await reorderBoardColumns(
-              ideaId,
-              newColumns.map((c) => c.id)
-            );
-          } catch {
-            toast.error("Failed to reorder columns");
-            setLastServerKey(""); // force re-sync when pendingOps reaches 0
-          } finally {
-            setPendingOps((n) => n - 1);
-            lastMoveTimeRef.current = Date.now();
-          }
+        setPendingOps((n) => n + 1);
+        try {
+          await reorderBoardColumns(
+            ideaId,
+            newColumns.map((c) => c.id)
+          );
+        } catch {
+          toast.error("Failed to reorder columns");
+          setLastServerKey(""); // force re-sync when pendingOps reaches 0
+        } finally {
+          setPendingOps((n) => n - 1);
+          lastMoveTimeRef.current = Date.now();
         }
         return;
       }
@@ -585,20 +594,18 @@ export function KanbanBoard({
         );
       }
 
-      if (!isTestMode) {
-        setPendingOps((n) => n + 1);
-        try {
-          await moveBoardTask(result.draggableId, ideaId, destColumnId, newPosition);
-        } catch {
-          toast.error("Failed to move task");
-          setLastServerKey(""); // force re-sync when pendingOps reaches 0
-        } finally {
-          setPendingOps((n) => n - 1);
-          lastMoveTimeRef.current = Date.now();
-        }
+      setPendingOps((n) => n + 1);
+      try {
+        await moveBoardTask(result.draggableId, ideaId, destColumnId, newPosition);
+      } catch {
+        toast.error("Failed to move task");
+        setLastServerKey(""); // force re-sync when pendingOps reaches 0
+      } finally {
+        setPendingOps((n) => n - 1);
+        lastMoveTimeRef.current = Date.now();
       }
     },
-    [ideaId, isTestMode, detectColumnUnderPointer]
+    [ideaId, detectColumnUnderPointer]
   );
 
   // Detect when the target task exists but is filtered out
@@ -714,9 +721,9 @@ export function KanbanBoard({
           </div>
         </DragDropContext>
       ) : (
-        <div className="flex min-h-0 flex-1 items-center justify-center">
-          <p className="text-sm text-muted-foreground">Loading board...</p>
-        </div>
+        /* Empty container preserves layout while waiting for mount — avoids a
+           visible "Loading..." flash. The board renders on the next frame. */
+        <div className="min-h-0 flex-1" />
       )}
     </div>
     </TaskAutoOpenContext.Provider>
