@@ -1,13 +1,8 @@
 "use client";
 
-import { useState, memo } from "react";
+import { useState, useCallback, memo } from "react";
 import { toast } from "sonner";
-import {
-  Droppable,
-  Draggable,
-  type DroppableProvided,
-  type DroppableStateSnapshot,
-} from "@happy-doc/dnd";
+import { Droppable, Draggable } from "@happy-doc/dnd";
 import { MoreHorizontal, Plus, Pencil, Trash2, GripVertical, CircleCheckBig, Archive } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,7 +68,7 @@ export const BoardColumn = memo(function BoardColumn({
   const [renameOpen, setRenameOpen] = useState(false);
   const ops = useBoardOps();
 
-  function handleDelete() {
+  const handleDelete = useCallback(() => {
     const rollback = ops.deleteColumn(column.id);
     ops.incrementPendingOps();
     undoableAction({
@@ -91,9 +86,9 @@ export const BoardColumn = memo(function BoardColumn({
       },
       errorMessage: "Failed to delete column",
     });
-  }
+  }, [ops, column.id, column.title, ideaId]);
 
-  async function handleArchiveAll() {
+  const handleArchiveAll = useCallback(async () => {
     const count = column.tasks.filter((t) => !t.archived).length;
     if (count === 0) return;
     const rollback = ops.archiveColumnTasks(column.id);
@@ -107,7 +102,7 @@ export const BoardColumn = memo(function BoardColumn({
     } finally {
       ops.decrementPendingOps();
     }
-  }
+  }, [ops, column.id, column.tasks, ideaId]);
 
   return (
     <Draggable draggableId={column.id} index={index} isDragDisabled={isReadOnly}>
@@ -177,7 +172,7 @@ export const BoardColumn = memo(function BoardColumn({
 
             {/* Task list — Droppable */}
             <Droppable droppableId={column.id} type="TASK" isDropDisabled={isReadOnly}>
-              {(droppableProvided: DroppableProvided, droppableSnapshot: DroppableStateSnapshot) => (
+              {(droppableProvided, droppableSnapshot) => (
                 <div
                   ref={droppableProvided.innerRef}
                   {...droppableProvided.droppableProps}

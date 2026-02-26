@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useMemo, useRef, useEffect, createContext } from "react";
 import { DragDropContext, Droppable, type DropResult } from "@happy-doc/dnd";
-import React from "react";
 import { useSearchParams } from "next/navigation";
 import { BoardColumn } from "./board-column";
 import { AddColumnButton } from "./add-column-button";
@@ -34,6 +33,9 @@ function arrayMove<T>(array: T[], from: number, to: number): T[] {
   newArray.splice(to, 0, removed);
   return newArray;
 }
+
+// Stable no-op for read-only drag end — avoids a new function reference on every render
+function noopDragEnd(_result: DropResult) {}
 
 interface KanbanBoardProps {
   columns: BoardColumnWithTasks[];
@@ -124,19 +126,18 @@ export function KanbanBoard({
     if (!isDragging) { lastPointerRef.current = null; return; }
     const update = (x: number, y: number) => { lastPointerRef.current = { x, y }; };
     const onPointer = (e: PointerEvent) => { update(e.clientX, e.clientY); };
-    const onMouse = (e: MouseEvent) => { update(e.clientX, e.clientY); };
     const onTouch = (e: TouchEvent) => {
       const t = e.touches[0] ?? e.changedTouches[0];
       if (t) update(t.clientX, t.clientY);
     };
-    // Use capture: true to get events before the library can consume them
+    // Use capture: true to get events before the library can consume them.
+    // pointermove covers both mouse and touch on modern browsers; touchmove/touchend
+    // are added separately for older iOS Safari compatibility.
     window.addEventListener("pointermove", onPointer, { capture: true, passive: true });
-    window.addEventListener("mousemove", onMouse, { capture: true, passive: true });
     window.addEventListener("touchmove", onTouch, { capture: true, passive: true });
     window.addEventListener("touchend", onTouch, { capture: true, passive: true });
     return () => {
       window.removeEventListener("pointermove", onPointer, { capture: true });
-      window.removeEventListener("mousemove", onMouse, { capture: true });
       window.removeEventListener("touchmove", onTouch, { capture: true });
       window.removeEventListener("touchend", onTouch, { capture: true });
     };
@@ -268,7 +269,8 @@ export function KanbanBoard({
   const serverKeyRef = useRef(serverKey);
   serverKeyRef.current = serverKey;
 
-  // Fast-path sync when no recent moves
+  // Fast-path sync when no recent moves — setState during render is intentional here:
+  // React re-renders immediately without a visible intermediate state.
   const withinCooldown = Date.now() - lastMoveTimeRef.current < MOVE_COOLDOWN_MS;
   if (serverKey !== lastServerKey && !isDragging && pendingOps === 0 && !withinCooldown) {
     setColumns(initialColumns);
@@ -305,89 +307,48 @@ export function KanbanBoard({
 
   const optimisticCreateTask = useCallback((columnId: string, tempTask: BoardTaskWithAssignee) => {
     const prev = columnsRef.current;
-    setColumns((cols) => {
-      const next = cols.map((col) => (col.id === columnId ? { ...col, tasks: [...col.tasks, tempTask] } : col));
-      columnsRef.current = next;
-      return next;
-    });
-    return () => {
-      setColumns(prev);
-      columnsRef.current = prev;
-    };
+    setColumns((cols) => cols.map((col) => (col.id === columnId ? { ...col, tasks: [...col.tasks, tempTask] } : col)));
+    return () => { setColumns(prev); };
   }, []);
 
   const optimisticDeleteTask = useCallback((taskId: string, columnId: string) => {
     const prev = columnsRef.current;
-    setColumns((cols) => {
-      const next = cols.map((col) =>
+    setColumns((cols) =>
+      cols.map((col) =>
         col.id === columnId ? { ...col, tasks: col.tasks.filter((t) => t.id !== taskId) } : col
-      );
-      columnsRef.current = next;
-      return next;
-    });
-    return () => {
-      setColumns(prev);
-      columnsRef.current = prev;
-    };
+      )
+    );
+    return () => { setColumns(prev); };
   }, []);
 
   const optimisticCreateColumn = useCallback((tempColumn: BoardColumnWithTasks) => {
     const prev = columnsRef.current;
-    setColumns((cols) => {
-      const next = [...cols, tempColumn];
-      columnsRef.current = next;
-      return next;
-    });
-    return () => {
-      setColumns(prev);
-      columnsRef.current = prev;
-    };
+    setColumns((cols) => [...cols, tempColumn]);
+    return () => { setColumns(prev); };
   }, []);
 
   const optimisticDeleteColumn = useCallback((columnId: string) => {
     const prev = columnsRef.current;
-    setColumns((cols) => {
-      const next = cols.filter((c) => c.id !== columnId);
-      columnsRef.current = next;
-      return next;
-    });
-    return () => {
-      setColumns(prev);
-      columnsRef.current = prev;
-    };
+    setColumns((cols) => cols.filter((c) => c.id !== columnId));
+    return () => { setColumns(prev); };
   }, []);
 
   const optimisticUpdateColumn = useCallback((columnId: string, updates: Partial<BoardColumnType>) => {
     const prev = columnsRef.current;
-    setColumns((cols) => {
-      const next = cols.map((col) => (col.id === columnId ? { ...col, ...updates } : col));
-      columnsRef.current = next;
-      return next;
-    });
-    return () => {
-      setColumns(prev);
-      columnsRef.current = prev;
-    };
+    setColumns((cols) => cols.map((col) => (col.id === columnId ? { ...col, ...updates } : col)));
+    return () => { setColumns(prev); };
   }, []);
 
   const optimisticArchiveColumnTasks = useCallback((columnId: string) => {
     const prev = columnsRef.current;
-    setColumns((cols) => {
-      const next = cols.map((col) =>
+    setColumns((cols) =>
+      cols.map((col) =>
         col.id === columnId
-          ? {
-              ...col,
-              tasks: col.tasks.map((t) => (t.archived ? t : { ...t, archived: true })),
-            }
+          ? { ...col, tasks: col.tasks.map((t) => (t.archived ? t : { ...t, archived: true })) }
           : col
-      );
-      columnsRef.current = next;
-      return next;
-    });
-    return () => {
-      setColumns(prev);
-      columnsRef.current = prev;
-    };
+      )
+    );
+    return () => { setColumns(prev); };
   }, []);
 
   const incrementPendingOps = useCallback(() => {
@@ -543,10 +504,7 @@ export function KanbanBoard({
 
       if (type === "COLUMN") {
         // Column reorder
-        const oldIndex = source.index;
-        const newIndex = destination.index;
-
-        const newColumns = arrayMove(currentColumns, oldIndex, newIndex);
+        const newColumns = arrayMove(currentColumns, source.index, destination.index);
         columnsRef.current = newColumns;
         setColumns(newColumns);
 
@@ -698,7 +656,7 @@ export function KanbanBoard({
       {isMounted ? (
         <DragDropContext
           onDragStart={isReadOnly ? undefined : handleDragStart}
-          onDragEnd={isReadOnly ? (_result: DropResult) => {} : handleDragEnd}
+          onDragEnd={isReadOnly ? noopDragEnd : handleDragEnd}
         >
           {/* Scroll container is a PARENT of the Droppable — this lets the library's
               built-in auto-scroll detect it and scroll it during drags, which keeps

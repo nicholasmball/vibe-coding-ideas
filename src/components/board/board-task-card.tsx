@@ -85,9 +85,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
 
   const [detailOpen, setDetailOpen] = useState(shouldAutoOpen);
   const [initialTab, setInitialTab] = useState<string | undefined>(undefined);
-  const [coverUrl, setCoverUrl] = useState<string | null>(
-    initialCoverUrl ?? null,
-  );
+  const [coverUrl, setCoverUrl] = useState<string | null>(initialCoverUrl ?? null);
   const [coverPreviewOpen, setCoverPreviewOpen] = useState(false);
   const [highlighted, setHighlighted] = useState(false);
   const cardRef = useRef<HTMLDivElement | null>(null);
@@ -134,11 +132,6 @@ export const BoardTaskCard = memo(function BoardTaskCard({
     [task.id],
   );
 
-  const isArchived = task.archived;
-  const attachmentCount = task.attachment_count;
-  const commentCount = task.comment_count;
-  const coverImagePath = task.cover_image_path;
-
   // Close lightbox on Escape
   const closeLightbox = useCallback(() => setCoverPreviewOpen(false), []);
   useEffect(() => {
@@ -152,13 +145,13 @@ export const BoardTaskCard = memo(function BoardTaskCard({
 
   // Fetch signed URL for cover image only when path changes after mount
   // (initial URL is provided server-side via batch creation)
-  const prevCoverPathRef = useRef(coverImagePath);
+  const prevCoverPathRef = useRef(task.cover_image_path);
   useEffect(() => {
     // Skip if path hasn't changed (initial render uses server-provided URL)
-    if (coverImagePath === prevCoverPathRef.current && coverUrl) return;
-    prevCoverPathRef.current = coverImagePath;
+    if (task.cover_image_path === prevCoverPathRef.current && coverUrl) return;
+    prevCoverPathRef.current = task.cover_image_path;
 
-    if (!coverImagePath) {
+    if (!task.cover_image_path) {
       setCoverUrl(null);
       return;
     }
@@ -166,14 +159,14 @@ export const BoardTaskCard = memo(function BoardTaskCard({
     const supabase = createClient();
     supabase.storage
       .from("task-attachments")
-      .createSignedUrl(coverImagePath, 3600)
+      .createSignedUrl(task.cover_image_path, 3600)
       .then(({ data }) => {
         if (!cancelled && data?.signedUrl) setCoverUrl(data.signedUrl);
       });
     return () => {
       cancelled = true;
     };
-  }, [coverImagePath]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [task.cover_image_path]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const assigneeInitials =
     task.assignee?.full_name
@@ -186,7 +179,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
     <Draggable
       draggableId={task.id}
       index={index}
-      isDragDisabled={!!isArchived || isReadOnly}
+      isDragDisabled={!!task.archived || isReadOnly}
     >
       {(provided, snapshot) => (
         <>
@@ -201,7 +194,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
               highlighted
                 ? "border-primary ring-2 ring-primary/50"
                 : "border-border"
-            } ${snapshot.isDragging ? "opacity-50 shadow-lg" : ""} ${isArchived ? "opacity-50" : ""}`}
+            } ${snapshot.isDragging ? "opacity-50 shadow-lg" : ""} ${task.archived ? "opacity-50" : ""}`}
             onClick={() => {
               setInitialTab(undefined);
               handleOpenChange(true);
@@ -219,7 +212,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
               </div>
             )}
             <div className="flex items-start gap-2 p-3">
-              {!isArchived && !isReadOnly && (
+              {!task.archived && !isReadOnly && (
                 <button
                   data-testid="task-drag-handle"
                   className="mt-0.5 cursor-grab text-muted-foreground opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 active:cursor-grabbing touch-none"
@@ -264,7 +257,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
                 {/* Metadata row */}
                 <div className="mt-2 flex items-center gap-2">
                   <div className="flex flex-1 flex-wrap items-center gap-1.5">
-                    {isArchived && (
+                    {task.archived && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-medium text-muted-foreground">
                         <Archive className="h-3 w-3" />
                         Archived
@@ -286,7 +279,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
                         <TooltipContent>Checklist</TooltipContent>
                       </Tooltip>
                     )}
-                    {!!attachmentCount && attachmentCount > 0 && (
+                    {task.attachment_count > 0 && (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <span
@@ -298,13 +291,13 @@ export const BoardTaskCard = memo(function BoardTaskCard({
                             }}
                           >
                             <Paperclip className="h-3 w-3" />
-                            {attachmentCount}
+                            {task.attachment_count}
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>Attachments</TooltipContent>
                       </Tooltip>
                     )}
-                    {!!commentCount && commentCount > 0 && (
+                    {task.comment_count > 0 && (
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <span
@@ -316,7 +309,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
                             }}
                           >
                             <MessageSquare className="h-3 w-3" />
-                            {commentCount}
+                            {task.comment_count}
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>Comments</TooltipContent>
