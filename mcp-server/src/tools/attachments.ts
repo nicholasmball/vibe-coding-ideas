@@ -20,6 +20,7 @@ const ALLOWED_CONTENT_TYPES = [
   "text/plain",
   "text/csv",
   "text/markdown",
+  "text/html",
   "application/zip",
 ];
 

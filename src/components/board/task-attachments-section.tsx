@@ -442,7 +442,7 @@ export function TaskAttachmentsSection({
                 id={`file-upload-${taskId}`}
                 type="file"
                 className="hidden"
-                accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.md"
+                accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip,.md,.html"
                 onChange={handleFileSelect}
                 multiple
               />
