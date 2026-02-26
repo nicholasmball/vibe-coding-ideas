@@ -1,8 +1,30 @@
 "use client";
 
 import { useState, useCallback, useMemo, useRef, useEffect, createContext } from "react";
-import { DragDropContext, Droppable, type DropResult } from "@happy-doc/dnd";
+import {
+  DndContext,
+  DragOverlay,
+  MeasuringStrategy,
+  pointerWithin,
+  closestCenter,
+  MouseSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragStartEvent,
+  type DragEndEvent,
+  type DragOverEvent,
+  type CollisionDetection,
+} from "@dnd-kit/core";
+import React from "react";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
 import { useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
 import { BoardColumn } from "./board-column";
 import { AddColumnButton } from "./add-column-button";
 import { BoardToolbar } from "./board-toolbar";
@@ -27,15 +49,68 @@ export const TaskAutoOpenContext = createContext<{
   onAutoOpenConsumed: () => void;
 }>({ autoOpenTaskId: undefined, onAutoOpenConsumed: () => {} });
 
-function arrayMove<T>(array: T[], from: number, to: number): T[] {
-  const newArray = [...array];
-  const [removed] = newArray.splice(from, 1);
-  newArray.splice(to, 0, removed);
-  return newArray;
-}
+// Custom collision detection: pointerWithin finds the column, closestCenter bridges gaps
+const multiContainerCollision: CollisionDetection = (args) => {
+  // First check if pointer is within any droppable (columns/tasks)
+  const pointerCollisions = pointerWithin(args);
+  if (pointerCollisions.length > 0) {
+    return pointerCollisions;
+  }
+  // Fallback to closestCenter for gap zones between columns, fast moves, and keyboard nav
+  const closest = closestCenter(args);
+  // When in a gap, closestCenter may return a column — prefer column droppables
+  // to avoid snapping to far-away tasks
+  if (closest.length > 0) {
+    const containerMap = new Map(args.droppableContainers.map((c) => [c.id, c]));
+    const columnHits = closest.filter((c) => {
+      const data = containerMap.get(c.id)?.data?.current;
+      return data?.type === "column";
+    });
+    return columnHits.length > 0 ? columnHits : closest;
+  }
+  return closest;
+};
 
-// Stable no-op for read-only drag end — avoids a new function reference on every render
-function noopDragEnd(_result: DropResult) {}
+const layoutMeasuring = {
+  droppable: { strategy: MeasuringStrategy.WhileDragging },
+};
+
+// Overlay content — intentionally NOT wrapped in React.memo because DragOverlay's
+// portal mounts lazily on first drag. React.memo can prevent the overlay from
+// rendering the task on the initial mount when the portal and setActiveTask batch together.
+function OverlayContent({
+  activeTask,
+  activeColumn,
+  targetColumnName,
+}: {
+  activeTask: BoardTaskWithAssignee | null;
+  activeColumn: BoardColumnWithTasks | null;
+  targetColumnName?: string | null;
+}) {
+  if (activeTask) {
+    return (
+      <div className="w-[280px] rounded-md border border-primary bg-background p-3 shadow-lg">
+        <p className="text-sm font-medium line-clamp-2">{activeTask.title}</p>
+        {targetColumnName && (
+          <p className="mt-1 text-xs text-primary">
+            → {targetColumnName}
+          </p>
+        )}
+      </div>
+    );
+  }
+  if (activeColumn) {
+    return (
+      <div className="w-[280px] rounded-lg border border-primary bg-muted/50 p-3 shadow-lg opacity-80">
+        <p className="text-sm font-semibold">{activeColumn.title}</p>
+        <p className="text-xs text-muted-foreground">
+          {activeColumn.tasks.filter((t) => !t.archived).length} tasks
+        </p>
+      </div>
+    );
+  }
+  return null;
+}
 
 interface KanbanBoardProps {
   columns: BoardColumnWithTasks[];
@@ -53,6 +128,109 @@ interface KanbanBoardProps {
   isReadOnly?: boolean;
 }
 
+// Dwell-scroll constants (hoisted out of hook to avoid stale closure issues)
+const DWELL_EDGE_ZONE = 40;      // px from container edge to trigger zone
+const DWELL_INNER_ZONE = 80;     // px from edge where cancel kicks in
+const DWELL_MS = 350;            // ms pointer must sit in edge zone before scroll
+const DWELL_BETWEEN_STEP_MS = 500; // ms pause between column steps
+const DWELL_COLUMN_STEP = 296;   // ~280px column + 16px gap
+
+function useDwellEdgeScroll(
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>,
+  isDragging: boolean,
+  isTouchDrag: boolean,
+) {
+  const pointerRef = useRef<{ x: number; y: number } | null>(null);
+  const dwellTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stepTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scrollingRef = useRef<"left" | "right" | null>(null);
+
+  const cancelAll = useCallback(() => {
+    if (dwellTimerRef.current !== null) {
+      clearTimeout(dwellTimerRef.current);
+      dwellTimerRef.current = null;
+    }
+    if (stepTimerRef.current !== null) {
+      clearTimeout(stepTimerRef.current);
+      stepTimerRef.current = null;
+    }
+    scrollingRef.current = null;
+  }, []);
+
+  const doScrollStep = useCallback(
+    (direction: "left" | "right") => {
+      const el = scrollContainerRef.current;
+      if (!el) return;
+      const delta = direction === "right" ? DWELL_COLUMN_STEP : -DWELL_COLUMN_STEP;
+      el.scrollBy({ left: delta, behavior: "smooth" });
+
+      stepTimerRef.current = setTimeout(() => {
+        const pos = pointerRef.current;
+        if (!pos) return;
+        const rect = el.getBoundingClientRect();
+        const inRightEdge = pos.x > rect.right - DWELL_EDGE_ZONE;
+        const inLeftEdge = pos.x < rect.left + DWELL_EDGE_ZONE;
+        if (direction === "right" && inRightEdge) {
+          doScrollStep("right");
+        } else if (direction === "left" && inLeftEdge) {
+          doScrollStep("left");
+        } else {
+          scrollingRef.current = null;
+        }
+      }, DWELL_BETWEEN_STEP_MS);
+    },
+    [scrollContainerRef],
+  );
+
+  const startDwell = useCallback(
+    (direction: "left" | "right") => {
+      if (scrollingRef.current === direction) return;
+      cancelAll();
+      scrollingRef.current = direction;
+
+      dwellTimerRef.current = setTimeout(() => {
+        dwellTimerRef.current = null;
+        doScrollStep(direction);
+      }, DWELL_MS);
+    },
+    [cancelAll, doScrollStep],
+  );
+
+  useEffect(() => {
+    if (!isDragging || !isTouchDrag) {
+      cancelAll();
+      pointerRef.current = null;
+      return;
+    }
+
+    const onPointerMove = (e: PointerEvent) => {
+      pointerRef.current = { x: e.clientX, y: e.clientY };
+
+      const el = scrollContainerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const x = e.clientX;
+
+      const inRightEdge = x > rect.right - DWELL_EDGE_ZONE;
+      const inLeftEdge = x < rect.left + DWELL_EDGE_ZONE;
+
+      if (inRightEdge) {
+        startDwell("right");
+      } else if (inLeftEdge) {
+        startDwell("left");
+      } else if (x > rect.left + DWELL_INNER_ZONE && x < rect.right - DWELL_INNER_ZONE) {
+        cancelAll();
+      }
+    };
+
+    window.addEventListener("pointermove", onPointerMove);
+    return () => {
+      window.removeEventListener("pointermove", onPointerMove);
+      cancelAll();
+    };
+  }, [isDragging, isTouchDrag, cancelAll, startDwell, scrollContainerRef]);
+}
+
 export function KanbanBoard({
   columns: initialColumns,
   ideaId,
@@ -68,12 +246,6 @@ export function KanbanBoard({
   coverImageUrls = {},
   isReadOnly = false,
 }: KanbanBoardProps) {
-  // react-beautiful-dnd (and forks like @happy-doc/dnd) need a mounted DOM before
-  // Droppable can measure. React 18+ strict mode double-mounts cause "Invariant failed".
-  // Deferring render to after mount fixes this.
-  const [isMounted, setIsMounted] = useState(false);
-  useEffect(() => { setIsMounted(true); }, []);
-
   // Auto-open: detect taskId from URL navigation (Link clicks) as well as server props.
   // useSearchParams reacts to Link navigations, which may not propagate through server
   // props when the board is already mounted (memo chain can block the update).
@@ -108,38 +280,16 @@ export function KanbanBoard({
   const [columns, setColumns] = useState(initialColumns);
   const columnsRef = useRef(columns);
   columnsRef.current = columns;
+  const [activeTask, setActiveTask] = useState<BoardTaskWithAssignee | null>(null);
+  const [activeColumn, setActiveColumn] = useState<BoardColumnWithTasks | null>(null);
+  const dragSourceColumnRef = useRef<string | null>(null);
+  const dragCurrentColumnRef = useRef<string | null>(null);
+  const [dragTargetColumnName, setDragTargetColumnName] = useState<string | null>(null);
+  // Snapshot of columns at drag start — used for immediate revert on cancel
+  const dragStartColumnsRef = useRef<BoardColumnWithTasks[] | null>(null);
 
-  // isDragging state — used to disable snap scroll during drag
-  const [isDragging, setIsDragging] = useState(false);
-  // Which column the pointer is currently over during a drag (for visual highlight)
-  const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
-  const dragOverColumnRef = useRef<string | null>(null);
-
-  // Track last pointer/touch position during drag — used to detect actual drop
-  // target when the library's scroll tracking fails for off-screen columns.
-  // We use capture phase + passive listeners to ensure we get coordinates even
-  // when the DnD library calls preventDefault on the events.
-  const lastPointerRef = useRef<{ x: number; y: number } | null>(null);
-  useEffect(() => {
-    if (!isDragging) { lastPointerRef.current = null; return; }
-    const update = (x: number, y: number) => { lastPointerRef.current = { x, y }; };
-    const onPointer = (e: PointerEvent) => { update(e.clientX, e.clientY); };
-    const onTouch = (e: TouchEvent) => {
-      const t = e.touches[0] ?? e.changedTouches[0];
-      if (t) update(t.clientX, t.clientY);
-    };
-    // Use capture: true to get events before the library can consume them.
-    // pointermove covers both mouse and touch on modern browsers; touchmove/touchend
-    // are added separately for older iOS Safari compatibility.
-    window.addEventListener("pointermove", onPointer, { capture: true, passive: true });
-    window.addEventListener("touchmove", onTouch, { capture: true, passive: true });
-    window.addEventListener("touchend", onTouch, { capture: true, passive: true });
-    return () => {
-      window.removeEventListener("pointermove", onPointer, { capture: true });
-      window.removeEventListener("touchmove", onTouch, { capture: true });
-      window.removeEventListener("touchend", onTouch, { capture: true });
-    };
-  }, [isDragging]);
+  // Track whether the active drag was initiated via touch (for mobile-only scroll logic)
+  const [isTouchDrag, setIsTouchDrag] = useState(false);
 
   // Track in-flight move operations to prevent server data from reverting optimistic updates
   const [pendingOps, setPendingOps] = useState(0);
@@ -168,73 +318,9 @@ export function KanbanBoard({
     return () => window.removeEventListener("resize", handleScrollCheck);
   }, [handleScrollCheck, columns]);
 
-  // Auto-scroll + drag-over highlight: runs a rAF loop during drag that
-  // (1) scrolls the board when dragging near edges, and
-  // (2) detects which column the pointer is over for visual feedback.
-  useEffect(() => {
-    if (!isDragging) {
-      if (dragOverColumnRef.current) {
-        dragOverColumnRef.current = null;
-        setDragOverColumnId(null);
-      }
-      return;
-    }
-
-    const EDGE = 120;
-    const MAX_SPEED = 30;
-    let raf = 0;
-    // Cache column elements once at drag start — avoids querySelectorAll on every frame
-    const columnEls = Array.from(document.querySelectorAll<HTMLElement>("[data-column-id]"));
-
-    const loop = () => {
-      const el = scrollContainerRef.current;
-      const pos = lastPointerRef.current;
-      if (el && pos) {
-        // Edge scrolling
-        const rect = el.getBoundingClientRect();
-        if (pos.x > rect.right - EDGE) {
-          const t = Math.min(1, (pos.x - (rect.right - EDGE)) / EDGE);
-          el.scrollLeft += MAX_SPEED * (0.2 + t * 0.8);
-        } else if (pos.x < rect.left + EDGE) {
-          const t = Math.min(1, ((rect.left + EDGE) - pos.x) / EDGE);
-          el.scrollLeft -= MAX_SPEED * (0.2 + t * 0.8);
-        }
-
-        // Detect column under pointer for highlight
-        let hoveredCol: string | null = null;
-        for (const colEl of columnEls) {
-          const colRect = colEl.getBoundingClientRect();
-          if (pos.x >= colRect.left && pos.x <= colRect.right && pos.y >= colRect.top && pos.y <= colRect.bottom) {
-            hoveredCol = colEl.dataset.columnId ?? null;
-            break;
-          }
-        }
-        // Fallback: closest column if within board vertical bounds
-        if (!hoveredCol && pos.y >= rect.top && pos.y <= rect.bottom) {
-          let closest: { id: string; dist: number } | null = null;
-          for (const colEl of columnEls) {
-            const colRect = colEl.getBoundingClientRect();
-            const centerX = (colRect.left + colRect.right) / 2;
-            const dist = Math.abs(pos.x - centerX);
-            const colId = colEl.dataset.columnId;
-            if (colId && (!closest || dist < closest.dist)) {
-              closest = { id: colId, dist };
-            }
-          }
-          hoveredCol = closest?.id ?? null;
-        }
-        // Only update state when the hovered column changes (avoids re-renders)
-        if (hoveredCol !== dragOverColumnRef.current) {
-          dragOverColumnRef.current = hoveredCol;
-          setDragOverColumnId(hoveredCol);
-        }
-      }
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-
-    return () => { cancelAnimationFrame(raf); };
-  }, [isDragging]);
+  // Dwell-based column scroll — only fires on touch, only after a deliberate pause
+  const isDragging = !!(activeTask || activeColumn);
+  useDwellEdgeScroll(scrollContainerRef, isDragging, isTouchDrag);
 
   // Update columns when server data changes (via realtime refresh)
   const serverKey = useMemo(
@@ -269,17 +355,16 @@ export function KanbanBoard({
   const serverKeyRef = useRef(serverKey);
   serverKeyRef.current = serverKey;
 
-  // Fast-path sync when no recent moves — setState during render is intentional here:
-  // React re-renders immediately without a visible intermediate state.
+  // Fast-path sync when no recent moves
   const withinCooldown = Date.now() - lastMoveTimeRef.current < MOVE_COOLDOWN_MS;
-  if (serverKey !== lastServerKey && !isDragging && pendingOps === 0 && !withinCooldown) {
+  if (serverKey !== lastServerKey && !activeTask && !activeColumn && pendingOps === 0 && !withinCooldown) {
     setColumns(initialColumns);
     setLastServerKey(serverKey);
   }
 
   // Deferred sync: wait for cooldown to expire after rapid moves
   const needsDeferredSync =
-    serverKey !== lastServerKey && !isDragging && pendingOps === 0 && withinCooldown;
+    serverKey !== lastServerKey && !activeTask && !activeColumn && pendingOps === 0 && withinCooldown;
   useEffect(() => {
     if (!needsDeferredSync) return;
     const remaining = MOVE_COOLDOWN_MS - (Date.now() - lastMoveTimeRef.current);
@@ -305,60 +390,91 @@ export function KanbanBoard({
   // Optimistic operation callbacks (exposed via context)
   // ────────────────────────────────────────────────────
 
-  // Optimistic helpers update columnsRef eagerly so that handleDragEnd always
-  // reads the latest column state (it fires synchronously before the next render).
   const optimisticCreateTask = useCallback((columnId: string, tempTask: BoardTaskWithAssignee) => {
     const prev = columnsRef.current;
-    const next = prev.map((col) => (col.id === columnId ? { ...col, tasks: [...col.tasks, tempTask] } : col));
-    columnsRef.current = next;
-    setColumns(next);
-    return () => { columnsRef.current = prev; setColumns(prev); };
+    setColumns((cols) => {
+      const next = cols.map((col) => (col.id === columnId ? { ...col, tasks: [...col.tasks, tempTask] } : col));
+      columnsRef.current = next;
+      return next;
+    });
+    return () => {
+      setColumns(prev);
+      columnsRef.current = prev;
+    };
   }, []);
 
   const optimisticDeleteTask = useCallback((taskId: string, columnId: string) => {
     const prev = columnsRef.current;
-    const next = prev.map((col) =>
-      col.id === columnId ? { ...col, tasks: col.tasks.filter((t) => t.id !== taskId) } : col
-    );
-    columnsRef.current = next;
-    setColumns(next);
-    return () => { columnsRef.current = prev; setColumns(prev); };
+    setColumns((cols) => {
+      const next = cols.map((col) =>
+        col.id === columnId ? { ...col, tasks: col.tasks.filter((t) => t.id !== taskId) } : col
+      );
+      columnsRef.current = next;
+      return next;
+    });
+    return () => {
+      setColumns(prev);
+      columnsRef.current = prev;
+    };
   }, []);
 
   const optimisticCreateColumn = useCallback((tempColumn: BoardColumnWithTasks) => {
     const prev = columnsRef.current;
-    const next = [...prev, tempColumn];
-    columnsRef.current = next;
-    setColumns(next);
-    return () => { columnsRef.current = prev; setColumns(prev); };
+    setColumns((cols) => {
+      const next = [...cols, tempColumn];
+      columnsRef.current = next;
+      return next;
+    });
+    return () => {
+      setColumns(prev);
+      columnsRef.current = prev;
+    };
   }, []);
 
   const optimisticDeleteColumn = useCallback((columnId: string) => {
     const prev = columnsRef.current;
-    const next = prev.filter((c) => c.id !== columnId);
-    columnsRef.current = next;
-    setColumns(next);
-    return () => { columnsRef.current = prev; setColumns(prev); };
+    setColumns((cols) => {
+      const next = cols.filter((c) => c.id !== columnId);
+      columnsRef.current = next;
+      return next;
+    });
+    return () => {
+      setColumns(prev);
+      columnsRef.current = prev;
+    };
   }, []);
 
   const optimisticUpdateColumn = useCallback((columnId: string, updates: Partial<BoardColumnType>) => {
     const prev = columnsRef.current;
-    const next = prev.map((col) => (col.id === columnId ? { ...col, ...updates } : col));
-    columnsRef.current = next;
-    setColumns(next);
-    return () => { columnsRef.current = prev; setColumns(prev); };
+    setColumns((cols) => {
+      const next = cols.map((col) => (col.id === columnId ? { ...col, ...updates } : col));
+      columnsRef.current = next;
+      return next;
+    });
+    return () => {
+      setColumns(prev);
+      columnsRef.current = prev;
+    };
   }, []);
 
   const optimisticArchiveColumnTasks = useCallback((columnId: string) => {
     const prev = columnsRef.current;
-    const next = prev.map((col) =>
-      col.id === columnId
-        ? { ...col, tasks: col.tasks.map((t) => (t.archived ? t : { ...t, archived: true })) }
-        : col
-    );
-    columnsRef.current = next;
-    setColumns(next);
-    return () => { columnsRef.current = prev; setColumns(prev); };
+    setColumns((cols) => {
+      const next = cols.map((col) =>
+        col.id === columnId
+          ? {
+              ...col,
+              tasks: col.tasks.map((t) => (t.archived ? t : { ...t, archived: true })),
+            }
+          : col
+      );
+      columnsRef.current = next;
+      return next;
+    });
+    return () => {
+      setColumns(prev);
+      columnsRef.current = prev;
+    };
   }, []);
 
   const incrementPendingOps = useCallback(() => {
@@ -442,80 +558,161 @@ export function KanbanBoard({
     showArchived,
   ]);
 
-  // Detect which column the pointer is actually over by checking bounding rects
-  // of all column elements. This is more reliable than elementsFromPoint which
-  // can be blocked by drag overlays on mobile.
-  const detectColumnUnderPointer = useCallback((): string | null => {
-    const pos = lastPointerRef.current;
-    if (!pos) return null;
-    const columnEls = document.querySelectorAll<HTMLElement>("[data-column-id]");
-    for (const el of columnEls) {
-      const rect = el.getBoundingClientRect();
-      if (pos.x >= rect.left && pos.x <= rect.right && pos.y >= rect.top && pos.y <= rect.bottom) {
-        return el.dataset.columnId ?? null;
+  // ────────────────────────────────────────────────────────────────────────────
+  // Sensor configuration
+  //
+  // TouchSensor: delay 250ms (slightly longer than the previous 200ms) and a
+  // tighter 8px tolerance. The extra 50ms prevents accidental drag activation
+  // when the user is scrolling vertically within a column. The tighter tolerance
+  // ensures the pointer hasn't drifted much before we commit to a drag, which
+  // pairs well with the dwell-scroll (the card picks up cleanly before the edge
+  // zone becomes relevant).
+  // ────────────────────────────────────────────────────────────────────────────
+  const mouseSensor = useSensor(MouseSensor, {
+    activationConstraint: { distance: 8 },
+  });
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: { delay: 250, tolerance: 8 },
+  });
+  const keyboardSensor = useSensor(KeyboardSensor);
+  const sensors = useSensors(mouseSensor, touchSensor, keyboardSensor);
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const { active } = event;
+    const data = active.data.current;
+
+    // Snapshot columns so we can revert immediately if drag is cancelled
+    dragStartColumnsRef.current = columnsRef.current;
+
+    // Detect touch-initiated drag so the dwell-scroll hook activates
+    const nativeEvent = event.activatorEvent;
+    setIsTouchDrag(
+      typeof TouchEvent !== "undefined" && nativeEvent instanceof TouchEvent
+    );
+
+    if (data?.type === "column") {
+      const col = columnsRef.current.find((c) => c.id === data.columnId);
+      if (col) setActiveColumn(col);
+    } else {
+      const colId = (data?.columnId as string) ?? null;
+      // Look up the task from columns state (sortableData no longer carries it)
+      if (colId) {
+        const col = columnsRef.current.find((c) => c.id === colId);
+        const task = col?.tasks.find((t) => t.id === active.id);
+        if (task) setActiveTask(task);
       }
+      dragSourceColumnRef.current = colId;
+      dragCurrentColumnRef.current = colId;
     }
-    // Fallback: if pointer is within the board's vertical bounds, find the
-    // closest column horizontally (handles gaps between columns)
-    const container = scrollContainerRef.current;
-    if (!container) return null;
-    const containerRect = container.getBoundingClientRect();
-    if (pos.y < containerRect.top || pos.y > containerRect.bottom) return null;
-    let closest: { id: string; dist: number } | null = null;
-    for (const el of columnEls) {
-      const rect = el.getBoundingClientRect();
-      const centerX = (rect.left + rect.right) / 2;
-      const dist = Math.abs(pos.x - centerX);
-      const colId = el.dataset.columnId;
-      if (colId && (!closest || dist < closest.dist)) {
-        closest = { id: colId, dist };
-      }
-    }
-    return closest?.id ?? null;
   }, []);
 
-  const handleDragStart = useCallback(() => {
-    setIsDragging(true);
-  }, []);
+  const handleDragOver = useCallback(
+    (event: DragOverEvent) => {
+      const { active, over } = event;
+      if (!over) return;
 
-  const handleDragEnd = useCallback(
-    async (result: DropResult) => {
-      setIsDragging(false);
+      const activeData = active.data.current;
+      const overData = over.data.current;
+      if (!activeData || activeData.type !== "task") return;
 
-      const { source, type } = result;
-      let { destination } = result;
-
-      // The library's scroll tracking often fails for off-screen columns that
-      // were scrolled into view programmatically. Use bounding-rect detection
-      // to find the actual column under the pointer and override if needed.
-      if (type === "TASK") {
-        const actualColumnId = detectColumnUnderPointer();
-        if (actualColumnId) {
-          // Always trust the DOM-detected column over the library's destination
-          if (!destination || destination.droppableId !== actualColumnId) {
-            const targetCol = columnsRef.current.find(c => c.id === actualColumnId);
-            destination = {
-              droppableId: actualColumnId,
-              index: targetCol ? targetCol.tasks.length : 0, // append to end
-            };
-          }
+      // Determine target column
+      let overColumnId: string;
+      if (overData?.type === "column") {
+        overColumnId = overData.columnId as string;
+      } else if (overData?.type === "task") {
+        overColumnId = overData.columnId as string;
+      } else {
+        const overId = String(over.id);
+        if (overId.startsWith("column-")) {
+          overColumnId = overId.replace("column-", "");
+        } else {
+          return;
         }
       }
 
-      // Dropped outside a valid droppable
-      if (!destination) return;
+      // Use our ref for the current column (never mutate active.data)
+      const activeColumnId = dragCurrentColumnRef.current;
+      if (!activeColumnId) return;
 
-      // No movement
-      if (
-        source.droppableId === destination.droppableId &&
-        source.index === destination.index
-      ) return;
+      if (activeColumnId === overColumnId) return;
 
+      // Update our tracking ref (replaces mutating active.data.current)
+      dragCurrentColumnRef.current = overColumnId;
+
+      // Update overlay with target column name for visual feedback
+      const targetCol = columnsRef.current.find((c) => c.id === overColumnId);
+      setDragTargetColumnName(targetCol?.title ?? null);
+
+      // Move task between columns optimistically
+      setColumns((prev) => {
+        const sourceCol = prev.find((c) => c.id === activeColumnId);
+        const destCol = prev.find((c) => c.id === overColumnId);
+        if (!sourceCol || !destCol) return prev;
+
+        const taskIndex = sourceCol.tasks.findIndex(
+          (t) => t.id === active.id
+        );
+        if (taskIndex === -1) return prev;
+
+        const task = sourceCol.tasks[taskIndex];
+
+        const next = prev.map((col) => {
+          if (col.id === activeColumnId) {
+            return {
+              ...col,
+              tasks: col.tasks.filter((t) => t.id !== active.id),
+            };
+          }
+          if (col.id === overColumnId) {
+            let insertIndex = col.tasks.length;
+            if (overData?.type === "task") {
+              const overTaskIndex = col.tasks.findIndex((t) => t.id === over.id);
+              if (overTaskIndex !== -1) insertIndex = overTaskIndex;
+            }
+            const newTasks = [...col.tasks];
+            newTasks.splice(insertIndex, 0, {
+              ...task,
+              column_id: overColumnId,
+            });
+            return { ...col, tasks: newTasks };
+          }
+          return col;
+        });
+        columnsRef.current = next;
+        return next;
+      });
+    },
+    []
+  );
+
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event;
+      const activeData = active.data.current;
       const currentColumns = columnsRef.current;
 
-      if (type === "COLUMN") {
-        // Column reorder
-        const newColumns = arrayMove(currentColumns, source.index, destination.index);
+      // Always reset touch-drag flag when the drag session ends
+      setIsTouchDrag(false);
+
+      // Column drag end
+      if (activeData?.type === "column") {
+        setActiveColumn(null);
+        dragCurrentColumnRef.current = null;
+        dragSourceColumnRef.current = null;
+        if (!over) {
+          dragStartColumnsRef.current = null;
+          return;
+        }
+
+        const activeId = activeData.columnId as string;
+        const overId = over.data.current?.columnId as string | undefined;
+        if (!overId || activeId === overId) return;
+
+        const oldIndex = currentColumns.findIndex((c) => c.id === activeId);
+        const newIndex = currentColumns.findIndex((c) => c.id === overId);
+        if (oldIndex === -1 || newIndex === -1) return;
+
+        const newColumns = arrayMove(currentColumns, oldIndex, newIndex);
         columnsRef.current = newColumns;
         setColumns(newColumns);
 
@@ -535,68 +732,82 @@ export function KanbanBoard({
         return;
       }
 
-      // Task move — type === "TASK" (same column reorder or cross-column move)
-      const sourceColumnId = source.droppableId;
-      const destColumnId = destination.droppableId;
+      // Task drag end — read current column from our ref (not active.data)
+      setActiveTask(null);
+      setDragTargetColumnName(null);
 
-      const sourceCol = currentColumns.find((c) => c.id === sourceColumnId);
-      const destCol = currentColumns.find((c) => c.id === destColumnId);
-      if (!sourceCol || !destCol) return;
+      const currentColumnId = dragCurrentColumnRef.current;
+      const movedBetweenColumns = dragSourceColumnRef.current !== currentColumnId;
 
-      const movedBetweenColumns = sourceColumnId !== destColumnId;
+      // Clean up refs
+      dragCurrentColumnRef.current = null;
+      dragSourceColumnRef.current = null;
 
-      let newColumns: BoardColumnWithTasks[];
-
-      if (!movedBetweenColumns) {
-        // Same-column reorder
-        const reorderedTasks = arrayMove(sourceCol.tasks, source.index, destination.index);
-        newColumns = currentColumns.map((c) =>
-          c.id === sourceColumnId ? { ...c, tasks: reorderedTasks } : c
-        );
-      } else {
-        // Cross-column move
-        const task = sourceCol.tasks[source.index];
-        if (!task) return;
-
-        const movedTask = { ...task, column_id: destColumnId };
-
-        const newSourceTasks = sourceCol.tasks.filter((_, i) => i !== source.index);
-        const newDestTasks = [...destCol.tasks];
-        newDestTasks.splice(destination.index, 0, movedTask);
-
-        newColumns = currentColumns.map((c) => {
-          if (c.id === sourceColumnId) return { ...c, tasks: newSourceTasks };
-          if (c.id === destColumnId) return { ...c, tasks: newDestTasks };
-          return c;
-        });
+      // Dropped on nothing — revert to pre-drag state immediately
+      if (!over || !activeData || activeData.type !== "task") {
+        if (dragStartColumnsRef.current) {
+          const snapshot = dragStartColumnsRef.current;
+          setColumns(snapshot);
+          columnsRef.current = snapshot;
+        }
+        dragStartColumnsRef.current = null;
+        return;
       }
 
-      columnsRef.current = newColumns;
-      setColumns(newColumns);
+      // Clear snapshot — this was a valid drop, no revert needed
+      dragStartColumnsRef.current = null;
 
-      // Calculate position for persistence based on final task position in destination column
-      const finalDestCol = newColumns.find((c) => c.id === destColumnId);
-      if (!finalDestCol) return;
+      const activeColumnId = currentColumnId ?? (activeData.columnId as string);
+      const col = currentColumns.find((c) => c.id === activeColumnId);
+      if (!col) {
+        return;
+      }
 
-      const reorderedTasks = finalDestCol.tasks;
-      const taskIndex = destination.index;
+      const activeIndex = col.tasks.findIndex((t) => t.id === active.id);
+      if (activeIndex === -1) {
+        return;
+      }
+
+      // Determine the target index from the over item
+      const overData = over.data.current;
+      let overIndex: number;
+      if (overData?.type === "task") {
+        overIndex = col.tasks.findIndex((t) => t.id === over.id);
+        if (overIndex === -1) overIndex = activeIndex;
+      } else {
+        // Dropped on column droppable (empty area) — keep current spot
+        overIndex = activeIndex;
+      }
+
+      // If same-column reorder with no position change, nothing to persist
+      if (!movedBetweenColumns && activeIndex === overIndex) {
+        return;
+      }
+
+      // Reorder the task list optimistically (handles same-column reorder)
+      const reordered = arrayMove(col.tasks, activeIndex, overIndex);
+      setColumns((prev) => {
+        const next = prev.map((c) => (c.id === activeColumnId ? { ...c, tasks: reordered } : c));
+        columnsRef.current = next;
+        return next;
+      });
+
+      // Calculate position based on the reordered array
+      const taskIndex = overIndex;
       let newPosition: number;
-
-      if (reorderedTasks.length <= 1) {
+      if (reordered.length <= 1) {
         newPosition = 0;
       } else if (taskIndex === 0) {
-        newPosition = reorderedTasks[1].position - POSITION_GAP;
-      } else if (taskIndex === reorderedTasks.length - 1) {
-        newPosition = reorderedTasks[taskIndex - 1].position + POSITION_GAP;
+        newPosition = reordered[1].position - POSITION_GAP;
+      } else if (taskIndex === reordered.length - 1) {
+        newPosition = reordered[taskIndex - 1].position + POSITION_GAP;
       } else {
-        newPosition = Math.round(
-          (reorderedTasks[taskIndex - 1].position + reorderedTasks[taskIndex + 1].position) / 2
-        );
+        newPosition = Math.round((reordered[taskIndex - 1].position + reordered[taskIndex + 1].position) / 2);
       }
 
       setPendingOps((n) => n + 1);
       try {
-        await moveBoardTask(result.draggableId, ideaId, destColumnId, newPosition);
+        await moveBoardTask(String(active.id), ideaId, activeColumnId, newPosition);
       } catch {
         toast.error("Failed to move task");
         setLastServerKey(""); // force re-sync when pendingOps reaches 0
@@ -605,7 +816,7 @@ export function KanbanBoard({
         lastMoveTimeRef.current = Date.now();
       }
     },
-    [ideaId, detectColumnUnderPointer]
+    [ideaId]
   );
 
   // Detect when the target task exists but is filtered out
@@ -634,6 +845,8 @@ export function KanbanBoard({
     }
   }, [autoOpenTaskId, columns, filteredColumns]);
 
+  const columnIds = useMemo(() => columns.map((c) => c.id), [columns]);
+
   return (
     <BoardOpsContext.Provider value={boardOps}>
     <TaskAutoOpenContext.Provider value={autoOpenCtx}>
@@ -660,71 +873,81 @@ export function KanbanBoard({
         botProfiles={botProfiles}
         isReadOnly={isReadOnly}
       />
-      {isMounted ? (
-        <DragDropContext
-          onDragStart={isReadOnly ? undefined : handleDragStart}
-          onDragEnd={isReadOnly ? noopDragEnd : handleDragEnd}
-        >
-          {/* Scroll container is a PARENT of the Droppable — this lets the library's
-              built-in auto-scroll detect it and scroll it during drags, which keeps
-              internal drop-target tracking in sync (unlike programmatic scrolling). */}
-          <div className="relative min-h-0 flex-1">
-            <div
-              ref={scrollContainerRef}
-              onScroll={handleScrollCheck}
-              className={`h-full overflow-x-auto ${
-                isDragging ? "!snap-none" : "snap-x snap-mandatory sm:snap-none"
-              }`}
+      <DndContext
+        sensors={isReadOnly ? [] : sensors}
+        collisionDetection={multiContainerCollision}
+        measuring={layoutMeasuring}
+        // Disable dnd-kit's built-in auto-scroll entirely — our dwell hook
+        // handles scrolling for touch and the browser handles mouse natively.
+        autoScroll={false}
+        onDragStart={isReadOnly ? undefined : handleDragStart}
+        onDragOver={isReadOnly ? undefined : handleDragOver}
+        onDragEnd={isReadOnly ? undefined : handleDragEnd}
+      >
+        <div className="relative min-h-0 flex-1">
+          <div
+            ref={scrollContainerRef}
+            onScroll={handleScrollCheck}
+            className={`flex h-full items-start gap-4 overflow-x-auto pb-4 ${
+              activeTask || activeColumn ? "!snap-none scroll-smooth" : "snap-x snap-mandatory sm:snap-none"
+            }`}
+          >
+            <SortableContext
+              items={columnIds}
+              strategy={horizontalListSortingStrategy}
             >
-              <Droppable droppableId="board" direction="horizontal" type="COLUMN">
-                {(boardProvided) => (
-                  <div
-                    ref={boardProvided.innerRef}
-                    {...boardProvided.droppableProps}
-                    className="flex h-full items-start gap-4 pb-4"
-                    style={{ width: "max-content" }}
-                  >
-                    {filteredColumns.map((filteredCol, index) => {
-                      const fullCol = columns.find((c) => c.id === filteredCol.id)!;
-                      return (
-                        <BoardColumn
-                          key={filteredCol.id}
-                          column={filteredCol}
-                          index={index}
-                          totalTaskCount={fullCol.tasks.filter((t) => !t.archived).length}
-                          ideaId={ideaId}
-                          teamMembers={teamMembers}
-                          boardLabels={boardLabels}
-                          checklistItemsByTaskId={checklistItemsByTaskId}
-                          highlightQuery={searchQuery}
-                          currentUserId={currentUserId}
-                          initialTaskId={autoOpenTaskId}
-                          userBots={userBots}
-                          coverImageUrls={coverImageUrls}
-                          hasApiKey={hasApiKey}
-                          ideaDescription={ideaDescription}
-                          isReadOnly={isReadOnly}
-                          isDragTarget={dragOverColumnId === filteredCol.id}
-                        />
-                      );
-                    })}
-                    {!isReadOnly && <AddColumnButton ideaId={ideaId} />}
-                    {boardProvided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </div>
-            {/* Right-edge fade gradient — visible on mobile when more columns exist off-screen */}
-            {canScrollRight && (
-              <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-background to-transparent sm:hidden" />
-            )}
+              {filteredColumns.map((filteredCol) => {
+                const fullCol = columns.find((c) => c.id === filteredCol.id)!;
+                return (
+                  <BoardColumn
+                    key={filteredCol.id}
+                    column={filteredCol}
+                    totalTaskCount={fullCol.tasks.filter((t) => !t.archived).length}
+                    ideaId={ideaId}
+                    teamMembers={teamMembers}
+                    boardLabels={boardLabels}
+                    checklistItemsByTaskId={checklistItemsByTaskId}
+                    highlightQuery={searchQuery}
+                    currentUserId={currentUserId}
+                    initialTaskId={autoOpenTaskId}
+                    userBots={userBots}
+                    coverImageUrls={coverImageUrls}
+                    hasApiKey={hasApiKey}
+                    ideaDescription={ideaDescription}
+                    isReadOnly={isReadOnly}
+                  />
+                );
+              })}
+            </SortableContext>
+            {!isReadOnly && <AddColumnButton ideaId={ideaId} />}
           </div>
-        </DragDropContext>
-      ) : (
-        /* Empty container preserves layout while waiting for mount — avoids a
-           visible "Loading..." flash. The board renders on the next frame. */
-        <div className="min-h-0 flex-1" />
-      )}
+          {/* Right-edge fade gradient — visible on mobile when more columns exist off-screen */}
+          {canScrollRight && (
+            <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-background to-transparent sm:hidden" />
+          )}
+          {/* Visible edge-scroll trigger zones during touch drags.
+              These give the user a clear affordance for where to hover to
+              scroll left/right. They are rendered only on touch devices
+              (sm:hidden) and only while a drag is active. */}
+          {isDragging && isTouchDrag && (
+            <>
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute left-0 top-0 z-10 h-full w-10 rounded-r-lg bg-primary/20"
+              />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute right-0 top-0 z-10 h-full w-10 rounded-l-lg bg-primary/20"
+              />
+            </>
+          )}
+        </div>
+        {!isReadOnly && (
+          <DragOverlay dropAnimation={null}>
+            <OverlayContent activeTask={activeTask} activeColumn={activeColumn} targetColumnName={dragTargetColumnName} />
+          </DragOverlay>
+        )}
+      </DndContext>
     </div>
     </TaskAutoOpenContext.Provider>
     </BoardOpsContext.Provider>
