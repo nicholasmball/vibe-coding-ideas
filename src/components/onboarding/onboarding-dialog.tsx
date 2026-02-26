@@ -184,7 +184,7 @@ export function OnboardingDialog({
         <StepIndicator totalSteps={4} currentStep={step} />
 
         {/* Steps viewport */}
-        <div className="overflow-hidden">
+        <div className="w-full overflow-hidden">
           <div
             className="flex transition-transform duration-500"
             style={{
@@ -193,7 +193,7 @@ export function OnboardingDialog({
             }}
           >
             {/* ═══ Step 0: Welcome ═══ */}
-            <div className="relative z-[1] min-w-full px-8 pt-6 pb-8 sm:px-10">
+            <div className="relative z-[1] w-full shrink-0 px-8 pt-6 pb-8 sm:px-10">
               <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/[0.08] px-3.5 py-1 text-xs font-semibold text-primary">
                 <Sparkles className="h-3.5 w-3.5 animate-spin" style={{ animationDuration: "4s" }} />
                 Getting started
@@ -271,7 +271,7 @@ export function OnboardingDialog({
             </div>
 
             {/* ═══ Step 1: Profile ═══ */}
-            <div className="relative z-[1] min-w-full px-8 pt-4 pb-8 sm:px-10">
+            <div className="relative z-[1] w-full shrink-0 px-8 pt-4 pb-8 sm:px-10">
               <div className="mb-4 flex items-center justify-between">
                 <Button
                   variant="ghost"
@@ -372,7 +372,7 @@ export function OnboardingDialog({
             </div>
 
             {/* ═══ Step 2: First Idea ═══ */}
-            <div className="relative z-[1] min-w-full px-8 pt-4 pb-8 sm:px-10">
+            <div className="relative z-[1] w-full shrink-0 px-8 pt-4 pb-8 sm:px-10">
               <div className="mb-4 flex items-center justify-between">
                 <Button
                   variant="ghost"
@@ -474,7 +474,7 @@ export function OnboardingDialog({
             </div>
 
             {/* ═══ Step 3: Success ═══ */}
-            <div className="relative z-[1] min-w-full px-8 pt-8 pb-8 sm:px-10">
+            <div className="relative z-[1] w-full shrink-0 px-8 pt-8 pb-8 sm:px-10">
               <Confetti />
 
               <div
