@@ -583,7 +583,7 @@ export function OnboardingDialog({
                   <ChevronRight className="h-4 w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground" />
                 </a>
 
-                <div className="group rounded-xl border border-border/60 bg-card/60 p-3.5 transition-colors hover:border-border hover:bg-card/80">
+                <div className="group overflow-hidden rounded-xl border border-border/60 bg-card/60 p-3.5 transition-colors hover:border-border hover:bg-card/80">
                   <div className="flex items-center gap-3.5">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-400/10">
                       <Cable className="h-[18px] w-[18px] text-sky-400" />
@@ -599,7 +599,7 @@ export function OnboardingDialog({
                   </div>
                   <button
                     onClick={copyMcpCommand}
-                    className={`mt-2.5 ml-[52px] flex w-[calc(100%-52px)] items-center gap-2 rounded-lg border px-3 py-2 font-mono text-[11px] transition-all ${
+                    className={`mt-2.5 ml-[52px] flex items-center gap-2 rounded-lg border px-3 py-2 font-mono text-[11px] transition-all ${
                       copied
                         ? "border-emerald-500/50 text-emerald-400"
                         : "border-border bg-background text-muted-foreground hover:border-border/80 hover:text-foreground"
