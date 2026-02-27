@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback, useRef, useContext, memo } from "react";
+import dynamic from "next/dynamic";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -18,10 +19,11 @@ import { Button } from "@/components/ui/button";
 import { TaskLabelBadges } from "./task-label-badges";
 import { LabelPicker } from "./label-picker";
 import { DueDateBadge } from "./due-date-badge";
-import { TaskDetailDialog } from "./task-detail-dialog";
 import { createClient } from "@/lib/supabase/client";
 import { TaskAutoOpenContext } from "./kanban-board";
 import type { BoardTaskWithAssignee, BoardLabel, BoardChecklistItem, User } from "@/types";
+
+const TaskDetailDialog = dynamic(() => import("./task-detail-dialog").then((m) => m.TaskDetailDialog), { ssr: false });
 
 interface BoardTaskCardProps {
   task: BoardTaskWithAssignee;

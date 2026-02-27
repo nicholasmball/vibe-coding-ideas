@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo, memo } from "react";
+import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -15,8 +16,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { BoardTaskCard } from "./board-task-card";
-import { TaskEditDialog } from "./task-edit-dialog";
-import { ColumnEditDialog } from "./column-edit-dialog";
 import { useBoardOps } from "./board-context";
 import { deleteBoardColumn, archiveColumnTasks } from "@/actions/board";
 import { undoableAction } from "@/lib/undo-toast";
@@ -26,6 +25,9 @@ import type {
   BoardChecklistItem,
   User,
 } from "@/types";
+
+const TaskEditDialog = dynamic(() => import("./task-edit-dialog").then((m) => m.TaskEditDialog), { ssr: false });
+const ColumnEditDialog = dynamic(() => import("./column-edit-dialog").then((m) => m.ColumnEditDialog), { ssr: false });
 
 const EMPTY_CHECKLIST: BoardChecklistItem[] = [];
 

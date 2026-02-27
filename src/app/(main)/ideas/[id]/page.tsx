@@ -87,12 +87,54 @@ export default async function IdeaDetailPage({ params }: PageProps) {
 
   if (!idea) notFound();
 
-  // Fetch comments with authors (including replies)
-  const { data: rawComments } = await supabase
-    .from("comments")
-    .select("*, author:users!comments_author_id_fkey(*)")
-    .eq("idea_id", id)
-    .order("created_at", { ascending: true });
+  // Phase 2: Run all independent queries in parallel
+  const [
+    { data: rawComments },
+    { data: collaborators },
+    { data: vote },
+    { data: collab },
+    { data: profile },
+    { data: bots },
+  ] = await Promise.all([
+    supabase
+      .from("comments")
+      .select("*, author:users!comments_author_id_fkey(*)")
+      .eq("idea_id", id)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("collaborators")
+      .select("*, user:users!collaborators_user_id_fkey(*)")
+      .eq("idea_id", id),
+    supabase
+      .from("votes")
+      .select("id")
+      .eq("idea_id", id)
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("collaborators")
+      .select("id")
+      .eq("idea_id", id)
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("users")
+      .select("is_admin, encrypted_anthropic_key")
+      .eq("id", user.id)
+      .single(),
+    supabase
+      .from("bot_profiles")
+      .select("*")
+      .eq("owner_id", user.id)
+      .eq("is_active", true)
+      .order("created_at", { ascending: true }),
+  ]);
+
+  const hasVoted = !!vote;
+  const isCollaborator = !!collab;
+  const isAdmin = profile?.is_admin ?? false;
+  const userHasApiKey = !!profile?.encrypted_anthropic_key;
+  const userBots = (bots ?? []) as BotProfile[];
 
   // Build threaded comments
   const commentMap = new Map<string, CommentWithAuthor>();
@@ -117,85 +159,31 @@ export default async function IdeaDetailPage({ params }: PageProps) {
     }
   });
 
-  // Fetch collaborators
-  const { data: collaborators } = await supabase
-    .from("collaborators")
-    .select("*, user:users!collaborators_user_id_fkey(*)")
-    .eq("idea_id", id);
-
-  // Check user vote
-  let hasVoted = false;
-  let isCollaborator = false;
-  if (user) {
-    const { data: vote } = await supabase
-      .from("votes")
-      .select("id")
-      .eq("idea_id", id)
-      .eq("user_id", user.id)
-      .maybeSingle();
-    hasVoted = !!vote;
-
-    const { data: collab } = await supabase
-      .from("collaborators")
-      .select("id")
-      .eq("idea_id", id)
-      .eq("user_id", user.id)
-      .maybeSingle();
-    isCollaborator = !!collab;
-  }
-
-  // Fetch pending collaboration request for non-author, non-collaborator users
-  let pendingRequestId: string | null = null;
-  let pendingRequests: CollaborationRequestWithRequester[] = [];
-
-  if (user && !isCollaborator && user.id !== idea.author_id) {
-    const { data: ownRequest } = await supabase
-      .from("collaboration_requests")
-      .select("id")
-      .eq("idea_id", id)
-      .eq("requester_id", user.id)
-      .eq("status", "pending")
-      .maybeSingle();
-    pendingRequestId = ownRequest?.id ?? null;
-  }
-
-  if (user && user.id === idea.author_id) {
-    const { data: requests } = await supabase
-      .from("collaboration_requests")
-      .select("*, requester:users!collaboration_requests_requester_id_fkey(*)")
-      .eq("idea_id", id)
-      .eq("status", "pending")
-      .order("created_at", { ascending: true });
-    pendingRequests = (requests ?? []) as unknown as CollaborationRequestWithRequester[];
-  }
-
-  // Check if user is admin and has AI API key
-  let isAdmin = false;
-  let userHasApiKey = false;
-  if (user) {
-    const { data: profile } = await supabase
-      .from("users")
-      .select("is_admin, encrypted_anthropic_key")
-      .eq("id", user.id)
-      .single();
-    isAdmin = profile?.is_admin ?? false;
-    userHasApiKey = !!profile?.encrypted_anthropic_key;
-  }
+  // Phase 3: Conditional queries that depend on Phase 2 results
+  const [pendingRequestId, pendingRequests] = await Promise.all([
+    (!isCollaborator && user.id !== idea.author_id)
+      ? supabase
+          .from("collaboration_requests")
+          .select("id")
+          .eq("idea_id", id)
+          .eq("requester_id", user.id)
+          .eq("status", "pending")
+          .maybeSingle()
+          .then(({ data }) => data?.id ?? null)
+      : Promise.resolve(null),
+    (user.id === idea.author_id)
+      ? supabase
+          .from("collaboration_requests")
+          .select("*, requester:users!collaboration_requests_requester_id_fkey(*)")
+          .eq("idea_id", id)
+          .eq("status", "pending")
+          .order("created_at", { ascending: true })
+          .then(({ data }) => (data ?? []) as unknown as CollaborationRequestWithRequester[])
+      : Promise.resolve([] as CollaborationRequestWithRequester[]),
+  ]);
 
   const isAuthor = user?.id === idea.author_id;
   const canDelete = isAuthor || isAdmin;
-
-  // Fetch user's bot profiles (for AI persona selector + comment edit/delete on agent comments)
-  let userBots: BotProfile[] = [];
-  if (user) {
-    const { data: bots } = await supabase
-      .from("bot_profiles")
-      .select("*")
-      .eq("owner_id", user.id)
-      .eq("is_active", true)
-      .order("created_at", { ascending: true });
-    userBots = (bots ?? []) as BotProfile[];
-  }
   // Build team members list for @mention autocomplete (author + collaborators, deduplicated)
   const teamMembersMap = new Map<string, User>();
   const ideaAuthor = idea.author as unknown as User;

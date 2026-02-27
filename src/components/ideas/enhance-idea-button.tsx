@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,8 +10,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { EnhanceIdeaDialog } from "./enhance-idea-dialog";
 import type { BotProfile } from "@/types";
+
+const EnhanceIdeaDialog = dynamic(() => import("./enhance-idea-dialog").then((m) => m.EnhanceIdeaDialog), { ssr: false });
 
 interface EnhanceIdeaButtonProps {
   ideaId: string;

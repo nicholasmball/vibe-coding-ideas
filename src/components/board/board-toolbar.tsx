@@ -10,10 +10,12 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import dynamic from "next/dynamic";
 import { getLabelColorConfig } from "@/lib/utils";
-import { ImportDialog } from "./import-dialog";
-import { AiGenerateDialog } from "./ai-generate-dialog";
 import type { BoardColumnWithTasks, BoardLabel, User, BotProfile } from "@/types";
+
+const ImportDialog = dynamic(() => import("./import-dialog").then((m) => m.ImportDialog), { ssr: false });
+const AiGenerateDialog = dynamic(() => import("./ai-generate-dialog").then((m) => m.AiGenerateDialog), { ssr: false });
 
 interface BoardToolbarProps {
   searchQuery: string;
