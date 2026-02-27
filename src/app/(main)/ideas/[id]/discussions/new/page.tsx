@@ -42,13 +42,18 @@ export default async function NewDiscussionPage({ params }: PageProps) {
     notFound();
   }
 
-  // Fetch author + collaborators for mention support
-  const [{ data: ideaAuthor }, { data: collabs }] = await Promise.all([
+  // Fetch author, collaborators, and bot profiles for mention support
+  const [{ data: ideaAuthor }, { data: collabs }, { data: botProfiles }] = await Promise.all([
     supabase.from("users").select("*").eq("id", idea.author_id).single(),
     supabase
       .from("collaborators")
       .select("*, user:users!collaborators_user_id_fkey(*)")
       .eq("idea_id", ideaId),
+    supabase
+      .from("bot_profiles")
+      .select("id")
+      .eq("owner_id", user.id)
+      .eq("is_active", true),
   ]);
 
   const teamMembersMap = new Map<string, User>();
@@ -58,24 +63,16 @@ export default async function NewDiscussionPage({ params }: PageProps) {
     if (u && !teamMembersMap.has(u.id)) teamMembersMap.set(u.id, u);
   }
 
-  // Fetch active bots owned by the current user and add their user records
-  {
-    const { data: botProfiles } = await supabase
-      .from("bot_profiles")
-      .select("id")
-      .eq("owner_id", user.id)
-      .eq("is_active", true);
+  // Add active bot user records
+  if (botProfiles && botProfiles.length > 0) {
+    const botUserIds = botProfiles.map((b) => b.id);
+    const { data: botUsers } = await supabase
+      .from("users")
+      .select("*")
+      .in("id", botUserIds);
 
-    if (botProfiles && botProfiles.length > 0) {
-      const botUserIds = botProfiles.map((b) => b.id);
-      const { data: botUsers } = await supabase
-        .from("users")
-        .select("*")
-        .in("id", botUserIds);
-
-      for (const bu of botUsers ?? []) {
-        if (!teamMembersMap.has(bu.id)) teamMembersMap.set(bu.id, bu as User);
-      }
+    for (const bu of botUsers ?? []) {
+      if (!teamMembersMap.has(bu.id)) teamMembersMap.set(bu.id, bu as User);
     }
   }
 

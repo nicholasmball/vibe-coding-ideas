@@ -1,9 +1,11 @@
 -- Migration: Idea Discussions — titled planning threads per idea
 --
 -- Two new tables: idea_discussions and idea_discussion_replies
+-- Discussion votes for upvoting discussions
+-- Threaded replies with parent_reply_id
 -- Adds discussion_id FK to board_tasks for "Convert to Task" backlink
 -- Adds discussion_count denormalized column to ideas
--- New notification types: discussion, discussion_reply
+-- New notification types: discussion, discussion_reply, discussion_mention
 
 -- ============================================================================
 -- 1. Tables
@@ -17,6 +19,7 @@ CREATE TABLE idea_discussions (
   body text NOT NULL CHECK (char_length(body) BETWEEN 1 AND 10000),
   status text NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'resolved', 'converted')),
   pinned boolean NOT NULL DEFAULT false,
+  upvotes integer NOT NULL DEFAULT 0,
   reply_count integer NOT NULL DEFAULT 0,
   last_activity_at timestamptz NOT NULL DEFAULT now(),
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -32,11 +35,26 @@ CREATE TABLE idea_discussion_replies (
   discussion_id uuid NOT NULL REFERENCES idea_discussions(id) ON DELETE CASCADE,
   author_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   content text NOT NULL CHECK (char_length(content) BETWEEN 1 AND 5000),
+  parent_reply_id uuid REFERENCES idea_discussion_replies(id) ON DELETE CASCADE,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE INDEX idea_discussion_replies_discussion_id_idx ON idea_discussion_replies(discussion_id);
+CREATE INDEX idx_discussion_replies_parent ON idea_discussion_replies(parent_reply_id)
+  WHERE parent_reply_id IS NOT NULL;
+
+-- Discussion votes table
+CREATE TABLE discussion_votes (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  discussion_id uuid NOT NULL REFERENCES idea_discussions(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (discussion_id, user_id)
+);
+
+CREATE INDEX discussion_votes_discussion_id_idx ON discussion_votes(discussion_id);
+CREATE INDEX discussion_votes_user_id_idx ON discussion_votes(user_id);
 
 -- ============================================================================
 -- 2. Board tasks backlink
@@ -58,6 +76,7 @@ ALTER TABLE ideas
 
 ALTER TABLE idea_discussions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE idea_discussion_replies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE discussion_votes ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
 -- 5. RLS Policies — idea_discussions
@@ -148,7 +167,49 @@ CREATE POLICY "Author, discussion owner, idea owner, or admins can delete replie
   );
 
 -- ============================================================================
--- 7. Triggers
+-- 7. RLS Policies — discussion_votes
+-- ============================================================================
+
+CREATE POLICY "Team members can view discussion votes"
+  ON discussion_votes FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM idea_discussions d
+      JOIN ideas i ON i.id = d.idea_id
+      WHERE d.id = discussion_votes.discussion_id
+      AND (
+        i.author_id = auth.uid()
+        OR EXISTS (
+          SELECT 1 FROM collaborators c
+          WHERE c.idea_id = i.id AND c.user_id = auth.uid()
+        )
+        OR i.visibility = 'public'
+      )
+    )
+  );
+
+-- Insert: team members or viewers of public idea discussions
+CREATE POLICY "Team members or public viewers can insert own discussion votes"
+  ON discussion_votes FOR INSERT
+  WITH CHECK (
+    auth.uid() = user_id
+    AND EXISTS (
+      SELECT 1 FROM idea_discussions d
+      JOIN ideas i ON i.id = d.idea_id
+      WHERE d.id = discussion_votes.discussion_id
+      AND (
+        is_idea_team_member(i.id, auth.uid())
+        OR i.visibility = 'public'
+      )
+    )
+  );
+
+CREATE POLICY "Users can delete own discussion votes"
+  ON discussion_votes FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- ============================================================================
+-- 8. Triggers
 -- ============================================================================
 
 -- Auto-update updated_at
@@ -203,12 +264,30 @@ CREATE TRIGGER on_discussion_count_change
   AFTER INSERT OR DELETE ON idea_discussions
   FOR EACH ROW EXECUTE FUNCTION update_idea_discussion_count();
 
+-- Maintain denormalized upvotes count on idea_discussions
+CREATE OR REPLACE FUNCTION update_discussion_upvotes()
+RETURNS trigger AS $$
+BEGIN
+  IF tg_op = 'INSERT' THEN
+    UPDATE idea_discussions SET upvotes = upvotes + 1 WHERE id = new.discussion_id;
+  ELSIF tg_op = 'DELETE' THEN
+    UPDATE idea_discussions SET upvotes = upvotes - 1 WHERE id = old.discussion_id;
+  END IF;
+  RETURN coalesce(new, old);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER update_discussion_upvotes
+  AFTER INSERT OR DELETE ON discussion_votes
+  FOR EACH ROW EXECUTE FUNCTION update_discussion_upvotes();
+
 -- ============================================================================
--- 8. Notification types
+-- 9. Notification types
 -- ============================================================================
 
 ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'discussion';
 ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'discussion_reply';
+ALTER TYPE notification_type ADD VALUE IF NOT EXISTS 'discussion_mention' AFTER 'discussion_reply';
 
 -- Add discussion_id FK to notifications
 ALTER TABLE notifications
@@ -284,14 +363,36 @@ CREATE TRIGGER on_new_discussion_reply
   FOR EACH ROW EXECUTE FUNCTION notify_on_discussion_reply();
 
 -- ============================================================================
--- 9. Realtime
+-- 10. Realtime
 -- ============================================================================
 
 ALTER PUBLICATION supabase_realtime ADD TABLE idea_discussions;
 ALTER PUBLICATION supabase_realtime ADD TABLE idea_discussion_replies;
+ALTER PUBLICATION supabase_realtime ADD TABLE discussion_votes;
 
 -- ============================================================================
--- 10. Backfill discussion_count for existing ideas
+-- 11. Backfill
 -- ============================================================================
 
 UPDATE ideas SET discussion_count = 0 WHERE discussion_count IS NULL;
+
+-- Update default notification_preferences to include discussion_mentions
+ALTER TABLE users
+  ALTER COLUMN notification_preferences
+  SET DEFAULT '{"comments": true, "votes": true, "collaborators": true, "status_changes": true, "task_mentions": true, "comment_mentions": true, "email_notifications": true, "collaboration_requests": true, "collaboration_responses": true, "discussion_mentions": true}'::jsonb;
+
+-- Update the trigger function that sets default preferences for new users
+CREATE OR REPLACE FUNCTION set_default_notification_preferences()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.notification_preferences IS NULL THEN
+    NEW.notification_preferences := '{"comments": true, "votes": true, "collaborators": true, "status_changes": true, "task_mentions": true, "comment_mentions": true, "email_notifications": true, "collaboration_requests": true, "collaboration_responses": true, "discussion_mentions": true}'::jsonb;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Backfill existing users: add discussion_mentions = true if missing
+UPDATE users
+SET notification_preferences = notification_preferences || '{"discussion_mentions": true}'::jsonb
+WHERE NOT (notification_preferences ? 'discussion_mentions');

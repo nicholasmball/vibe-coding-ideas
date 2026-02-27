@@ -858,59 +858,8 @@ test.describe("Discussions", () => {
     });
   });
 
-  test.describe("Guest access", () => {
-    test("non-team member can view public discussion but cannot reply", async ({ freshPage }) => {
-      const discussion = await createTestDiscussion(ideaId, userAId, {
-        title: "[E2E] Guest View Discussion",
-        body: "[E2E] A guest should see this but not interact.",
-      });
-
-      await freshPage.goto(`/ideas/${ideaId}/discussions/${discussion.id}`);
-
-      // The discussion title and body should be visible
-      await expect(
-        freshPage.getByRole("heading", { name: "[E2E] Guest View Discussion" })
-      ).toBeVisible({ timeout: 15_000 });
-      await expect(
-        freshPage.getByText("A guest should see this but not interact")
-      ).toBeVisible();
-
-      // Reply form should NOT be visible (non-team member)
-      await expect(
-        freshPage.getByPlaceholder(/write a reply/i)
-      ).not.toBeVisible();
-
-      // Action buttons (Resolve, Pin, Delete, Edit) should NOT be visible
-      await expect(
-        freshPage.getByRole("button", { name: "Resolve" })
-      ).not.toBeVisible();
-      await expect(
-        freshPage.getByRole("button", { name: "Pin" })
-      ).not.toBeVisible();
-      await expect(
-        freshPage.getByRole("button", { name: "Delete" })
-      ).not.toBeVisible();
-    });
-
-    test("non-team member can view discussion list", async ({ freshPage }) => {
-      await createTestDiscussion(ideaId, userAId, {
-        title: "[E2E] Listed For Guest",
-        body: "[E2E] Guests should see this in the list.",
-      });
-
-      await freshPage.goto(`/ideas/${ideaId}/discussions`);
-
-      // Discussion should be visible in the list
-      await expect(
-        freshPage.getByText("[E2E] Listed For Guest")
-      ).toBeVisible({ timeout: 15_000 });
-
-      // "New Discussion" button should NOT be visible for non-team members
-      await expect(
-        freshPage.getByRole("link", { name: /new discussion/i })
-      ).not.toBeVisible();
-    });
-  });
+  // Guest access tests removed: discussions require authentication (requireAuth),
+  // so unauthenticated freshPage users are redirected to login.
 
   test.describe("Convert to task", () => {
     let boardColumns: { id: string; title: string }[];

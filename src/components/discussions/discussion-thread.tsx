@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useRef } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -27,7 +27,8 @@ import {
   updateDiscussionReply,
   deleteDiscussionReply,
 } from "@/actions/discussions";
-import { createClient } from "@/lib/supabase/client";
+import { useMentionState } from "@/hooks/use-mentions";
+import { sendDiscussionMentionNotifications } from "@/lib/mention-notifications";
 import { formatRelativeTime } from "@/lib/utils";
 import { DiscussionReplyForm } from "./discussion-reply-form";
 import { DiscussionVoteButton } from "./discussion-vote-button";
@@ -80,136 +81,6 @@ export function buildReplyTree(
   }
 
   return topLevel;
-}
-
-// ─── Mention helpers (shared pattern) ────────────────────────────────────
-
-function useMentionState(teamMembers: User[]) {
-  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
-  const [mentionIndex, setMentionIndex] = useState(0);
-  const [mentionedUserIds, setMentionedUserIds] = useState<Set<string>>(new Set());
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  const filteredMembers = useMemo(() => {
-    if (mentionQuery === null) return [];
-    return teamMembers.filter((m) =>
-      m.full_name?.toLowerCase().includes(mentionQuery.toLowerCase())
-    );
-  }, [teamMembers, mentionQuery]);
-
-  function detectMention(value: string, cursorPos: number) {
-    const textBeforeCursor = value.slice(0, cursorPos);
-    const match = textBeforeCursor.match(/(?:^|[\s])@(\S*)$/);
-    if (match) {
-      setMentionQuery(match[1]);
-      setMentionIndex(0);
-    } else {
-      setMentionQuery(null);
-    }
-  }
-
-  function handleMentionSelect(
-    content: string,
-    setContent: (value: string) => void,
-    user: User
-  ) {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const cursorPos = textarea.selectionStart;
-    const textBeforeCursor = content.slice(0, cursorPos);
-    const textAfterCursor = content.slice(cursorPos);
-
-    const atIndex = textBeforeCursor.lastIndexOf("@");
-    if (atIndex === -1) return;
-
-    const name = user.full_name ?? user.email;
-    const newText =
-      textBeforeCursor.slice(0, atIndex) + `@${name} ` + textAfterCursor;
-    setContent(newText);
-    setMentionQuery(null);
-
-    setMentionedUserIds((prev) => new Set(prev).add(user.id));
-
-    requestAnimationFrame(() => {
-      textarea.focus();
-      const newCursorPos = atIndex + name.length + 2;
-      textarea.setSelectionRange(newCursorPos, newCursorPos);
-    });
-  }
-
-  function handleKeyDown(
-    e: React.KeyboardEvent<HTMLTextAreaElement>,
-    content: string,
-    setContent: (value: string) => void
-  ) {
-    if (mentionQuery === null || filteredMembers.length === 0) return;
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setMentionIndex((prev) =>
-        prev < filteredMembers.length - 1 ? prev + 1 : 0
-      );
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setMentionIndex((prev) =>
-        prev > 0 ? prev - 1 : filteredMembers.length - 1
-      );
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      handleMentionSelect(content, setContent, filteredMembers[mentionIndex]);
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      setMentionQuery(null);
-    }
-  }
-
-  return {
-    mentionQuery,
-    mentionIndex,
-    mentionedUserIds,
-    setMentionedUserIds,
-    textareaRef,
-    filteredMembers,
-    detectMention,
-    handleMentionSelect,
-    handleKeyDown,
-    setMentionQuery,
-    hasMentions: teamMembers.length > 0,
-  };
-}
-
-function sendMentionNotifications(
-  mentionedUserIds: Set<string>,
-  currentUserId: string,
-  teamMembers: User[],
-  ideaId: string,
-  discussionId: string
-) {
-  if (mentionedUserIds.size === 0) return;
-  const supabase = createClient();
-  for (const userId of mentionedUserIds) {
-    if (userId === currentUserId) continue;
-    const member = teamMembers.find((m) => m.id === userId);
-    if (!member) continue;
-    if (member.notification_preferences?.discussion_mentions === false) continue;
-    supabase
-      .from("notifications")
-      .insert({
-        user_id: userId,
-        actor_id: currentUserId,
-        type: "discussion_mention" as const,
-        idea_id: ideaId,
-        discussion_id: discussionId,
-      })
-      .then(({ error }) => {
-        if (error)
-          console.error(
-            "Failed to send mention notification:",
-            error.message
-          );
-      });
-  }
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────
@@ -318,7 +189,7 @@ export function DiscussionThread({
       });
 
       if (currentUser) {
-        sendMentionNotifications(
+        sendDiscussionMentionNotifications(
           savedMentionedUserIds,
           currentUser.id,
           teamMembers,
@@ -639,7 +510,7 @@ function ReplyItem({
       await updateDiscussionReply(reply.id, ideaId, discussionId, editContent);
 
       if (currentUser) {
-        sendMentionNotifications(
+        sendDiscussionMentionNotifications(
           savedMentionedUserIds,
           currentUser.id,
           teamMembers,
@@ -863,7 +734,7 @@ function ChildReplyItem({
       await updateDiscussionReply(reply.id, ideaId, discussionId, editContent);
 
       if (currentUser) {
-        sendMentionNotifications(
+        sendDiscussionMentionNotifications(
           savedMentionedUserIds,
           currentUser.id,
           teamMembers,

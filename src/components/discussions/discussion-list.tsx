@@ -74,7 +74,6 @@ const STATUS_CONFIG = {
 interface DiscussionListProps {
   discussions: IdeaDiscussionWithAuthor[];
   ideaId: string;
-  votedDiscussionIds?: string[];
 }
 
 export function DiscussionList({ discussions, ideaId }: DiscussionListProps) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { MentionAutocomplete } from "@/components/board/mention-autocomplete";
 import { createDiscussion } from "@/actions/discussions";
-import { createClient } from "@/lib/supabase/client";
+import { useMentionState } from "@/hooks/use-mentions";
+import { sendDiscussionMentionNotifications } from "@/lib/mention-notifications";
 import { MAX_TITLE_LENGTH, MAX_DISCUSSION_BODY_LENGTH } from "@/lib/validation";
 import type { User } from "@/types";
 
@@ -28,79 +29,14 @@ export function NewDiscussionForm({
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
-  const [mentionIndex, setMentionIndex] = useState(0);
-  const [mentionedUserIds, setMentionedUserIds] = useState<Set<string>>(new Set());
-  const bodyRef = useRef<HTMLTextAreaElement>(null);
 
-  const filteredMembers = useMemo(() => {
-    if (mentionQuery === null) return [];
-    return teamMembers.filter((m) =>
-      m.full_name?.toLowerCase().includes(mentionQuery.toLowerCase())
-    );
-  }, [teamMembers, mentionQuery]);
-
-  function detectMention(value: string, cursorPos: number) {
-    const textBeforeCursor = value.slice(0, cursorPos);
-    const match = textBeforeCursor.match(/(?:^|[\s])@(\S*)$/);
-    if (match) {
-      setMentionQuery(match[1]);
-      setMentionIndex(0);
-    } else {
-      setMentionQuery(null);
-    }
-  }
+  const mention = useMentionState(teamMembers);
 
   function handleBodyInputChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
     const value = e.target.value;
     setBody(value);
-    detectMention(value, e.target.selectionStart);
+    mention.detectMention(value, e.target.selectionStart);
   }
-
-  function handleMentionSelect(user: User) {
-    const textarea = bodyRef.current;
-    if (!textarea) return;
-
-    const cursorPos = textarea.selectionStart;
-    const textBeforeCursor = body.slice(0, cursorPos);
-    const textAfterCursor = body.slice(cursorPos);
-
-    const atIndex = textBeforeCursor.lastIndexOf("@");
-    if (atIndex === -1) return;
-
-    const name = user.full_name ?? user.email;
-    const newText = textBeforeCursor.slice(0, atIndex) + `@${name} ` + textAfterCursor;
-    setBody(newText);
-    setMentionQuery(null);
-
-    setMentionedUserIds((prev) => new Set(prev).add(user.id));
-
-    requestAnimationFrame(() => {
-      textarea.focus();
-      const newCursorPos = atIndex + name.length + 2;
-      textarea.setSelectionRange(newCursorPos, newCursorPos);
-    });
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (mentionQuery === null || filteredMembers.length === 0) return;
-
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setMentionIndex((prev) => (prev < filteredMembers.length - 1 ? prev + 1 : 0));
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setMentionIndex((prev) => (prev > 0 ? prev - 1 : filteredMembers.length - 1));
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      handleMentionSelect(filteredMembers[mentionIndex]);
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      setMentionQuery(null);
-    }
-  }
-
-  const hasMentions = teamMembers.length > 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -110,32 +46,20 @@ export function NewDiscussionForm({
       return;
     }
 
-    const savedMentionedUserIds = new Set(mentionedUserIds);
+    const savedMentionedUserIds = new Set(mention.mentionedUserIds);
     setIsSubmitting(true);
     try {
       const discussionId = await createDiscussion(ideaId, title, body);
 
       // Send mention notifications (fire-and-forget)
       if (savedMentionedUserIds.size > 0 && currentUserId) {
-        const supabase = createClient();
-        for (const userId of savedMentionedUserIds) {
-          if (userId === currentUserId) continue;
-          const member = teamMembers.find((m) => m.id === userId);
-          if (!member) continue;
-          if (member.notification_preferences?.discussion_mentions === false) continue;
-          supabase
-            .from("notifications")
-            .insert({
-              user_id: userId,
-              actor_id: currentUserId,
-              type: "discussion_mention" as const,
-              idea_id: ideaId,
-              discussion_id: discussionId,
-            })
-            .then(({ error }) => {
-              if (error) console.error("Failed to send mention notification:", error.message);
-            });
-        }
+        sendDiscussionMentionNotifications(
+          savedMentionedUserIds,
+          currentUserId,
+          teamMembers,
+          ideaId,
+          discussionId
+        );
       }
 
       toast.success("Discussion created");
@@ -165,24 +89,24 @@ export function NewDiscussionForm({
       <div className="space-y-2">
         <Label htmlFor="body">Body</Label>
         <div className="relative">
-          {mentionQuery !== null && hasMentions && (
+          {mention.mentionQuery !== null && mention.hasMentions && (
             <MentionAutocomplete
-              filteredMembers={filteredMembers}
-              selectedIndex={mentionIndex}
-              onSelect={handleMentionSelect}
+              filteredMembers={mention.filteredMembers}
+              selectedIndex={mention.mentionIndex}
+              onSelect={(user) => mention.handleMentionSelect(body, setBody, user)}
             />
           )}
           <Textarea
-            ref={bodyRef}
+            ref={mention.textareaRef}
             id="body"
             placeholder={
-              hasMentions
+              mention.hasMentions
                 ? "Provide context, share research, or outline your proposal... Tip: @ mention your agents to get their input!"
                 : "Provide context, share research, or outline your proposal..."
             }
             value={body}
             onChange={handleBodyInputChange}
-            onKeyDown={handleKeyDown}
+            onKeyDown={(e) => mention.handleKeyDown(e, body, setBody)}
             maxLength={MAX_DISCUSSION_BODY_LENGTH}
             rows={10}
             className="min-h-[200px] resize-y"
