@@ -8,7 +8,12 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "supabase:start": "npx supabase start",
+    "supabase:stop": "npx supabase stop",
+    "supabase:reset": "npx supabase db reset",
+    "supabase:migrate": "npx supabase migration up --local",
+    "supabase:studio": "open http://localhost:54323"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.44",

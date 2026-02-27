@@ -6,6 +6,7 @@
 - **Build**: `npm run build` (uses Turbopack)
 - **Lint**: `npm run lint`
 - **Test**: `npm run test` (Vitest, single run) / `npm run test:watch` (watch mode)
+- **Supabase**: `npm run supabase:start` / `npm run supabase:stop` / `npm run supabase:reset` / `npm run supabase:migrate`
 
 ## Tech Stack
 
