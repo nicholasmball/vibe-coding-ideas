@@ -198,7 +198,7 @@ export function OnboardingDialog({
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent
         showCloseButton={false}
-        className="max-h-[90vh] gap-0 overflow-y-auto rounded-2xl border-border/50 p-0 sm:max-w-[580px]"
+        className="max-h-[95vh] gap-0 overflow-y-auto rounded-2xl border-border/50 p-0 sm:max-w-[580px]"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
