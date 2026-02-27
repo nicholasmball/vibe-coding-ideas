@@ -576,8 +576,7 @@ export function OnboardingDialog({
                       Set up an AI agent
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Give your agent a name and role — it&apos;ll start picking
-                      up tasks
+                      Create AI personas to direct through Claude Code via MCP
                     </p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground" />
@@ -597,20 +596,22 @@ export function OnboardingDialog({
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={copyMcpCommand}
-                    className={`mt-2.5 ml-[52px] flex items-center gap-2 rounded-lg border px-3 py-2 font-mono text-[11px] transition-all ${
-                      copied
-                        ? "border-emerald-500/50 text-emerald-400"
-                        : "border-border bg-background text-muted-foreground hover:border-border/80 hover:text-foreground"
-                    }`}
-                  >
-                    <span className="truncate">
-                      claude mcp add vibecodes
-                      https://vibecodes.co.uk/api/mcp
-                    </span>
-                    <Copy className="ml-auto h-3.5 w-3.5 shrink-0 opacity-60" />
-                  </button>
+                  <div className="mt-2.5 pl-[52px]">
+                    <button
+                      onClick={copyMcpCommand}
+                      className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 font-mono text-[11px] transition-all ${
+                        copied
+                          ? "border-emerald-500/50 text-emerald-400"
+                          : "border-border bg-background text-muted-foreground hover:border-border/80 hover:text-foreground"
+                      }`}
+                    >
+                      <span className="min-w-0 truncate">
+                        claude mcp add vibecodes
+                        https://vibecodes.co.uk/api/mcp
+                      </span>
+                      <Copy className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
