@@ -9,7 +9,7 @@ import type { UsageLogWithUser, FeedbackWithUser } from "@/app/(main)/admin/page
 interface AdminTabsProps {
   activeTab: string;
   usageLogs: UsageLogWithUser[];
-  usageFilters: { from: string; to: string; action: string };
+  usageFilters: { from: string; to: string; action: string; source: string };
   feedback: FeedbackWithUser[];
   feedbackFilters: { category: string; status: string };
   newFeedbackCount: number;

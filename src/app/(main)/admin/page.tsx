@@ -14,13 +14,14 @@ interface PageProps {
     from?: string;
     to?: string;
     action?: string;
+    source?: string;
     category?: string;
     status?: string;
   }>;
 }
 
 export default async function AdminPage({ searchParams }: PageProps) {
-  const { tab, from, to, action, category, status } = await searchParams;
+  const { tab, from, to, action, source, category, status } = await searchParams;
   const { user, supabase } = await requireAuth();
 
   // Check admin
@@ -46,6 +47,9 @@ export default async function AdminPage({ searchParams }: PageProps) {
       "action_type",
       action as "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description"
     );
+  }
+  if (source && source !== "all") {
+    usageQuery = usageQuery.eq("key_type", source as "platform" | "byok");
   }
 
   const { data: usageLogs } = await usageQuery;
@@ -78,7 +82,7 @@ export default async function AdminPage({ searchParams }: PageProps) {
       <AdminTabs
         activeTab={tab ?? "ai-usage"}
         usageLogs={(usageLogs ?? []) as UsageLogWithUser[]}
-        usageFilters={{ from: from ?? "", to: to ?? "", action: action ?? "all" }}
+        usageFilters={{ from: from ?? "", to: to ?? "", action: action ?? "all", source: source ?? "all" }}
         feedback={(feedback ?? []) as FeedbackWithUser[]}
         feedbackFilters={{ category: category ?? "all", status: status ?? "all" }}
         newFeedbackCount={newFeedbackCount ?? 0}

@@ -29,7 +29,7 @@ import type { UsageLogWithUser } from "@/app/(main)/admin/page";
 
 interface AiUsageDashboardProps {
   usageLogs: UsageLogWithUser[];
-  filters: { from: string; to: string; action: string };
+  filters: { from: string; to: string; action: string; source: string };
 }
 
 const ACTION_LABELS: Record<string, string> = {
@@ -145,6 +145,22 @@ export function AiUsageDashboard({
                   {label}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Source</Label>
+          <Select
+            value={filters.source}
+            onValueChange={(v) => updateFilter("source", v)}
+          >
+            <SelectTrigger className="h-8 w-36 text-xs">
+              <SelectValue placeholder="All sources" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All sources</SelectItem>
+              <SelectItem value="platform">Platform</SelectItem>
+              <SelectItem value="byok">BYOK</SelectItem>
             </SelectContent>
           </Select>
         </div>

@@ -4,7 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { generateText } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { AI_MODEL, logAiUsage } from "@/lib/ai-helpers";
+import {
+  AI_MODEL,
+  logAiUsage,
+  getPlatformAiCallsToday,
+  PLATFORM_AI_DAILY_LIMIT,
+} from "@/lib/ai-helpers";
 import {
   validateTitle,
   validateOptionalDescription,
@@ -153,6 +158,16 @@ export async function enhanceOnboardingDescription(data: {
 
   if (profile?.onboarding_completed_at) {
     throw new Error("AI enhancement during onboarding is no longer available");
+  }
+
+  // Enforce platform AI daily limit (per user)
+  if (PLATFORM_AI_DAILY_LIMIT > 0) {
+    const todayCount = await getPlatformAiCallsToday(supabase, user.id);
+    if (todayCount >= PLATFORM_AI_DAILY_LIMIT) {
+      throw new Error(
+        "AI enhancement is temporarily unavailable — daily limit reached. Please try again tomorrow."
+      );
+    }
   }
 
   const title = data.title.trim();
