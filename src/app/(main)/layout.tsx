@@ -9,7 +9,7 @@ export default function MainLayout({
   return (
     <div className="fixed inset-0 flex flex-col overflow-hidden">
       <Navbar />
-      <main className="flex min-h-0 flex-1 flex-col overflow-auto">
+      <main className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden">
         <div className="flex-1">{children}</div>
         <Footer />
       </main>

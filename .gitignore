@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files
 .env*.local
+.env.local.*
 .env
 
 # vercel
@@ -40,8 +41,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-.vercel
 
 # MCP server config (contains service role key)
 .mcp.json
@@ -54,4 +53,17 @@ mcp-server/node_modules
 e2e/.auth/
 test-results/
 playwright-report/
+.playwright-mcp/
 .env.test
+
+# Temp/generated files
+nul
+*.log
+*.bak
+landing-failure.png
+docs/mockup_b64*
+supabase/.temp/
+
+# testing
+playwright-report/
+test-results/

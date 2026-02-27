@@ -192,14 +192,24 @@ export async function deleteIdea(ideaId: string) {
 
   // Best-effort cleanup: delete physical files from storage before DB cascade
   try {
-    const { data: attachments } = await supabase
+    const { data: taskAttachments } = await supabase
       .from("board_task_attachments")
       .select("storage_path")
       .eq("idea_id", ideaId);
 
-    if (attachments && attachments.length > 0) {
-      const paths = attachments.map((a) => a.storage_path);
+    if (taskAttachments && taskAttachments.length > 0) {
+      const paths = taskAttachments.map((a) => a.storage_path);
       await supabase.storage.from("task-attachments").remove(paths);
+    }
+
+    const { data: ideaAttachments } = await supabase
+      .from("idea_attachments")
+      .select("storage_path")
+      .eq("idea_id", ideaId);
+
+    if (ideaAttachments && ideaAttachments.length > 0) {
+      const paths = ideaAttachments.map((a) => a.storage_path);
+      await supabase.storage.from("idea-attachments").remove(paths);
     }
   } catch {
     // Don't block deletion if storage cleanup fails

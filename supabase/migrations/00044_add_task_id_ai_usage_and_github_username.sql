@@ -1,3 +1,8 @@
+-- Add task_id column to notifications for linking task_mention notifications to specific tasks
+ALTER TABLE notifications ADD COLUMN task_id UUID REFERENCES board_tasks(id) ON DELETE SET NULL;
+
+-- === 00044_ai_usage_log ===
+
 -- AI Usage Log table for tracking AI feature usage and costs
 CREATE TABLE IF NOT EXISTS ai_usage_log (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -36,3 +41,22 @@ CREATE POLICY "ai_usage_log_select_admin"
 CREATE POLICY "ai_usage_log_insert_own"
   ON ai_usage_log FOR INSERT
   WITH CHECK (auth.uid() = user_id);
+
+-- === 00044_prefill_github_username_on_signup ===
+
+-- Update handle_new_user() to also populate github_username from OAuth metadata.
+-- GitHub provides the username as "user_name" or "preferred_username" in raw_user_meta_data.
+create or replace function public.handle_new_user()
+returns trigger as $$
+begin
+  insert into public.users (id, email, full_name, avatar_url, github_username)
+  values (
+    new.id,
+    new.email,
+    coalesce(new.raw_user_meta_data ->> 'full_name', new.raw_user_meta_data ->> 'name'),
+    coalesce(new.raw_user_meta_data ->> 'avatar_url', new.raw_user_meta_data ->> 'picture'),
+    new.raw_user_meta_data ->> 'user_name'
+  );
+  return new;
+end;
+$$ language plpgsql security definer;

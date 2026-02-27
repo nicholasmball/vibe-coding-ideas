@@ -111,8 +111,8 @@ describe("ACTIVITY_ACTIONS", () => {
 // ── DEFAULT_BOARD_COLUMNS ─────────────────────────────────────────────
 
 describe("DEFAULT_BOARD_COLUMNS", () => {
-  it("has 3 default columns", () => {
-    expect(DEFAULT_BOARD_COLUMNS).toHaveLength(3);
+  it("has 6 default columns", () => {
+    expect(DEFAULT_BOARD_COLUMNS).toHaveLength(6);
   });
 
   it("positions are ascending", () => {
