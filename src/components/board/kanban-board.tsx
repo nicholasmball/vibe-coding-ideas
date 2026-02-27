@@ -72,7 +72,7 @@ const multiContainerCollision: CollisionDetection = (args) => {
 };
 
 const layoutMeasuring = {
-  droppable: { strategy: MeasuringStrategy.WhileDragging },
+  droppable: { strategy: MeasuringStrategy.Always },
 };
 
 // Overlay content — intentionally NOT wrapped in React.memo because DragOverlay's
@@ -245,6 +245,7 @@ export function KanbanBoard({
   const dragSourceColumnRef = useRef<string | null>(null);
   const dragCurrentColumnRef = useRef<string | null>(null);
   const [dragTargetColumnName, setDragTargetColumnName] = useState<string | null>(null);
+  const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
   // Snapshot of columns at drag start — used for immediate revert on cancel
   const dragStartColumnsRef = useRef<BoardColumnWithTasks[] | null>(null);
 
@@ -576,6 +577,9 @@ export function KanbanBoard({
         }
       }
 
+      // Always update column highlight — even for same-column hover
+      setDragOverColumnId(overColumnId);
+
       // Use our ref for the current column (never mutate active.data)
       const activeColumnId = dragCurrentColumnRef.current;
       if (!activeColumnId) return;
@@ -640,6 +644,7 @@ export function KanbanBoard({
       // Column drag end
       if (activeData?.type === "column") {
         setActiveColumn(null);
+        setDragOverColumnId(null);
         dragCurrentColumnRef.current = null;
         dragSourceColumnRef.current = null;
         if (!over) {
@@ -678,6 +683,7 @@ export function KanbanBoard({
       // Task drag end — read current column from our ref (not active.data)
       setActiveTask(null);
       setDragTargetColumnName(null);
+      setDragOverColumnId(null);
 
       const currentColumnId = dragCurrentColumnRef.current;
       const movedBetweenColumns = dragSourceColumnRef.current !== currentColumnId;
@@ -762,6 +768,22 @@ export function KanbanBoard({
     [ideaId]
   );
 
+  const handleDragCancel = useCallback(() => {
+    // Revert to pre-drag state
+    if (dragStartColumnsRef.current) {
+      const snapshot = dragStartColumnsRef.current;
+      setColumns(snapshot);
+      columnsRef.current = snapshot;
+    }
+    setActiveTask(null);
+    setActiveColumn(null);
+    setDragTargetColumnName(null);
+    setDragOverColumnId(null);
+    dragCurrentColumnRef.current = null;
+    dragSourceColumnRef.current = null;
+    dragStartColumnsRef.current = null;
+  }, []);
+
   // Detect when the target task exists but is filtered out
   useEffect(() => {
     if (!autoOpenTaskId) return;
@@ -824,6 +846,7 @@ export function KanbanBoard({
         onDragStart={isReadOnly ? undefined : handleDragStart}
         onDragOver={isReadOnly ? undefined : handleDragOver}
         onDragEnd={isReadOnly ? undefined : handleDragEnd}
+        onDragCancel={isReadOnly ? undefined : handleDragCancel}
       >
         <div className="relative min-h-0 flex-1">
           <div
@@ -856,6 +879,7 @@ export function KanbanBoard({
                     hasApiKey={hasApiKey}
                     ideaDescription={ideaDescription}
                     isReadOnly={isReadOnly}
+                    isDragTarget={dragOverColumnId === filteredCol.id}
                   />
                 );
               })}
