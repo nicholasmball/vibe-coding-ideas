@@ -17,6 +17,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
       capture_pageview: false,
       capture_pageleave: true,
       person_profiles: "identified_only",
+      advanced_disable_feature_flags: true,
     });
 
     // Identify user on auth state changes
