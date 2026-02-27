@@ -53,7 +53,7 @@ Move to "Blocked/Requires User Input" with a comment explaining why.
 
 ### Board
 - `BoardOpsContext` (`board-context.tsx`) for optimistic UI — returns rollback functions
-- Board columns lazy-initialized on first visit; uses `users.default_board_columns` preference or defaults ("To Do", "In Progress", "Done")
+- Board columns lazy-initialized on first visit; uses `users.default_board_columns` preference or defaults ("Backlog", "To Do", "Blocked/Requires User Input", "In Progress", "Verify", "Done")
 - `board_columns.is_done_column` marks complete columns; dashboard excludes these + archived tasks
 - Activity logged client-side via `logTaskActivity()` fire-and-forget
 - Position calculation: `MAX(position) + 1000` in target column
