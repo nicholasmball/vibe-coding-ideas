@@ -9,6 +9,7 @@ import PostHogPageView from "./posthog-pageview";
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!process.env.NEXT_PUBLIC_POSTHOG_KEY) return;
+    if (typeof window !== "undefined" && window.location.hostname === "localhost") return;
 
     posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY, {
       api_host: "/ingest",
