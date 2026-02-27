@@ -48,19 +48,16 @@ export function DiscussionVoteButton({
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
+        <button
           onClick={handleVote}
           className={cn(
-            "flex flex-col items-center gap-0 px-2.5 py-1.5 h-auto",
-            optimisticState.hasVoted &&
-              "border-primary bg-primary/10 text-primary hover:bg-primary/20"
+            "inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors",
+            optimisticState.hasVoted && "text-primary hover:text-primary/80"
           )}
         >
-          <ChevronUp className="h-3.5 w-3.5" />
-          <span className="text-xs font-semibold">{optimisticState.upvotes}</span>
-        </Button>
+          <ChevronUp className="h-4 w-4" />
+          <span className="font-medium">{optimisticState.upvotes}</span>
+        </button>
       </TooltipTrigger>
       <TooltipContent>
         {optimisticState.hasVoted ? "Remove upvote" : "Upvote this discussion"}

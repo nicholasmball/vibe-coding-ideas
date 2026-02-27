@@ -34,6 +34,7 @@ const iconMap = {
   collaboration_response: UserCheck,
   discussion: MessageSquare,
   discussion_reply: MessageSquare,
+  discussion_mention: AtSign,
 };
 
 const messageMap = {
@@ -48,6 +49,7 @@ const messageMap = {
   collaboration_response: "responded to your collaboration request on",
   discussion: "started a discussion on",
   discussion_reply: "replied to a discussion on",
+  discussion_mention: "mentioned you in a discussion on",
 };
 
 export function NotificationBell() {

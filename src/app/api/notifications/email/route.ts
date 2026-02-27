@@ -17,6 +17,7 @@ const EMAIL_WORTHY_TYPES: NotificationType[] = [
   "collaboration_response",
   "discussion",
   "discussion_reply",
+  "discussion_mention",
 ];
 
 export async function POST(request: NextRequest) {
@@ -319,6 +320,19 @@ function buildNotificationEmail(
           ctaText: "View Discussion",
           ctaUrl: discussionUrl,
           footerText: "You received this because someone replied to a discussion you participated in.",
+        }),
+      };
+    }
+
+    case "discussion_mention": {
+      return {
+        subject: `${actorName} mentioned you in a discussion`,
+        html: buildEmailHtml({
+          heading: "You were mentioned",
+          bodyHtml: `<p style="margin:0;">${escapeBody(actorName)} mentioned you in a discussion on ${ideaDisplay}.</p>`,
+          ctaText: "View Discussion",
+          ctaUrl: discussionUrl,
+          footerText: "You received this because you were mentioned in a discussion.",
         }),
       };
     }

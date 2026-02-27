@@ -78,6 +78,20 @@ import {
   reportBugSchema,
 } from "./tools/labels";
 import {
+  listDiscussions,
+  listDiscussionsSchema,
+  getDiscussion,
+  getDiscussionSchema,
+  addDiscussionReply,
+  addDiscussionReplySchema,
+  createDiscussion,
+  createDiscussionSchema,
+  updateDiscussion,
+  updateDiscussionSchema,
+  deleteDiscussion,
+  deleteDiscussionSchema,
+} from "./tools/discussions";
+import {
   listAttachments,
   listAttachmentsSchema,
   uploadAttachment,
@@ -517,6 +531,92 @@ export function registerTools(
       try {
         const ctx = await getContext(extra);
         return jsonResult(await reportBug(ctx, reportBugSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  // --- Discussion Tools ---
+
+  server.tool(
+    "list_discussions",
+    "List discussions for an idea with optional status filter. Returns title, status, reply count, author, and last activity.",
+    listDiscussionsSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await listDiscussions(ctx, listDiscussionsSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "get_discussion",
+    "Get full discussion thread including body, all replies with nested structure, and author details.",
+    getDiscussionSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await getDiscussion(ctx, getDiscussionSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "add_discussion_reply",
+    "Add a reply to a discussion thread. Posted as the active bot identity. Supports nested replies via parent_reply_id.",
+    addDiscussionReplySchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await addDiscussionReply(ctx, addDiscussionReplySchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "create_discussion",
+    "Create a new discussion thread on an idea. Requires title and body (markdown).",
+    createDiscussionSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await createDiscussion(ctx, createDiscussionSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "update_discussion",
+    "Update a discussion's title, body, status (open/resolved/converted), or pinned state. Only changed fields need to be provided.",
+    updateDiscussionSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await updateDiscussion(ctx, updateDiscussionSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "delete_discussion",
+    "Permanently delete a discussion thread and all its replies from an idea.",
+    deleteDiscussionSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await deleteDiscussion(ctx, deleteDiscussionSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
       }

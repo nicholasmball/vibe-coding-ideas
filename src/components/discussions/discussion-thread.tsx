@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -20,12 +20,14 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Markdown } from "@/components/ui/markdown";
+import { MentionAutocomplete } from "@/components/board/mention-autocomplete";
 import {
   updateDiscussion,
   deleteDiscussion,
   updateDiscussionReply,
   deleteDiscussionReply,
 } from "@/actions/discussions";
+import { createClient } from "@/lib/supabase/client";
 import { formatRelativeTime } from "@/lib/utils";
 import { DiscussionReplyForm } from "./discussion-reply-form";
 import { DiscussionVoteButton } from "./discussion-vote-button";
@@ -57,7 +59,7 @@ const STATUS_CONFIG = {
 } as const;
 
 /** Organize flat replies into a tree (single-level nesting) */
-function buildReplyTree(
+export function buildReplyTree(
   replies: IdeaDiscussionReplyWithAuthor[]
 ): IdeaDiscussionReplyWithChildren[] {
   const topLevel: IdeaDiscussionReplyWithChildren[] = [];
@@ -80,6 +82,138 @@ function buildReplyTree(
   return topLevel;
 }
 
+// ─── Mention helpers (shared pattern) ────────────────────────────────────
+
+function useMentionState(teamMembers: User[]) {
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const [mentionedUserIds, setMentionedUserIds] = useState<Set<string>>(new Set());
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const filteredMembers = useMemo(() => {
+    if (mentionQuery === null) return [];
+    return teamMembers.filter((m) =>
+      m.full_name?.toLowerCase().includes(mentionQuery.toLowerCase())
+    );
+  }, [teamMembers, mentionQuery]);
+
+  function detectMention(value: string, cursorPos: number) {
+    const textBeforeCursor = value.slice(0, cursorPos);
+    const match = textBeforeCursor.match(/(?:^|[\s])@(\S*)$/);
+    if (match) {
+      setMentionQuery(match[1]);
+      setMentionIndex(0);
+    } else {
+      setMentionQuery(null);
+    }
+  }
+
+  function handleMentionSelect(
+    content: string,
+    setContent: (value: string) => void,
+    user: User
+  ) {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const cursorPos = textarea.selectionStart;
+    const textBeforeCursor = content.slice(0, cursorPos);
+    const textAfterCursor = content.slice(cursorPos);
+
+    const atIndex = textBeforeCursor.lastIndexOf("@");
+    if (atIndex === -1) return;
+
+    const name = user.full_name ?? user.email;
+    const newText =
+      textBeforeCursor.slice(0, atIndex) + `@${name} ` + textAfterCursor;
+    setContent(newText);
+    setMentionQuery(null);
+
+    setMentionedUserIds((prev) => new Set(prev).add(user.id));
+
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const newCursorPos = atIndex + name.length + 2;
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    });
+  }
+
+  function handleKeyDown(
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
+    content: string,
+    setContent: (value: string) => void
+  ) {
+    if (mentionQuery === null || filteredMembers.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setMentionIndex((prev) =>
+        prev < filteredMembers.length - 1 ? prev + 1 : 0
+      );
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setMentionIndex((prev) =>
+        prev > 0 ? prev - 1 : filteredMembers.length - 1
+      );
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      handleMentionSelect(content, setContent, filteredMembers[mentionIndex]);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setMentionQuery(null);
+    }
+  }
+
+  return {
+    mentionQuery,
+    mentionIndex,
+    mentionedUserIds,
+    setMentionedUserIds,
+    textareaRef,
+    filteredMembers,
+    detectMention,
+    handleMentionSelect,
+    handleKeyDown,
+    setMentionQuery,
+    hasMentions: teamMembers.length > 0,
+  };
+}
+
+function sendMentionNotifications(
+  mentionedUserIds: Set<string>,
+  currentUserId: string,
+  teamMembers: User[],
+  ideaId: string,
+  discussionId: string
+) {
+  if (mentionedUserIds.size === 0) return;
+  const supabase = createClient();
+  for (const userId of mentionedUserIds) {
+    if (userId === currentUserId) continue;
+    const member = teamMembers.find((m) => m.id === userId);
+    if (!member) continue;
+    if (member.notification_preferences?.discussion_mentions === false) continue;
+    supabase
+      .from("notifications")
+      .insert({
+        user_id: userId,
+        actor_id: currentUserId,
+        type: "discussion_mention" as const,
+        idea_id: ideaId,
+        discussion_id: discussionId,
+      })
+      .then(({ error }) => {
+        if (error)
+          console.error(
+            "Failed to send mention notification:",
+            error.message
+          );
+      });
+  }
+}
+
+// ─── Main Component ──────────────────────────────────────────────────────
+
 interface DiscussionThreadProps {
   discussion: IdeaDiscussionDetail;
   ideaId: string;
@@ -89,6 +223,7 @@ interface DiscussionThreadProps {
   columns: BoardColumn[];
   convertedTaskId?: string | null;
   hasVoted?: boolean;
+  teamMembers?: User[];
 }
 
 export function DiscussionThread({
@@ -100,6 +235,7 @@ export function DiscussionThread({
   columns,
   convertedTaskId,
   hasVoted = false,
+  teamMembers = [],
 }: DiscussionThreadProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
@@ -109,6 +245,8 @@ export function DiscussionThread({
   const [isSaving, setIsSaving] = useState(false);
   const config = STATUS_CONFIG[discussion.status];
   const StatusIcon = config.icon;
+
+  const mention = useMentionState(teamMembers);
 
   const replyTree = useMemo(
     () => buildReplyTree(discussion.replies),
@@ -171,14 +309,28 @@ export function DiscussionThread({
       toast.error("Title and body are required");
       return;
     }
+    const savedMentionedUserIds = new Set(mention.mentionedUserIds);
     setIsSaving(true);
     try {
       await updateDiscussion(discussion.id, ideaId, {
         title: editTitle,
         body: editBody,
       });
+
+      if (currentUser) {
+        sendMentionNotifications(
+          savedMentionedUserIds,
+          currentUser.id,
+          teamMembers,
+          ideaId,
+          discussion.id
+        );
+      }
+
       toast.success("Discussion updated");
       setIsEditing(false);
+      mention.setMentionedUserIds(new Set());
+      mention.setMentionQuery(null);
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save");
@@ -191,6 +343,8 @@ export function DiscussionThread({
     setEditTitle(discussion.title);
     setEditBody(discussion.body);
     setIsEditing(false);
+    mention.setMentionedUserIds(new Set());
+    mention.setMentionQuery(null);
   }
 
   async function handleDeleteReply(replyId: string) {
@@ -224,112 +378,85 @@ export function DiscussionThread({
 
       {/* Thread header */}
       <div>
-        <div className="flex items-start gap-3">
-          <DiscussionVoteButton
-            discussionId={discussion.id}
-            ideaId={ideaId}
-            upvotes={discussion.upvotes}
-            hasVoted={hasVoted}
+        {isEditing ? (
+          <Input
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            className="text-xl font-bold sm:text-2xl"
+            autoFocus
           />
-          <div className="min-w-0 flex-1">
-            {isEditing ? (
-              <Input
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                className="text-xl font-bold"
-                autoFocus
-              />
-            ) : (
-              <h1 className="text-xl font-bold sm:text-2xl">{discussion.title}</h1>
-            )}
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className={config.className}>
-                <StatusIcon className="mr-1 h-3 w-3" />
-                {config.label}
-              </Badge>
-              {discussion.pinned && (
-                <Badge
+        ) : (
+          <h1 className="text-xl font-bold sm:text-2xl">{discussion.title}</h1>
+        )}
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className={config.className}>
+            <StatusIcon className="mr-1 h-3 w-3" />
+            {config.label}
+          </Badge>
+          {discussion.pinned && (
+            <Badge
+              variant="outline"
+              className="border-amber-500/20 bg-amber-500/10 text-amber-400"
+            >
+              <Pin className="mr-1 h-3 w-3" />
+              Pinned
+            </Badge>
+          )}
+          <span className="text-xs text-muted-foreground">
+            {discussion.reply_count} {discussion.reply_count === 1 ? "reply" : "replies"} &middot;
+            Last activity {formatRelativeTime(discussion.last_activity_at)}
+          </span>
+          {/* Right-aligned action buttons */}
+          {isAuthorOrOwner && discussion.status !== "converted" && (
+            <div className="ml-auto flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleTogglePin}
+                className="gap-1 text-muted-foreground h-8 px-2"
+              >
+                <Pin className="h-3.5 w-3.5" />
+                {discussion.pinned ? "Unpin" : "Pin"}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="gap-1 text-destructive hover:text-destructive h-8 px-2"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Delete
+              </Button>
+              <div className="mx-1 h-4 w-px bg-border" />
+              {discussion.status === "open" ? (
+                <Button
                   variant="outline"
-                  className="border-amber-500/20 bg-amber-500/10 text-amber-400"
+                  size="sm"
+                  onClick={handleResolve}
+                  className="gap-1.5"
                 >
-                  <Pin className="mr-1 h-3 w-3" />
-                  Pinned
-                </Badge>
-              )}
-              <span className="text-xs text-muted-foreground">
-                {discussion.reply_count} {discussion.reply_count === 1 ? "reply" : "replies"} &middot;
-                Last activity {formatRelativeTime(discussion.last_activity_at)}
-              </span>
+                  <Check className="h-3.5 w-3.5" />
+                  Resolve
+                </Button>
+              ) : discussion.status === "resolved" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReopen}
+                  className="gap-1.5"
+                >
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  Reopen
+                </Button>
+              ) : null}
             </div>
-
-            {/* Actions */}
-            {isAuthorOrOwner && discussion.status !== "converted" && (
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                  className="gap-1.5"
-                  disabled={isEditing}
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                  Edit
-                </Button>
-                {discussion.status === "open" ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleResolve}
-                    className="gap-1.5"
-                  >
-                    <Check className="h-3.5 w-3.5" />
-                    Resolve
-                  </Button>
-                ) : discussion.status === "resolved" ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleReopen}
-                    className="gap-1.5"
-                  >
-                    <MessageSquare className="h-3.5 w-3.5" />
-                    Reopen
-                  </Button>
-                ) : null}
-                {discussion.status === "open" && columns.length > 0 && (
-                  <ConvertToTaskDialog
-                    discussion={discussion}
-                    ideaId={ideaId}
-                    columns={columns}
-                  />
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleTogglePin}
-                  className="gap-1.5"
-                >
-                  <Pin className="h-3.5 w-3.5" />
-                  {discussion.pinned ? "Unpin" : "Pin"}
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  className="gap-1.5 text-destructive hover:text-destructive"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  Delete
-                </Button>
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
 
       {/* Original post */}
-      <div className="rounded-lg border p-4 sm:p-5">
+      <div className="rounded-lg border bg-card p-4 sm:p-5">
         <div className="flex items-center gap-2">
           <Avatar className="h-7 w-7">
             <AvatarImage src={discussion.author.avatar_url ?? undefined} />
@@ -345,23 +472,39 @@ export function DiscussionThread({
               Bot
             </Badge>
           )}
-          {currentUser?.id === discussion.author_id && (
-            <Badge variant="outline" className="text-[10px]">
-              Author
-            </Badge>
-          )}
-          <span className="text-xs text-muted-foreground">
+          <Badge variant="outline" className="bg-violet-500/10 border-violet-500/20 text-violet-400 text-[10px]">
+            Author
+          </Badge>
+          <span className="ml-auto text-xs text-muted-foreground">
             {formatRelativeTime(discussion.created_at)}
           </span>
         </div>
         {isEditing ? (
           <div className="mt-3 space-y-3">
-            <Textarea
-              value={editBody}
-              onChange={(e) => setEditBody(e.target.value)}
-              rows={8}
-              className="min-h-[120px] resize-y text-sm"
-            />
+            <div className="relative">
+              {mention.mentionQuery !== null && mention.hasMentions && (
+                <MentionAutocomplete
+                  filteredMembers={mention.filteredMembers}
+                  selectedIndex={mention.mentionIndex}
+                  onSelect={(user) =>
+                    mention.handleMentionSelect(editBody, setEditBody, user)
+                  }
+                />
+              )}
+              <Textarea
+                ref={mention.textareaRef}
+                value={editBody}
+                onChange={(e) => {
+                  setEditBody(e.target.value);
+                  mention.detectMention(e.target.value, e.target.selectionStart);
+                }}
+                onKeyDown={(e) =>
+                  mention.handleKeyDown(e, editBody, setEditBody)
+                }
+                rows={8}
+                className="min-h-[120px] resize-y text-sm"
+              />
+            </div>
             <div className="flex gap-2">
               <Button
                 size="sm"
@@ -382,7 +525,27 @@ export function DiscussionThread({
           </div>
         ) : (
           <div className="mt-3 text-sm">
-            <Markdown>{discussion.body}</Markdown>
+            <Markdown teamMembers={teamMembers}>{discussion.body}</Markdown>
+          </div>
+        )}
+        {/* Post footer: vote + edit */}
+        {!isEditing && (
+          <div className="mt-4 flex items-center gap-3 border-t border-border pt-3">
+            <DiscussionVoteButton
+              discussionId={discussion.id}
+              ideaId={ideaId}
+              upvotes={discussion.upvotes}
+              hasVoted={hasVoted}
+            />
+            {isAuthorOrOwner && discussion.status !== "converted" && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                Edit
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -404,10 +567,12 @@ export function DiscussionThread({
                 reply={reply}
                 ideaId={ideaId}
                 discussionId={discussion.id}
+                discussionAuthorId={discussion.author_id}
                 currentUser={currentUser}
                 isAuthorOrOwner={isAuthorOrOwner}
                 canReply={canReply}
                 onDelete={handleDeleteReply}
+                teamMembers={teamMembers}
               />
             ))}
           </div>
@@ -422,6 +587,7 @@ export function DiscussionThread({
             discussionId={discussion.id}
             ideaId={ideaId}
             currentUser={currentUser}
+            teamMembers={teamMembers}
           />
         </>
       )}
@@ -433,18 +599,22 @@ function ReplyItem({
   reply,
   ideaId,
   discussionId,
+  discussionAuthorId,
   currentUser,
   isAuthorOrOwner,
   canReply,
   onDelete,
+  teamMembers = [],
 }: {
   reply: IdeaDiscussionReplyWithChildren;
   ideaId: string;
   discussionId: string;
+  discussionAuthorId: string;
   currentUser: User | null;
   isAuthorOrOwner: boolean;
   canReply: boolean;
   onDelete: (id: string) => void;
+  teamMembers?: User[];
 }) {
   const router = useRouter();
   const canDelete =
@@ -456,16 +626,32 @@ function ReplyItem({
   const [isSaving, setIsSaving] = useState(false);
   const [isReplying, setIsReplying] = useState(false);
 
+  const mention = useMentionState(teamMembers);
+
   async function handleSave() {
     if (!editContent.trim()) {
       toast.error("Reply cannot be empty");
       return;
     }
+    const savedMentionedUserIds = new Set(mention.mentionedUserIds);
     setIsSaving(true);
     try {
       await updateDiscussionReply(reply.id, ideaId, discussionId, editContent);
+
+      if (currentUser) {
+        sendMentionNotifications(
+          savedMentionedUserIds,
+          currentUser.id,
+          teamMembers,
+          ideaId,
+          discussionId
+        );
+      }
+
       toast.success("Reply updated");
       setIsEditing(false);
+      mention.setMentionedUserIds(new Set());
+      mention.setMentionQuery(null);
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save");
@@ -477,6 +663,8 @@ function ReplyItem({
   function handleCancel() {
     setEditContent(reply.content);
     setIsEditing(false);
+    mention.setMentionedUserIds(new Set());
+    mention.setMentionQuery(null);
   }
 
   return (
@@ -496,6 +684,11 @@ function ReplyItem({
             {reply.author.is_bot && (
               <Badge variant="outline" className="text-[10px]">
                 Bot
+              </Badge>
+            )}
+            {reply.author_id === discussionAuthorId && (
+              <Badge variant="outline" className="bg-violet-500/10 border-violet-500/20 text-violet-400 text-[10px]">
+                Author
               </Badge>
             )}
             <span className="text-xs text-muted-foreground">
@@ -533,13 +726,38 @@ function ReplyItem({
           </div>
           {isEditing ? (
             <div className="mt-1 space-y-2">
-              <Textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                rows={3}
-                className="min-h-[60px] resize-y text-sm"
-                autoFocus
-              />
+              <div className="relative">
+                {mention.mentionQuery !== null && mention.hasMentions && (
+                  <MentionAutocomplete
+                    filteredMembers={mention.filteredMembers}
+                    selectedIndex={mention.mentionIndex}
+                    onSelect={(user) =>
+                      mention.handleMentionSelect(
+                        editContent,
+                        setEditContent,
+                        user
+                      )
+                    }
+                  />
+                )}
+                <Textarea
+                  ref={mention.textareaRef}
+                  value={editContent}
+                  onChange={(e) => {
+                    setEditContent(e.target.value);
+                    mention.detectMention(
+                      e.target.value,
+                      e.target.selectionStart
+                    );
+                  }}
+                  onKeyDown={(e) =>
+                    mention.handleKeyDown(e, editContent, setEditContent)
+                  }
+                  rows={3}
+                  className="min-h-[60px] resize-y text-sm"
+                  autoFocus
+                />
+              </div>
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -560,7 +778,7 @@ function ReplyItem({
             </div>
           ) : (
             <div className="mt-1 text-sm">
-              <Markdown>{reply.content}</Markdown>
+              <Markdown teamMembers={teamMembers}>{reply.content}</Markdown>
             </div>
           )}
 
@@ -573,6 +791,7 @@ function ReplyItem({
               parentReplyId={reply.id}
               onCancel={() => setIsReplying(false)}
               compact
+              teamMembers={teamMembers}
             />
           )}
         </div>
@@ -588,9 +807,11 @@ function ReplyItem({
               parentAuthorName={reply.author.full_name}
               ideaId={ideaId}
               discussionId={discussionId}
+              discussionAuthorId={discussionAuthorId}
               currentUser={currentUser}
               isAuthorOrOwner={isAuthorOrOwner}
               onDelete={onDelete}
+              teamMembers={teamMembers}
             />
           ))}
         </div>
@@ -604,17 +825,21 @@ function ChildReplyItem({
   parentAuthorName,
   ideaId,
   discussionId,
+  discussionAuthorId,
   currentUser,
   isAuthorOrOwner,
   onDelete,
+  teamMembers = [],
 }: {
   reply: IdeaDiscussionReplyWithAuthor;
   parentAuthorName: string | null;
   ideaId: string;
   discussionId: string;
+  discussionAuthorId: string;
   currentUser: User | null;
   isAuthorOrOwner: boolean;
   onDelete: (id: string) => void;
+  teamMembers?: User[];
 }) {
   const router = useRouter();
   const canDeleteReply =
@@ -625,16 +850,32 @@ function ChildReplyItem({
   const [editContent, setEditContent] = useState(reply.content);
   const [isSaving, setIsSaving] = useState(false);
 
+  const mention = useMentionState(teamMembers);
+
   async function handleSave() {
     if (!editContent.trim()) {
       toast.error("Reply cannot be empty");
       return;
     }
+    const savedMentionedUserIds = new Set(mention.mentionedUserIds);
     setIsSaving(true);
     try {
       await updateDiscussionReply(reply.id, ideaId, discussionId, editContent);
+
+      if (currentUser) {
+        sendMentionNotifications(
+          savedMentionedUserIds,
+          currentUser.id,
+          teamMembers,
+          ideaId,
+          discussionId
+        );
+      }
+
       toast.success("Reply updated");
       setIsEditing(false);
+      mention.setMentionedUserIds(new Set());
+      mention.setMentionQuery(null);
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save");
@@ -646,6 +887,8 @@ function ChildReplyItem({
   function handleCancel() {
     setEditContent(reply.content);
     setIsEditing(false);
+    mention.setMentionedUserIds(new Set());
+    mention.setMentionQuery(null);
   }
 
   return (
@@ -664,6 +907,11 @@ function ChildReplyItem({
           {reply.author.is_bot && (
             <Badge variant="outline" className="text-[10px]">
               Bot
+            </Badge>
+          )}
+          {reply.author_id === discussionAuthorId && (
+            <Badge variant="outline" className="bg-violet-500/10 border-violet-500/20 text-violet-400 text-[10px]">
+              Author
             </Badge>
           )}
           {parentAuthorName && (
@@ -698,13 +946,38 @@ function ChildReplyItem({
         </div>
         {isEditing ? (
           <div className="mt-1 space-y-2">
-            <Textarea
-              value={editContent}
-              onChange={(e) => setEditContent(e.target.value)}
-              rows={3}
-              className="min-h-[60px] resize-y text-sm"
-              autoFocus
-            />
+            <div className="relative">
+              {mention.mentionQuery !== null && mention.hasMentions && (
+                <MentionAutocomplete
+                  filteredMembers={mention.filteredMembers}
+                  selectedIndex={mention.mentionIndex}
+                  onSelect={(user) =>
+                    mention.handleMentionSelect(
+                      editContent,
+                      setEditContent,
+                      user
+                    )
+                  }
+                />
+              )}
+              <Textarea
+                ref={mention.textareaRef}
+                value={editContent}
+                onChange={(e) => {
+                  setEditContent(e.target.value);
+                  mention.detectMention(
+                    e.target.value,
+                    e.target.selectionStart
+                  );
+                }}
+                onKeyDown={(e) =>
+                  mention.handleKeyDown(e, editContent, setEditContent)
+                }
+                rows={3}
+                className="min-h-[60px] resize-y text-sm"
+                autoFocus
+              />
+            </div>
             <div className="flex gap-2">
               <Button
                 size="sm"
@@ -725,7 +998,7 @@ function ChildReplyItem({
           </div>
         ) : (
           <div className="mt-1 text-sm">
-            <Markdown>{reply.content}</Markdown>
+            <Markdown teamMembers={teamMembers}>{reply.content}</Markdown>
           </div>
         )}
       </div>

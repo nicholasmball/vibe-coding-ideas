@@ -690,7 +690,7 @@ export function TaskDetailDialog({
                 {isReadOnly ? (
                   description ? (
                     <div className="rounded-md px-3 py-2 text-sm">
-                      <Markdown>{description}</Markdown>
+                      <Markdown teamMembers={teamMembers}>{description}</Markdown>
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground">No description</p>
@@ -701,7 +701,7 @@ export function TaskDetailDialog({
                       className="min-h-[156px] rounded-md border border-input px-3 py-2 text-sm"
                       onBlur={handleDescriptionBlur}
                     >
-                      <Markdown>{description}</Markdown>
+                      <Markdown teamMembers={teamMembers}>{description}</Markdown>
                     </div>
                   ) : (
                     <div className="relative">
@@ -736,7 +736,7 @@ export function TaskDetailDialog({
                       });
                     }}
                   >
-                    <Markdown>{description}</Markdown>
+                    <Markdown teamMembers={teamMembers}>{description}</Markdown>
                   </div>
                 ) : (
                   <div

@@ -604,6 +604,314 @@ test.describe("Discussions", () => {
     });
   });
 
+  test.describe("Editing discussions", () => {
+    test("author edits discussion title and body", async ({ userAPage }) => {
+      const discussion = await createTestDiscussion(ideaId, userAId, {
+        title: "[E2E] Edit Me Discussion",
+        body: "[E2E] Original body content.",
+      });
+
+      await userAPage.goto(`/ideas/${ideaId}/discussions/${discussion.id}`);
+
+      // Click Edit button on the original post
+      const editButton = userAPage.locator("button").filter({ hasText: "Edit" });
+      await expect(editButton).toBeVisible({ timeout: 15_000 });
+      await editButton.click();
+
+      // Title input should appear with current value
+      const titleInput = userAPage.locator("input").filter({ hasText: "" }).first();
+      await expect(titleInput).toBeVisible({ timeout: 5_000 });
+      await expect(titleInput).toHaveValue("[E2E] Edit Me Discussion");
+
+      // Clear and type new title
+      await titleInput.clear();
+      await titleInput.fill("[E2E] Edited Discussion Title");
+
+      // Body textarea should appear with current value
+      const bodyTextarea = userAPage.locator("textarea");
+      await expect(bodyTextarea).toBeVisible();
+      await bodyTextarea.clear();
+      await bodyTextarea.fill("[E2E] Updated body content after editing.");
+
+      // Save
+      await userAPage.getByRole("button", { name: "Save" }).click();
+
+      // Success toast
+      await expect(
+        userAPage.locator("[data-sonner-toast]").filter({ hasText: /updated/i })
+      ).toBeVisible({ timeout: 10_000 });
+
+      // Title should be updated
+      await expect(
+        userAPage.getByRole("heading", { name: "[E2E] Edited Discussion Title" })
+      ).toBeVisible({ timeout: 15_000 });
+
+      // Body should be updated
+      await expect(
+        userAPage.getByText("Updated body content after editing")
+      ).toBeVisible();
+    });
+
+    test("cancel edit restores original content", async ({ userAPage }) => {
+      const discussion = await createTestDiscussion(ideaId, userAId, {
+        title: "[E2E] Cancel Edit Test",
+        body: "[E2E] Original body for cancel test.",
+      });
+
+      await userAPage.goto(`/ideas/${ideaId}/discussions/${discussion.id}`);
+
+      // Click Edit
+      const editButton = userAPage.locator("button").filter({ hasText: "Edit" });
+      await expect(editButton).toBeVisible({ timeout: 15_000 });
+      await editButton.click();
+
+      // Modify the body
+      const bodyTextarea = userAPage.locator("textarea");
+      await expect(bodyTextarea).toBeVisible({ timeout: 5_000 });
+      await bodyTextarea.clear();
+      await bodyTextarea.fill("[E2E] This change should be discarded.");
+
+      // Cancel
+      await userAPage.getByRole("button", { name: "Cancel" }).click();
+
+      // Original body should still be visible
+      await expect(
+        userAPage.getByText("Original body for cancel test")
+      ).toBeVisible({ timeout: 10_000 });
+
+      // Modified text should not be visible
+      await expect(
+        userAPage.getByText("This change should be discarded")
+      ).not.toBeVisible();
+    });
+
+    test("collaborator cannot edit author's discussion", async ({ userBPage }) => {
+      const discussion = await createTestDiscussion(ideaId, userAId, {
+        title: "[E2E] No Edit For Collab",
+        body: "[E2E] User B should not see Edit button.",
+      });
+
+      await userBPage.goto(`/ideas/${ideaId}/discussions/${discussion.id}`);
+
+      await expect(
+        userBPage.getByRole("heading", { name: "[E2E] No Edit For Collab" })
+      ).toBeVisible({ timeout: 15_000 });
+
+      // Edit button should not be visible for non-author collaborator
+      await expect(
+        userBPage.locator("button").filter({ hasText: "Edit" })
+      ).not.toBeVisible();
+    });
+  });
+
+  test.describe("Editing replies", () => {
+    test("reply author can edit their own reply", async ({ userAPage }) => {
+      const discussion = await createTestDiscussion(ideaId, userAId, {
+        title: "[E2E] Edit Reply Test",
+        body: "[E2E] Discussion for editing replies.",
+      });
+      await createTestDiscussionReply(discussion.id, userAId, {
+        content: "[E2E] Original reply content",
+      });
+
+      await userAPage.goto(`/ideas/${ideaId}/discussions/${discussion.id}`);
+
+      // The reply should be visible
+      await expect(
+        userAPage.getByText("[E2E] Original reply content")
+      ).toBeVisible({ timeout: 15_000 });
+
+      // Click the edit button (Pencil icon with title "Edit reply")
+      const editReplyButton = userAPage.locator('button[title="Edit reply"]');
+      await expect(editReplyButton).toBeVisible({ timeout: 5_000 });
+      await editReplyButton.click();
+
+      // Textarea should appear with current content
+      const replyTextarea = userAPage.locator("textarea").filter({ hasText: "[E2E] Original reply content" });
+      await expect(replyTextarea).toBeVisible({ timeout: 5_000 });
+
+      // Edit the content
+      await replyTextarea.clear();
+      await replyTextarea.fill("[E2E] Edited reply content");
+
+      // Save
+      await userAPage.getByRole("button", { name: "Save" }).click();
+
+      // Success toast
+      await expect(
+        userAPage.locator("[data-sonner-toast]").filter({ hasText: /reply updated/i })
+      ).toBeVisible({ timeout: 10_000 });
+
+      // Updated reply should be visible
+      await expect(
+        userAPage.getByText("[E2E] Edited reply content")
+      ).toBeVisible({ timeout: 15_000 });
+
+      // Original text should no longer be visible
+      await expect(
+        userAPage.getByText("[E2E] Original reply content")
+      ).not.toBeVisible();
+    });
+
+    test("non-author cannot edit another user's reply", async ({ userBPage }) => {
+      const discussion = await createTestDiscussion(ideaId, userAId, {
+        title: "[E2E] Reply Edit Permission",
+        body: "[E2E] Testing edit permission on replies.",
+      });
+      await createTestDiscussionReply(discussion.id, userAId, {
+        content: "[E2E] User A's reply",
+      });
+
+      await userBPage.goto(`/ideas/${ideaId}/discussions/${discussion.id}`);
+
+      // The reply should be visible
+      await expect(
+        userBPage.getByText("[E2E] User A's reply")
+      ).toBeVisible({ timeout: 15_000 });
+
+      // Edit button should NOT be visible (User B didn't author this reply)
+      await expect(
+        userBPage.locator('button[title="Edit reply"]')
+      ).not.toBeVisible();
+    });
+  });
+
+  test.describe("Nested replies", () => {
+    test("user can post a nested reply to a specific reply", async ({ userAPage }) => {
+      const discussion = await createTestDiscussion(ideaId, userAId, {
+        title: "[E2E] Nested Reply Test",
+        body: "[E2E] Discussion for testing nested replies.",
+      });
+      await createTestDiscussionReply(discussion.id, userBId, {
+        content: "[E2E] Top-level reply from User B",
+      });
+
+      await userAPage.goto(`/ideas/${ideaId}/discussions/${discussion.id}`);
+
+      // The top-level reply should be visible
+      await expect(
+        userAPage.getByText("[E2E] Top-level reply from User B")
+      ).toBeVisible({ timeout: 15_000 });
+
+      // Click the inline reply button (Reply icon with title "Reply")
+      const replyIcon = userAPage.locator('button[title="Reply"]');
+      await expect(replyIcon).toBeVisible({ timeout: 5_000 });
+      await replyIcon.click();
+
+      // Inline reply form should appear
+      const inlineTextarea = userAPage.getByPlaceholder("Write a reply...");
+      await expect(inlineTextarea).toBeVisible({ timeout: 5_000 });
+
+      // Type a nested reply
+      await inlineTextarea.fill("[E2E] This is a nested reply to User B");
+
+      // Submit the inline reply
+      const inlineReplyButton = userAPage.getByRole("button", { name: "Reply", exact: true }).last();
+      await expect(inlineReplyButton).toBeEnabled();
+      await inlineReplyButton.click();
+
+      // Success toast
+      await expect(
+        userAPage.locator("[data-sonner-toast]").filter({ hasText: /reply posted/i })
+      ).toBeVisible({ timeout: 10_000 });
+
+      // The nested reply should appear (inside the indented child section)
+      await expect(
+        userAPage.getByText("[E2E] This is a nested reply to User B")
+      ).toBeVisible({ timeout: 15_000 });
+    });
+  });
+
+  test.describe("Discussion voting", () => {
+    test("team member can upvote and remove upvote", async ({ userBPage }) => {
+      const discussion = await createTestDiscussion(ideaId, userAId, {
+        title: "[E2E] Voting Test Discussion",
+        body: "[E2E] Discussion for testing upvotes.",
+      });
+
+      await userBPage.goto(`/ideas/${ideaId}/discussions/${discussion.id}`);
+
+      // Wait for the discussion to load
+      await expect(
+        userBPage.getByRole("heading", { name: "[E2E] Voting Test Discussion" })
+      ).toBeVisible({ timeout: 15_000 });
+
+      // Find the vote button (ChevronUp icon + count)
+      const voteButton = userBPage.locator("button").filter({ hasText: "0" }).first();
+      await expect(voteButton).toBeVisible({ timeout: 5_000 });
+
+      // Click to upvote
+      await voteButton.click();
+
+      // Count should update to 1 (optimistic)
+      await expect(
+        userBPage.locator("button").filter({ hasText: "1" }).first()
+      ).toBeVisible({ timeout: 5_000 });
+
+      // Click again to remove upvote
+      await userBPage.locator("button").filter({ hasText: "1" }).first().click();
+
+      // Count should go back to 0
+      await expect(
+        userBPage.locator("button").filter({ hasText: "0" }).first()
+      ).toBeVisible({ timeout: 5_000 });
+    });
+  });
+
+  test.describe("Guest access", () => {
+    test("non-team member can view public discussion but cannot reply", async ({ freshPage }) => {
+      const discussion = await createTestDiscussion(ideaId, userAId, {
+        title: "[E2E] Guest View Discussion",
+        body: "[E2E] A guest should see this but not interact.",
+      });
+
+      await freshPage.goto(`/ideas/${ideaId}/discussions/${discussion.id}`);
+
+      // The discussion title and body should be visible
+      await expect(
+        freshPage.getByRole("heading", { name: "[E2E] Guest View Discussion" })
+      ).toBeVisible({ timeout: 15_000 });
+      await expect(
+        freshPage.getByText("A guest should see this but not interact")
+      ).toBeVisible();
+
+      // Reply form should NOT be visible (non-team member)
+      await expect(
+        freshPage.getByPlaceholder(/write a reply/i)
+      ).not.toBeVisible();
+
+      // Action buttons (Resolve, Pin, Delete, Edit) should NOT be visible
+      await expect(
+        freshPage.getByRole("button", { name: "Resolve" })
+      ).not.toBeVisible();
+      await expect(
+        freshPage.getByRole("button", { name: "Pin" })
+      ).not.toBeVisible();
+      await expect(
+        freshPage.getByRole("button", { name: "Delete" })
+      ).not.toBeVisible();
+    });
+
+    test("non-team member can view discussion list", async ({ freshPage }) => {
+      await createTestDiscussion(ideaId, userAId, {
+        title: "[E2E] Listed For Guest",
+        body: "[E2E] Guests should see this in the list.",
+      });
+
+      await freshPage.goto(`/ideas/${ideaId}/discussions`);
+
+      // Discussion should be visible in the list
+      await expect(
+        freshPage.getByText("[E2E] Listed For Guest")
+      ).toBeVisible({ timeout: 15_000 });
+
+      // "New Discussion" button should NOT be visible for non-team members
+      await expect(
+        freshPage.getByRole("link", { name: /new discussion/i })
+      ).not.toBeVisible();
+    });
+  });
+
   test.describe("Convert to task", () => {
     let boardColumns: { id: string; title: string }[];
 

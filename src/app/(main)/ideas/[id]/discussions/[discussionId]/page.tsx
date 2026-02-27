@@ -86,12 +86,14 @@ export default async function DiscussionDetailPage({ params }: PageProps) {
   const isAuthorOrOwner =
     user.id === discussion.author_id || user.id === idea.author_id;
 
-  // Fetch columns, current user, vote status, and converted task in parallel
+  // Fetch columns, current user, vote status, converted task, collaborators, and bots in parallel
   const [
     { data: columns },
     { data: currentUser },
     { data: vote },
     convertedTaskResult,
+    { data: ideaAuthor },
+    { data: collabs },
   ] = await Promise.all([
     supabase
       .from("board_columns")
@@ -116,11 +118,51 @@ export default async function DiscussionDetailPage({ params }: PageProps) {
           .eq("discussion_id", discussionId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    supabase
+      .from("users")
+      .select("*")
+      .eq("id", idea.author_id)
+      .single(),
+    supabase
+      .from("collaborators")
+      .select("*, user:users!collaborators_user_id_fkey(*)")
+      .eq("idea_id", ideaId),
   ]);
 
   const typedColumns = (columns ?? []) as BoardColumn[];
   const hasVotedOnDiscussion = !!vote;
   const convertedTaskId = convertedTaskResult.data?.id ?? null;
+
+  // Build team members list (author + collaborators, deduplicated)
+  const teamMembersMap = new Map<string, User>();
+  if (ideaAuthor) teamMembersMap.set(ideaAuthor.id, ideaAuthor as User);
+  for (const c of collabs ?? []) {
+    const u = c.user as unknown as User;
+    if (u && !teamMembersMap.has(u.id)) teamMembersMap.set(u.id, u);
+  }
+
+  // Fetch active bots owned by the current user and add their user records
+  {
+    const { data: botProfiles } = await supabase
+      .from("bot_profiles")
+      .select("id")
+      .eq("owner_id", user.id)
+      .eq("is_active", true);
+
+    if (botProfiles && botProfiles.length > 0) {
+      const botUserIds = botProfiles.map((b) => b.id);
+      const { data: botUsers } = await supabase
+        .from("users")
+        .select("*")
+        .in("id", botUserIds);
+
+      for (const bu of botUsers ?? []) {
+        if (!teamMembersMap.has(bu.id)) teamMembersMap.set(bu.id, bu as User);
+      }
+    }
+  }
+
+  const teamMembers = Array.from(teamMembersMap.values());
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
@@ -141,6 +183,7 @@ export default async function DiscussionDetailPage({ params }: PageProps) {
         columns={typedColumns}
         convertedTaskId={convertedTaskId}
         hasVoted={hasVotedOnDiscussion}
+        teamMembers={teamMembers}
       />
     </div>
   );

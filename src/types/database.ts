@@ -22,6 +22,7 @@ export type Database = {
             email_notifications: boolean;
             collaboration_requests: boolean;
             collaboration_responses: boolean;
+            discussion_mentions: boolean;
           };
           default_board_columns: { title: string; is_done_column: boolean }[] | null;
           is_admin: boolean;
@@ -52,6 +53,7 @@ export type Database = {
             email_notifications: boolean;
             collaboration_requests: boolean;
             collaboration_responses: boolean;
+            discussion_mentions: boolean;
           };
           default_board_columns?: { title: string; is_done_column: boolean }[] | null;
           is_admin?: boolean;
@@ -82,6 +84,7 @@ export type Database = {
             email_notifications: boolean;
             collaboration_requests: boolean;
             collaboration_responses: boolean;
+            discussion_mentions: boolean;
           };
           default_board_columns?: { title: string; is_done_column: boolean }[] | null;
           is_admin?: boolean;
@@ -792,7 +795,8 @@ export type Database = {
             | "collaboration_request"
             | "collaboration_response"
             | "discussion"
-            | "discussion_reply";
+            | "discussion_reply"
+            | "discussion_mention";
           idea_id: string | null;
           comment_id: string | null;
           task_id: string | null;
@@ -816,7 +820,8 @@ export type Database = {
             | "collaboration_request"
             | "collaboration_response"
             | "discussion"
-            | "discussion_reply";
+            | "discussion_reply"
+            | "discussion_mention";
           idea_id?: string | null;
           comment_id?: string | null;
           task_id?: string | null;
@@ -840,7 +845,8 @@ export type Database = {
             | "collaboration_request"
             | "collaboration_response"
             | "discussion"
-            | "discussion_reply";
+            | "discussion_reply"
+            | "discussion_mention";
           idea_id?: string | null;
           comment_id?: string | null;
           task_id?: string | null;
@@ -1364,7 +1370,8 @@ export type Database = {
         | "collaboration_request"
         | "collaboration_response"
         | "discussion"
-        | "discussion_reply";
+        | "discussion_reply"
+        | "discussion_mention";
       collaboration_request_status: "pending" | "accepted" | "declined";
       discussion_status: "open" | "resolved" | "converted";
     };

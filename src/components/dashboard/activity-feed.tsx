@@ -25,7 +25,12 @@ function getIcon(type: string): LucideIcon {
     case "status_change":
       return ArrowRightLeft;
     case "task_mention":
+    case "comment_mention":
+    case "discussion_mention":
       return AtSign;
+    case "discussion":
+    case "discussion_reply":
+      return MessageSquare;
     default:
       return MessageSquare;
   }
@@ -45,6 +50,14 @@ function getMessage(type: string): string {
       return "updated the status of";
     case "task_mention":
       return "mentioned you in a task on";
+    case "comment_mention":
+      return "mentioned you in a comment on";
+    case "discussion_mention":
+      return "mentioned you in a discussion on";
+    case "discussion":
+      return "started a discussion on";
+    case "discussion_reply":
+      return "replied to a discussion on";
     case "collaboration_request":
       return "requested to collaborate on";
     case "collaboration_response":
@@ -106,9 +119,14 @@ export function ActivityFeed({ notifications }: ActivityFeedProps) {
         }`;
 
         if (notification.idea_id) {
-          const href = notification.task_id
-            ? `/ideas/${notification.idea_id}/board?taskId=${notification.task_id}`
-            : `/ideas/${notification.idea_id}`;
+          let href: string;
+          if (notification.task_id) {
+            href = `/ideas/${notification.idea_id}/board?taskId=${notification.task_id}`;
+          } else if (notification.discussion_id) {
+            href = `/ideas/${notification.idea_id}/discussions/${notification.discussion_id}`;
+          } else {
+            href = `/ideas/${notification.idea_id}`;
+          }
           return (
             <Link key={notification.id} href={href} className={`block ${className}`}>
               {content}
