@@ -35,6 +35,7 @@ export async function logAiUsage(
     outputTokens: number;
     model: string;
     ideaId: string | null;
+    keyType?: "platform" | "byok";
   }
 ) {
   await supabase.from("ai_usage_log").insert({
@@ -43,7 +44,7 @@ export async function logAiUsage(
     input_tokens: params.inputTokens,
     output_tokens: params.outputTokens,
     model: params.model,
-    key_type: "byok",
+    key_type: params.keyType ?? "byok",
     idea_id: params.ideaId,
   });
 }

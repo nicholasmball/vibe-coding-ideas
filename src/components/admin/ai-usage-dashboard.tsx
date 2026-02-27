@@ -37,6 +37,7 @@ const ACTION_LABELS: Record<string, string> = {
   generate_questions: "Generate Questions",
   enhance_with_context: "Enhance with Context",
   generate_board_tasks: "Generate Board Tasks",
+  enhance_task_description: "Enhance Task Description",
 };
 
 function estimateCost(inputTokens: number, outputTokens: number): number {
@@ -77,6 +78,8 @@ export function AiUsageDashboard({
     let monthCalls = 0;
     let totalInputTokens = 0;
     let totalOutputTokens = 0;
+    let platformInputTokens = 0;
+    let platformOutputTokens = 0;
 
     for (const log of usageLogs) {
       const logDate = new Date(log.created_at);
@@ -85,6 +88,10 @@ export function AiUsageDashboard({
       if (logDate >= monthAgo) monthCalls++;
       totalInputTokens += log.input_tokens;
       totalOutputTokens += log.output_tokens;
+      if (log.key_type === "platform") {
+        platformInputTokens += log.input_tokens;
+        platformOutputTokens += log.output_tokens;
+      }
     }
 
     return {
@@ -96,6 +103,7 @@ export function AiUsageDashboard({
       totalOutputTokens,
       totalTokens: totalInputTokens + totalOutputTokens,
       estimatedCost: estimateCost(totalInputTokens, totalOutputTokens),
+      platformCost: estimateCost(platformInputTokens, platformOutputTokens),
     };
   }, [usageLogs]);
 
@@ -158,9 +166,9 @@ export function AiUsageDashboard({
         />
         <StatCard
           icon={<Coins className="h-4 w-4" />}
-          label="Est. Cost (all BYOK)"
+          label="Est. Cost"
           value={`$${stats.estimatedCost.toFixed(2)}`}
-          detail="$3/M input + $15/M output"
+          detail={`Platform: $${stats.platformCost.toFixed(2)} / BYOK: $${(stats.estimatedCost - stats.platformCost).toFixed(2)}`}
         />
       </div>
 
@@ -173,6 +181,7 @@ export function AiUsageDashboard({
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Action</TableHead>
+                <TableHead>Source</TableHead>
                 <TableHead className="text-right">Tokens</TableHead>
                 <TableHead>Time</TableHead>
               </TableRow>
@@ -200,6 +209,15 @@ export function AiUsageDashboard({
                       {ACTION_LABELS[log.action_type] ?? log.action_type}
                     </span>
                   </td>
+                  <td className="p-2">
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      log.key_type === "platform"
+                        ? "bg-amber-500/10 text-amber-500"
+                        : "bg-emerald-500/10 text-emerald-500"
+                    }`}>
+                      {log.key_type === "platform" ? "Platform" : "BYOK"}
+                    </span>
+                  </td>
                   <td className="p-2 text-right">
                     <span className="text-xs text-muted-foreground">
                       {formatNumber(log.input_tokens + log.output_tokens)}
@@ -214,7 +232,7 @@ export function AiUsageDashboard({
               ))}
               {usageLogs.length === 0 && (
                 <TableRow>
-                  <td colSpan={4} className="p-8 text-center text-sm text-muted-foreground">
+                  <td colSpan={5} className="p-8 text-center text-sm text-muted-foreground">
                     No AI usage recorded yet.
                   </td>
                 </TableRow>

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { generateText } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
-import { AI_MODEL } from "@/lib/ai-helpers";
+import { AI_MODEL, logAiUsage } from "@/lib/ai-helpers";
 import {
   validateTitle,
   validateOptionalDescription,
@@ -163,15 +163,18 @@ export async function enhanceOnboardingDescription(data: {
   const anthropic = createAnthropic({ apiKey: platformKey });
 
   let text: string;
+  let usage: { inputTokens?: number; outputTokens?: number } = {};
   try {
-    ({ text } = await generateText({
+    const result = await generateText({
       model: anthropic(AI_MODEL),
       system:
         "You are a concise product writer. The user is creating their first idea on a project management platform. Expand their rough description into a clear, compelling 2-3 paragraph summary. Keep the original voice and intent — just make it clearer and more complete. Return ONLY the improved description, no preamble.",
       prompt: `**Title:** ${title}\n\n**Description:**\n${description || title}`,
       maxOutputTokens: 1000,
       abortSignal: AbortSignal.timeout(ONBOARDING_ENHANCE_TIMEOUT_MS),
-    }));
+    });
+    text = result.text;
+    usage = result.usage ?? {};
   } catch (err) {
     console.error("[Onboarding AI Error]", err);
     if (err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError")) {
@@ -179,6 +182,17 @@ export async function enhanceOnboardingDescription(data: {
     }
     throw new Error("Failed to enhance description");
   }
+
+  // Log platform AI usage for cost monitoring
+  await logAiUsage(supabase, {
+    userId: user.id,
+    actionType: "enhance_description",
+    inputTokens: usage.inputTokens ?? 0,
+    outputTokens: usage.outputTokens ?? 0,
+    model: AI_MODEL,
+    ideaId: null,
+    keyType: "platform",
+  });
 
   return { enhanced: text };
 }

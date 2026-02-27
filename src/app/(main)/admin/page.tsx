@@ -44,7 +44,7 @@ export default async function AdminPage({ searchParams }: PageProps) {
   if (action && action !== "all") {
     usageQuery = usageQuery.eq(
       "action_type",
-      action as "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks"
+      action as "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description"
     );
   }
 
