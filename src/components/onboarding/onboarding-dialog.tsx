@@ -216,7 +216,7 @@ export function OnboardingDialog({
         {/* Step content — conditionally rendered */}
         <div
           key={step}
-          className="animate-in fade-in-0 duration-300 relative z-[1]"
+          className="animate-in fade-in-0 duration-300 relative z-[1] min-w-0"
         >
           {step === 0 && (
             <div className="px-8 pt-6 pb-8 sm:px-10">
@@ -521,7 +521,7 @@ export function OnboardingDialog({
           )}
 
           {step === 3 && (
-            <div className="px-5 pt-8 pb-8 sm:px-10">
+            <div className="overflow-hidden px-6 pt-8 pb-8 sm:px-10">
               <Confetti />
 
               <div
@@ -556,7 +556,7 @@ export function OnboardingDialog({
                       <p className="text-sm font-semibold text-foreground">
                         View your board
                       </p>
-                      <p className="truncate text-xs text-muted-foreground">
+                      <p className="text-xs leading-relaxed text-muted-foreground">
                         Use AI Generate to create tasks, labels, and milestones
                       </p>
                     </div>
@@ -575,7 +575,7 @@ export function OnboardingDialog({
                     <p className="text-sm font-semibold text-foreground">
                       Set up an AI agent
                     </p>
-                    <p className="truncate text-xs text-muted-foreground">
+                    <p className="text-xs leading-relaxed text-muted-foreground">
                       Create your agent team to direct through Claude Code via MCP
                     </p>
                   </div>
@@ -591,8 +591,8 @@ export function OnboardingDialog({
                       <p className="text-sm font-semibold text-foreground">
                         Connect Claude Code
                       </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        Connect Claude Code to manage tasks, switch agent identities, and ship code
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        Manage tasks, switch agent identities, and ship code
                       </p>
                     </div>
                   </div>
