@@ -27,6 +27,18 @@ INSERT INTO auth.users (
   '', '', ''
 ) ON CONFLICT (id) DO NOTHING;
 
+INSERT INTO auth.identities (
+  id, user_id, provider_id, provider, identity_data,
+  last_sign_in_at, created_at, updated_at
+) VALUES (
+  'a1111111-1111-4111-a111-111111111111',
+  'a1111111-1111-4111-a111-111111111111',
+  'a1111111-1111-4111-a111-111111111111',
+  'email',
+  '{"sub": "a1111111-1111-4111-a111-111111111111", "email": "admin@example.com", "email_verified": true}',
+  now(), now(), now()
+) ON CONFLICT (provider_id, provider) DO NOTHING;
+
 -- The handle_new_user trigger creates the public.users row automatically.
 -- Now grant admin privileges.
 UPDATE public.users
@@ -55,6 +67,18 @@ INSERT INTO auth.users (
   '', '', '',
   '', '', ''
 ) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.identities (
+  id, user_id, provider_id, provider, identity_data,
+  last_sign_in_at, created_at, updated_at
+) VALUES (
+  'a2222222-2222-4222-a222-222222222222',
+  'a2222222-2222-4222-a222-222222222222',
+  'a2222222-2222-4222-a222-222222222222',
+  'email',
+  '{"sub": "a2222222-2222-4222-a222-222222222222", "email": "guest@example.com", "email_verified": true}',
+  now(), now(), now()
+) ON CONFLICT (provider_id, provider) DO NOTHING;
 
 UPDATE public.users
 SET full_name = 'Guest User'
