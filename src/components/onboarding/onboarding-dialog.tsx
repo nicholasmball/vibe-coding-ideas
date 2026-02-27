@@ -576,7 +576,7 @@ export function OnboardingDialog({
                       Set up an AI agent
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Create AI personas to direct through Claude Code via MCP
+                      Create your agent team to direct through Claude Code via MCP
                     </p>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground" />
@@ -592,7 +592,7 @@ export function OnboardingDialog({
                         Connect Claude Code
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Link your AI assistant via MCP for full board control
+                        Connect Claude Code to manage tasks, switch agent identities, and ship code
                       </p>
                     </div>
                   </div>
