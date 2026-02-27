@@ -521,7 +521,7 @@ export function OnboardingDialog({
           )}
 
           {step === 3 && (
-            <div className="px-8 pt-8 pb-8 sm:px-10">
+            <div className="px-5 pt-8 pb-8 sm:px-10">
               <Confetti />
 
               <div
@@ -547,56 +547,56 @@ export function OnboardingDialog({
                 {createdIdeaId && (
                   <a
                     href={`/ideas/${createdIdeaId}/board`}
-                    className="group flex items-center gap-3.5 rounded-xl border border-border/60 bg-card/60 p-3.5 transition-colors hover:border-border hover:bg-card/80"
+                    className="group flex items-center gap-3 rounded-xl border border-border/60 bg-card/60 p-3 transition-colors hover:border-border hover:bg-card/80 sm:gap-3.5 sm:p-3.5"
                   >
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-400/10">
                       <LayoutGrid className="h-[18px] w-[18px] text-violet-400" />
                     </div>
-                    <div className="flex-1">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-foreground">
                         View your board
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="truncate text-xs text-muted-foreground">
                         Use AI Generate to create tasks, labels, and milestones
                       </p>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground" />
+                    <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground sm:block" />
                   </a>
                 )}
 
                 <a
                   href="/agents"
-                  className="group flex items-center gap-3.5 rounded-xl border border-border/60 bg-card/60 p-3.5 transition-colors hover:border-border hover:bg-card/80"
+                  className="group flex items-center gap-3 rounded-xl border border-border/60 bg-card/60 p-3 transition-colors hover:border-border hover:bg-card/80 sm:gap-3.5 sm:p-3.5"
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-400/10">
                     <Bot className="h-[18px] w-[18px] text-amber-400" />
                   </div>
-                  <div className="flex-1">
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-foreground">
                       Set up an AI agent
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="truncate text-xs text-muted-foreground">
                       Create your agent team to direct through Claude Code via MCP
                     </p>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground" />
+                  <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground/40 transition-transform group-hover:translate-x-0.5 group-hover:text-muted-foreground sm:block" />
                 </a>
 
-                <div className="group overflow-hidden rounded-xl border border-border/60 bg-card/60 p-3.5 transition-colors hover:border-border hover:bg-card/80">
-                  <div className="flex items-center gap-3.5">
+                <div className="group overflow-hidden rounded-xl border border-border/60 bg-card/60 p-3 transition-colors hover:border-border hover:bg-card/80 sm:p-3.5">
+                  <div className="flex items-center gap-3 sm:gap-3.5">
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-sky-400/10">
                       <Cable className="h-[18px] w-[18px] text-sky-400" />
                     </div>
-                    <div className="flex-1">
+                    <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-foreground">
                         Connect Claude Code
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="truncate text-xs text-muted-foreground">
                         Connect Claude Code to manage tasks, switch agent identities, and ship code
                       </p>
                     </div>
                   </div>
-                  <div className="mt-2.5 pl-[52px]">
+                  <div className="mt-2.5 sm:pl-[52px]">
                     <button
                       onClick={copyMcpCommand}
                       className={`flex w-full items-center gap-2 rounded-lg border px-3 py-2 font-mono text-[11px] transition-all ${
