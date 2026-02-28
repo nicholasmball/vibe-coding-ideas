@@ -23,6 +23,7 @@ export type Database = {
             collaboration_requests: boolean;
             collaboration_responses: boolean;
             discussion_mentions: boolean;
+            discussions: boolean;
           };
           default_board_columns: { title: string; is_done_column: boolean }[] | null;
           is_admin: boolean;
@@ -54,6 +55,7 @@ export type Database = {
             collaboration_requests: boolean;
             collaboration_responses: boolean;
             discussion_mentions: boolean;
+            discussions: boolean;
           };
           default_board_columns?: { title: string; is_done_column: boolean }[] | null;
           is_admin?: boolean;
@@ -85,6 +87,7 @@ export type Database = {
             collaboration_requests: boolean;
             collaboration_responses: boolean;
             discussion_mentions: boolean;
+            discussions: boolean;
           };
           default_board_columns?: { title: string; is_done_column: boolean }[] | null;
           is_admin?: boolean;
