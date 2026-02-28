@@ -802,6 +802,7 @@ export type Database = {
           task_id: string | null;
           collaboration_request_id: string | null;
           discussion_id: string | null;
+          reply_id: string | null;
           read: boolean;
           created_at: string;
         };
@@ -827,6 +828,7 @@ export type Database = {
           task_id?: string | null;
           collaboration_request_id?: string | null;
           discussion_id?: string | null;
+          reply_id?: string | null;
           read?: boolean;
           created_at?: string;
         };
@@ -852,6 +854,7 @@ export type Database = {
           task_id?: string | null;
           collaboration_request_id?: string | null;
           discussion_id?: string | null;
+          reply_id?: string | null;
           read?: boolean;
           created_at?: string;
         };
@@ -903,6 +906,13 @@ export type Database = {
             columns: ["discussion_id"];
             isOneToOne: false;
             referencedRelation: "idea_discussions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notifications_reply_id_fkey";
+            columns: ["reply_id"];
+            isOneToOne: false;
+            referencedRelation: "idea_discussion_replies";
             referencedColumns: ["id"];
           },
         ];
@@ -1081,7 +1091,7 @@ export type Database = {
         Row: {
           id: string;
           user_id: string;
-          action_type: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description";
+          action_type: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description" | "enhance_discussion_body";
           input_tokens: number;
           output_tokens: number;
           model: string;
@@ -1092,7 +1102,7 @@ export type Database = {
         Insert: {
           id?: string;
           user_id: string;
-          action_type: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description";
+          action_type: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description" | "enhance_discussion_body";
           input_tokens?: number;
           output_tokens?: number;
           model: string;
@@ -1103,7 +1113,7 @@ export type Database = {
         Update: {
           id?: string;
           user_id?: string;
-          action_type?: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description";
+          action_type?: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description" | "enhance_discussion_body";
           input_tokens?: number;
           output_tokens?: number;
           model?: string;
@@ -1135,11 +1145,13 @@ export type Database = {
           author_id: string;
           title: string;
           body: string;
-          status: "open" | "resolved" | "converted";
+          status: "open" | "resolved" | "ready_to_convert" | "converted";
           pinned: boolean;
           upvotes: number;
           reply_count: number;
           last_activity_at: string;
+          target_column_id: string | null;
+          target_assignee_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1149,11 +1161,13 @@ export type Database = {
           author_id: string;
           title: string;
           body: string;
-          status?: "open" | "resolved" | "converted";
+          status?: "open" | "resolved" | "ready_to_convert" | "converted";
           pinned?: boolean;
           upvotes?: number;
           reply_count?: number;
           last_activity_at?: string;
+          target_column_id?: string | null;
+          target_assignee_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1163,11 +1177,13 @@ export type Database = {
           author_id?: string;
           title?: string;
           body?: string;
-          status?: "open" | "resolved" | "converted";
+          status?: "open" | "resolved" | "ready_to_convert" | "converted";
           pinned?: boolean;
           upvotes?: number;
           reply_count?: number;
           last_activity_at?: string;
+          target_column_id?: string | null;
+          target_assignee_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -1182,6 +1198,20 @@ export type Database = {
           {
             foreignKeyName: "idea_discussions_author_id_fkey";
             columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "idea_discussions_target_column_id_fkey";
+            columns: ["target_column_id"];
+            isOneToOne: false;
+            referencedRelation: "board_columns";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "idea_discussions_target_assignee_id_fkey";
+            columns: ["target_assignee_id"];
             isOneToOne: false;
             referencedRelation: "users";
             referencedColumns: ["id"];
@@ -1373,7 +1403,7 @@ export type Database = {
         | "discussion_reply"
         | "discussion_mention";
       collaboration_request_status: "pending" | "accepted" | "declined";
-      discussion_status: "open" | "resolved" | "converted";
+      discussion_status: "open" | "resolved" | "ready_to_convert" | "converted";
     };
     CompositeTypes: {
       [_ in never]: never;

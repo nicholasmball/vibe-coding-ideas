@@ -42,8 +42,9 @@ export default async function NewDiscussionPage({ params }: PageProps) {
     notFound();
   }
 
-  // Fetch author, collaborators, and bot profiles for mention support
-  const [{ data: ideaAuthor }, { data: collabs }, { data: botProfiles }] = await Promise.all([
+  // Fetch current user profile, author, collaborators, and bot profiles
+  const [{ data: currentUserProfile }, { data: ideaAuthor }, { data: collabs }, { data: botProfiles }] = await Promise.all([
+    supabase.from("users").select("*").eq("id", user.id).single(),
     supabase.from("users").select("*").eq("id", idea.author_id).single(),
     supabase
       .from("collaborators")
@@ -94,6 +95,7 @@ export default async function NewDiscussionPage({ params }: PageProps) {
         ideaId={ideaId}
         teamMembers={teamMembers}
         currentUserId={user.id}
+        hasApiKey={!!currentUserProfile?.encrypted_anthropic_key}
       />
     </div>
   );

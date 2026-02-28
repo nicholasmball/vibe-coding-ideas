@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Sparkles, Loader2 } from "lucide-react";
 import { MentionAutocomplete } from "@/components/board/mention-autocomplete";
 import { createDiscussion } from "@/actions/discussions";
+import { enhanceDiscussionBody } from "@/actions/ai";
 import { useMentionState } from "@/hooks/use-mentions";
 import { sendDiscussionMentionNotifications } from "@/lib/mention-notifications";
 import { MAX_TITLE_LENGTH, MAX_DISCUSSION_BODY_LENGTH } from "@/lib/validation";
@@ -18,17 +20,35 @@ interface NewDiscussionFormProps {
   ideaId: string;
   teamMembers?: User[];
   currentUserId?: string;
+  hasApiKey?: boolean;
 }
 
 export function NewDiscussionForm({
   ideaId,
   teamMembers = [],
   currentUserId,
+  hasApiKey = false,
 }: NewDiscussionFormProps) {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [enhancing, setEnhancing] = useState(false);
+
+  const showAiEnhance = hasApiKey && body.trim().length > 0;
+
+  async function handleEnhanceBody() {
+    setEnhancing(true);
+    try {
+      const { enhanced } = await enhanceDiscussionBody(ideaId, title, body);
+      setBody(enhanced);
+      toast.success("Body enhanced");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to enhance");
+    } finally {
+      setEnhancing(false);
+    }
+  }
 
   const mention = useMentionState(teamMembers);
 
@@ -128,6 +148,23 @@ export function NewDiscussionForm({
         >
           Cancel
         </Button>
+        {showAiEnhance && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleEnhanceBody}
+            disabled={enhancing || isSubmitting}
+            className="gap-1.5 text-xs text-muted-foreground"
+          >
+            {enhancing ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" />
+            )}
+            {enhancing ? "Enhancing..." : "Enhance with AI"}
+          </Button>
+        )}
       </div>
     </form>
   );

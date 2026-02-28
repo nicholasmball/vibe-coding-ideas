@@ -8,10 +8,13 @@ import {
   MessageSquare,
   Check,
   ArrowRightLeft,
+  ClipboardCheck,
   Pin,
   Trash2,
   Pencil,
   Reply,
+  Sparkles,
+  Loader2,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -27,12 +30,14 @@ import {
   updateDiscussionReply,
   deleteDiscussionReply,
 } from "@/actions/discussions";
+import { enhanceDiscussionBody } from "@/actions/ai";
 import { useMentionState } from "@/hooks/use-mentions";
 import { sendDiscussionMentionNotifications } from "@/lib/mention-notifications";
 import { formatRelativeTime } from "@/lib/utils";
 import { DiscussionReplyForm } from "./discussion-reply-form";
 import { DiscussionVoteButton } from "./discussion-vote-button";
 import { ConvertToTaskDialog } from "./convert-to-task-dialog";
+import { ReadyToConvertDialog } from "./ready-to-convert-dialog";
 import type {
   IdeaDiscussionDetail,
   IdeaDiscussionReplyWithAuthor,
@@ -51,6 +56,11 @@ const STATUS_CONFIG = {
     label: "Resolved",
     icon: Check,
     className: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+  },
+  ready_to_convert: {
+    label: "Ready to Convert",
+    icon: ClipboardCheck,
+    className: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   },
   converted: {
     label: "Converted",
@@ -95,6 +105,7 @@ interface DiscussionThreadProps {
   convertedTaskId?: string | null;
   hasVoted?: boolean;
   teamMembers?: User[];
+  hasApiKey?: boolean;
 }
 
 export function DiscussionThread({
@@ -107,6 +118,7 @@ export function DiscussionThread({
   convertedTaskId,
   hasVoted = false,
   teamMembers = [],
+  hasApiKey = false,
 }: DiscussionThreadProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
@@ -114,10 +126,27 @@ export function DiscussionThread({
   const [editTitle, setEditTitle] = useState(discussion.title);
   const [editBody, setEditBody] = useState(discussion.body);
   const [isSaving, setIsSaving] = useState(false);
+  const [enhancing, setEnhancing] = useState(false);
   const config = STATUS_CONFIG[discussion.status];
   const StatusIcon = config.icon;
 
+  const showAiEnhance = hasApiKey && discussion.body.trim().length > 10;
+
   const mention = useMentionState(teamMembers);
+
+  async function handleEnhanceBody() {
+    setEnhancing(true);
+    try {
+      const { enhanced } = await enhanceDiscussionBody(ideaId, discussion.title, discussion.body);
+      await updateDiscussion(discussion.id, ideaId, { body: enhanced });
+      toast.success("Body enhanced");
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to enhance");
+    } finally {
+      setEnhancing(false);
+    }
+  }
 
   const replyTree = useMemo(
     () => buildReplyTree(discussion.replies),
@@ -125,7 +154,7 @@ export function DiscussionThread({
   );
 
   const canReply =
-    isTeamMember && discussion.status !== "converted" && !!currentUser;
+    isTeamMember && discussion.status !== "converted" && discussion.status !== "ready_to_convert" && !!currentUser;
 
   async function handleResolve() {
     try {
@@ -231,6 +260,16 @@ export function DiscussionThread({
 
   return (
     <div className="space-y-6">
+      {/* Ready to convert banner */}
+      {discussion.status === "ready_to_convert" && (
+        <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-sm">
+          <ClipboardCheck className="h-4 w-4 text-amber-400" />
+          <span className="text-amber-300">
+            Queued for conversion — an agent will create a task shortly.
+          </span>
+        </div>
+      )}
+
       {/* Converted banner */}
       {discussion.status === "converted" && convertedTaskId && (
         <div className="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/5 p-3 text-sm">
@@ -274,7 +313,6 @@ export function DiscussionThread({
             </Badge>
           )}
           <span className="text-xs text-muted-foreground">
-            {discussion.reply_count} {discussion.reply_count === 1 ? "reply" : "replies"} &middot;
             Last activity {formatRelativeTime(discussion.last_activity_at)}
           </span>
           {/* Right-aligned action buttons */}
@@ -301,25 +339,58 @@ export function DiscussionThread({
               </Button>
               <div className="mx-1 h-4 w-px bg-border" />
               {discussion.status === "open" ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleResolve}
-                  className="gap-1.5"
-                >
-                  <Check className="h-3.5 w-3.5" />
-                  Resolve
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleResolve}
+                    className="gap-1.5"
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                    Resolve
+                  </Button>
+                  <ReadyToConvertDialog
+                    discussion={discussion}
+                    ideaId={ideaId}
+                    columns={columns}
+                    teamMembers={teamMembers}
+                  />
+                </>
               ) : discussion.status === "resolved" ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleReopen}
-                  className="gap-1.5"
-                >
-                  <MessageSquare className="h-3.5 w-3.5" />
-                  Reopen
-                </Button>
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleReopen}
+                    className="gap-1.5"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    Reopen
+                  </Button>
+                  <ReadyToConvertDialog
+                    discussion={discussion}
+                    ideaId={ideaId}
+                    columns={columns}
+                    teamMembers={teamMembers}
+                  />
+                </>
+              ) : discussion.status === "ready_to_convert" ? (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleReopen}
+                    className="gap-1.5"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    Cancel
+                  </Button>
+                  <ConvertToTaskDialog
+                    discussion={discussion}
+                    ideaId={ideaId}
+                    columns={columns}
+                  />
+                </>
               ) : null}
             </div>
           )}
@@ -340,7 +411,7 @@ export function DiscussionThread({
           </span>
           {discussion.author.is_bot && (
             <Badge variant="outline" className="text-[10px]">
-              Bot
+              Agent
             </Badge>
           )}
           <Badge variant="outline" className="bg-violet-500/10 border-violet-500/20 text-violet-400 text-[10px]">
@@ -395,13 +466,13 @@ export function DiscussionThread({
             </div>
           </div>
         ) : (
-          <div className="mt-3 text-sm">
+          <div className="mt-3 mb-2 text-sm">
             <Markdown teamMembers={teamMembers}>{discussion.body}</Markdown>
           </div>
         )}
         {/* Post footer: vote + edit */}
         {!isEditing && (
-          <div className="mt-4 flex items-center gap-3 border-t border-border pt-3">
+          <div className="mt-6 flex items-center gap-3 border-t border-border pt-4">
             <DiscussionVoteButton
               discussionId={discussion.id}
               ideaId={ideaId}
@@ -415,6 +486,20 @@ export function DiscussionThread({
               >
                 <Pencil className="h-3.5 w-3.5" />
                 Edit
+              </button>
+            )}
+            {showAiEnhance && discussion.status !== "converted" && (
+              <button
+                onClick={handleEnhanceBody}
+                disabled={enhancing}
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+              >
+                {enhancing ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3.5 w-3.5" />
+                )}
+                {enhancing ? "Enhancing..." : "Enhance"}
               </button>
             )}
           </div>
@@ -515,7 +600,8 @@ function ReplyItem({
           currentUser.id,
           teamMembers,
           ideaId,
-          discussionId
+          discussionId,
+          reply.id
         );
       }
 
@@ -554,7 +640,7 @@ function ReplyItem({
             </span>
             {reply.author.is_bot && (
               <Badge variant="outline" className="text-[10px]">
-                Bot
+                Agent
               </Badge>
             )}
             {reply.author_id === discussionAuthorId && (
@@ -739,7 +825,8 @@ function ChildReplyItem({
           currentUser.id,
           teamMembers,
           ideaId,
-          discussionId
+          discussionId,
+          reply.id
         );
       }
 
@@ -777,7 +864,7 @@ function ChildReplyItem({
           </span>
           {reply.author.is_bot && (
             <Badge variant="outline" className="text-[10px]">
-              Bot
+              Agent
             </Badge>
           )}
           {reply.author_id === discussionAuthorId && (

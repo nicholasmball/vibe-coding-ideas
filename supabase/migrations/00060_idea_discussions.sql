@@ -17,11 +17,13 @@ CREATE TABLE idea_discussions (
   author_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   title varchar(200) NOT NULL CHECK (char_length(title) >= 1),
   body text NOT NULL CHECK (char_length(body) BETWEEN 1 AND 10000),
-  status text NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'resolved', 'converted')),
+  status text NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'resolved', 'ready_to_convert', 'converted')),
   pinned boolean NOT NULL DEFAULT false,
   upvotes integer NOT NULL DEFAULT 0,
   reply_count integer NOT NULL DEFAULT 0,
   last_activity_at timestamptz NOT NULL DEFAULT now(),
+  target_column_id uuid REFERENCES board_columns(id) ON DELETE SET NULL,
+  target_assignee_id uuid REFERENCES users(id) ON DELETE SET NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -29,6 +31,8 @@ CREATE TABLE idea_discussions (
 CREATE INDEX idea_discussions_idea_id_idx ON idea_discussions(idea_id);
 CREATE INDEX idea_discussions_author_id_idx ON idea_discussions(author_id);
 CREATE INDEX idea_discussions_last_activity_idx ON idea_discussions(idea_id, last_activity_at DESC);
+CREATE INDEX idea_discussions_ready_to_convert_idx ON idea_discussions(idea_id)
+  WHERE status = 'ready_to_convert';
 
 CREATE TABLE idea_discussion_replies (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -396,3 +400,57 @@ $$ LANGUAGE plpgsql;
 UPDATE users
 SET notification_preferences = notification_preferences || '{"discussion_mentions": true}'::jsonb
 WHERE NOT (notification_preferences ? 'discussion_mentions');
+
+-- ============================================================================
+-- 12. Notifications: reply_id + expanded RLS for bot owners
+-- ============================================================================
+
+-- Add reply_id column for tracking which reply a mention came from
+ALTER TABLE notifications
+  ADD COLUMN IF NOT EXISTS reply_id uuid REFERENCES idea_discussion_replies(id) ON DELETE SET NULL;
+
+-- Sparse index: only index rows where reply_id is set
+CREATE INDEX IF NOT EXISTS notifications_reply_id_idx
+  ON notifications(reply_id) WHERE reply_id IS NOT NULL;
+
+-- Drop existing SELECT/UPDATE policies so we can replace them
+DROP POLICY IF EXISTS "Users can view their own notifications" ON notifications;
+DROP POLICY IF EXISTS "Users can update their own notifications" ON notifications;
+
+-- New SELECT policy: own notifications OR notifications for bots you own
+CREATE POLICY "Users can view own and bot notifications"
+  ON notifications FOR SELECT
+  USING (
+    auth.uid() = user_id
+    OR EXISTS (
+      SELECT 1 FROM bot_profiles
+      WHERE bot_profiles.id = notifications.user_id
+        AND bot_profiles.owner_id = auth.uid()
+    )
+  );
+
+-- New UPDATE policy: own notifications OR notifications for bots you own
+CREATE POLICY "Users can update own and bot notifications"
+  ON notifications FOR UPDATE
+  USING (
+    auth.uid() = user_id
+    OR EXISTS (
+      SELECT 1 FROM bot_profiles
+      WHERE bot_profiles.id = notifications.user_id
+        AND bot_profiles.owner_id = auth.uid()
+    )
+  );
+
+-- ============================================================================
+-- 13. Add "enhance_discussion_body" to ai_usage_log action types
+-- ============================================================================
+
+ALTER TABLE ai_usage_log DROP CONSTRAINT IF EXISTS ai_usage_log_action_type_check;
+ALTER TABLE ai_usage_log ADD CONSTRAINT ai_usage_log_action_type_check CHECK (action_type IN (
+    'enhance_description',
+    'generate_questions',
+    'enhance_with_context',
+    'generate_board_tasks',
+    'enhance_task_description',
+    'enhance_discussion_body'
+  ));

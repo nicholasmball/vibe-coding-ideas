@@ -182,6 +182,7 @@ export default async function DiscussionDetailPage({ params }: PageProps) {
         convertedTaskId={convertedTaskId}
         hasVoted={hasVotedOnDiscussion}
         teamMembers={teamMembers}
+        hasApiKey={!!(currentUser as User | null)?.encrypted_anthropic_key}
       />
     </div>
   );
