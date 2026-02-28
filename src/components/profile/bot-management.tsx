@@ -52,7 +52,7 @@ export function BotManagement({ bots }: BotManagementProps) {
             return (
               <div
                 key={bot.id}
-                className={`flex items-start gap-3 rounded-lg border p-3 ${
+                className={`flex items-start gap-3 overflow-hidden rounded-lg border p-3 ${
                   bot.is_active ? "border-border" : "border-border/50 opacity-60"
                 }`}
               >
@@ -63,12 +63,12 @@ export function BotManagement({ bots }: BotManagementProps) {
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
                     <span className="font-medium text-sm truncate">
                       {bot.name}
                     </span>
                     {bot.role && (
-                      <Badge variant="secondary" className="text-[10px] shrink-0">
+                      <Badge variant="secondary" className="text-[10px] shrink-0 max-w-[120px] truncate">
                         {bot.role}
                       </Badge>
                     )}
