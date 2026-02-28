@@ -275,7 +275,7 @@ BEGIN
   IF tg_op = 'INSERT' THEN
     UPDATE idea_discussions SET upvotes = upvotes + 1 WHERE id = new.discussion_id;
   ELSIF tg_op = 'DELETE' THEN
-    UPDATE idea_discussions SET upvotes = upvotes - 1 WHERE id = old.discussion_id;
+    UPDATE idea_discussions SET upvotes = GREATEST(upvotes - 1, 0) WHERE id = old.discussion_id;
   END IF;
   RETURN coalesce(new, old);
 END;
@@ -304,7 +304,7 @@ DECLARE
   team_member RECORD;
   prefs jsonb;
 BEGIN
-  -- Notify idea author (if not the discussion author)
+  -- Notify idea author + collaborators (if not the discussion author)
   FOR team_member IN
     SELECT u.id, u.notification_preferences
     FROM users u
@@ -315,7 +315,7 @@ BEGIN
     AND u.id != NEW.author_id
   LOOP
     prefs := team_member.notification_preferences;
-    IF coalesce((prefs->>'comments')::boolean, true) THEN
+    IF coalesce((prefs->>'discussions')::boolean, coalesce((prefs->>'comments')::boolean, true)) THEN
       INSERT INTO notifications (user_id, actor_id, type, idea_id, discussion_id)
       VALUES (team_member.id, NEW.author_id, 'discussion', NEW.idea_id, NEW.id);
     END IF;
@@ -348,12 +348,13 @@ BEGIN
       OR u.id IN (
         SELECT author_id FROM idea_discussion_replies
         WHERE discussion_id = NEW.discussion_id
+          AND author_id != NEW.author_id
       )
     )
     AND u.id != NEW.author_id
   LOOP
     prefs := participant.notification_preferences;
-    IF coalesce((prefs->>'comments')::boolean, true) THEN
+    IF coalesce((prefs->>'discussions')::boolean, coalesce((prefs->>'comments')::boolean, true)) THEN
       INSERT INTO notifications (user_id, actor_id, type, idea_id, discussion_id)
       VALUES (participant.id, NEW.author_id, 'discussion_reply', disc.idea_id, disc.id);
     END IF;
@@ -380,26 +381,26 @@ ALTER PUBLICATION supabase_realtime ADD TABLE discussion_votes;
 
 UPDATE ideas SET discussion_count = 0 WHERE discussion_count IS NULL;
 
--- Update default notification_preferences to include discussion_mentions
+-- Update default notification_preferences to include discussion_mentions + discussions
 ALTER TABLE users
   ALTER COLUMN notification_preferences
-  SET DEFAULT '{"comments": true, "votes": true, "collaborators": true, "status_changes": true, "task_mentions": true, "comment_mentions": true, "email_notifications": true, "collaboration_requests": true, "collaboration_responses": true, "discussion_mentions": true}'::jsonb;
+  SET DEFAULT '{"comments": true, "votes": true, "collaborators": true, "status_changes": true, "task_mentions": true, "comment_mentions": true, "email_notifications": true, "collaboration_requests": true, "collaboration_responses": true, "discussion_mentions": true, "discussions": true}'::jsonb;
 
 -- Update the trigger function that sets default preferences for new users
 CREATE OR REPLACE FUNCTION set_default_notification_preferences()
 RETURNS TRIGGER AS $$
 BEGIN
   IF NEW.notification_preferences IS NULL THEN
-    NEW.notification_preferences := '{"comments": true, "votes": true, "collaborators": true, "status_changes": true, "task_mentions": true, "comment_mentions": true, "email_notifications": true, "collaboration_requests": true, "collaboration_responses": true, "discussion_mentions": true}'::jsonb;
+    NEW.notification_preferences := '{"comments": true, "votes": true, "collaborators": true, "status_changes": true, "task_mentions": true, "comment_mentions": true, "email_notifications": true, "collaboration_requests": true, "collaboration_responses": true, "discussion_mentions": true, "discussions": true}'::jsonb;
   END IF;
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
--- Backfill existing users: add discussion_mentions = true if missing
+-- Backfill existing users: add discussion_mentions + discussions = true if missing
 UPDATE users
-SET notification_preferences = notification_preferences || '{"discussion_mentions": true}'::jsonb
-WHERE NOT (notification_preferences ? 'discussion_mentions');
+SET notification_preferences = notification_preferences || '{"discussion_mentions": true, "discussions": true}'::jsonb
+WHERE NOT (notification_preferences ? 'discussion_mentions') OR NOT (notification_preferences ? 'discussions');
 
 -- ============================================================================
 -- 12. Notifications: reply_id + expanded RLS for bot owners

@@ -66,15 +66,16 @@ Move to "Blocked/Requires User Input" with a comment explaining why.
 - Guards against concurrent responses via `.eq("status", "pending")`
 
 ### Discussions
-- `idea_discussions` + `idea_discussion_replies` tables for titled, threaded planning conversations per idea
-- Three statuses: `open` → `resolved` (concluded) or `converted` (promoted to board task)
-- Pinnable threads, denormalized `reply_count` + `last_activity_at` via triggers
+- `idea_discussions` + `idea_discussion_replies` + `discussion_votes` tables for titled, threaded planning conversations per idea
+- Four statuses: `open` → `resolved` (concluded), `ready_to_convert` (queued for agent), or `converted` (promoted to board task)
+- Pinnable threads, denormalized `reply_count` + `last_activity_at` + `upvotes` via triggers
 - `board_tasks.discussion_id` back-links converted discussions to their resulting tasks
 - `ideas.discussion_count` denormalized via trigger
 - Routes: `/ideas/[id]/discussions` (list), `/ideas/[id]/discussions/[discussionId]` (thread), `/ideas/[id]/discussions/new`
-- Server actions in `src/actions/discussions.ts`: createDiscussion, updateDiscussion, deleteDiscussion, createDiscussionReply, updateDiscussionReply, deleteDiscussionReply, convertDiscussionToTask
+- Server actions in `src/actions/discussions.ts`: createDiscussion, updateDiscussion, deleteDiscussion, createDiscussionReply, updateDiscussionReply, deleteDiscussionReply, toggleDiscussionVote, markReadyToConvert, convertDiscussionToTask
+- `convertDiscussionToTask` uses status guard (`.in("status", [...])`) to prevent concurrent conversion, with orphaned task cleanup on failure
 - RLS: team members can write; authenticated users can read public idea discussions
-- Notification types: `discussion`, `discussion_reply` (trigger-based, follows comment notification pattern)
+- Notification types: `discussion`, `discussion_reply`, `discussion_mention` (trigger-based); controlled by `discussions` notification preference (falls back to `comments`)
 
 ### Idea Attachments
 - `idea_attachments` table with `idea-attachments` private storage bucket (signed URLs for access)
@@ -100,10 +101,10 @@ Move to "Blocked/Requires User Input" with a comment explaining why.
 
 ## Database
 
-25 tables with RLS (`supabase/migrations/`):
+28 tables with RLS (`supabase/migrations/`):
 - **Core**: users, ideas, comments, collaborators, votes, notifications, feedback, idea_attachments
 - **Board**: board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items, board_task_activity, board_task_comments, board_task_attachments
-- **Discussions**: idea_discussions, idea_discussion_replies
+- **Discussions**: idea_discussions, idea_discussion_replies, discussion_votes
 - **Agents**: bot_profiles
 - **AI**: ai_usage_log, ai_prompt_templates
 - **MCP/OAuth**: mcp_oauth_clients, mcp_oauth_codes
@@ -161,7 +162,7 @@ NOTIFICATION_WEBHOOK_SECRET
 
 ## MCP Server
 
-Two modes sharing 38 tools via `mcp-server/src/register-tools.ts` + `McpContext` DI:
+Two modes sharing 46 tools via `mcp-server/src/register-tools.ts` + `McpContext` DI:
 - **Local (stdio)**: `mcp-server/src/index.ts` — service-role client, bypasses RLS
 - **Remote (HTTP)**: `src/app/api/mcp/[[...transport]]/route.ts` — OAuth 2.1 + PKCE, per-user RLS
 
