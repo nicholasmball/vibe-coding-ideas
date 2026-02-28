@@ -56,7 +56,7 @@ test.describe("Discussions", () => {
       await userAPage.goto(`/ideas/${ideaId}/discussions`);
 
       await expect(
-        userAPage.getByText("No discussions yet")
+        userAPage.getByText("No discussions yet").first()
       ).toBeVisible({ timeout: 15_000 });
 
       // CTA button should be visible for team member
@@ -68,13 +68,13 @@ test.describe("Discussions", () => {
     test("Discussions button on idea detail links to discussions page", async ({ userAPage }) => {
       await userAPage.goto(`/ideas/${ideaId}`);
 
-      const discussionsButton = userAPage.getByRole("link", { name: /discussions/i });
+      const discussionsButton = userAPage.getByRole("link", { name: /discussions/i }).first();
       await expect(discussionsButton).toBeVisible({ timeout: 15_000 });
       await discussionsButton.click();
 
       await userAPage.waitForURL(`**/ideas/${ideaId}/discussions`, { timeout: 15_000 });
       await expect(
-        userAPage.getByRole("heading", { name: "Discussions" })
+        userAPage.getByRole("heading", { name: "Discussions", exact: true })
       ).toBeVisible({ timeout: 10_000 });
     });
 
@@ -123,7 +123,7 @@ test.describe("Discussions", () => {
       ).toBeVisible({ timeout: 15_000 });
 
       await expect(
-        userAPage.getByText("We need to decide on the database schema")
+        userAPage.getByText("We need to decide on the database schema").first()
       ).toBeVisible();
 
       // Status badge should show "Open"
@@ -194,15 +194,23 @@ test.describe("Discussions", () => {
         body: "[E2E] A resolved discussion body.",
         status: "resolved",
       });
+      await createTestDiscussion(ideaId, userAId, {
+        title: "[E2E] Ready Discussion",
+        body: "[E2E] A ready to convert discussion body.",
+        status: "ready_to_convert",
+      });
 
       await userAPage.goto(`/ideas/${ideaId}/discussions`);
 
-      // Both should be visible
+      // All should be visible
       await expect(
-        userAPage.getByText("[E2E] Open Discussion")
+        userAPage.getByText("[E2E] Open Discussion").first()
       ).toBeVisible({ timeout: 15_000 });
       await expect(
-        userAPage.getByText("[E2E] Resolved Discussion")
+        userAPage.getByText("[E2E] Resolved Discussion").first()
+      ).toBeVisible();
+      await expect(
+        userAPage.getByText("[E2E] Ready Discussion").first()
       ).toBeVisible();
 
       // Status badges
@@ -211,6 +219,9 @@ test.describe("Discussions", () => {
       ).toBeVisible();
       await expect(
         userAPage.locator('[data-slot="badge"]').filter({ hasText: "Resolved" }).first()
+      ).toBeVisible();
+      await expect(
+        userAPage.locator('[data-slot="badge"]').filter({ hasText: "Ready to Convert" }).first()
       ).toBeVisible();
     });
 
@@ -225,37 +236,61 @@ test.describe("Discussions", () => {
         body: "[E2E] Body",
         status: "resolved",
       });
+      await createTestDiscussion(ideaId, userAId, {
+        title: "[E2E] Ready For Filter",
+        body: "[E2E] Body",
+        status: "ready_to_convert",
+      });
 
       await userAPage.goto(`/ideas/${ideaId}/discussions`);
       await expect(
-        userAPage.getByText("[E2E] Open For Filter")
+        userAPage.getByText("[E2E] Open For Filter").first()
       ).toBeVisible({ timeout: 15_000 });
 
       // Click "Open" filter — only open discussions visible
-      await userAPage.getByRole("button", { name: /^Open/ }).click();
+      // Scope to main to avoid matching "Open Next.js Dev Tools" button
+      await userAPage.locator("main").getByRole("button", { name: /^Open/ }).click();
       await expect(
-        userAPage.getByText("[E2E] Open For Filter")
+        userAPage.getByText("[E2E] Open For Filter").first()
       ).toBeVisible();
       await expect(
-        userAPage.getByText("[E2E] Resolved For Filter")
+        userAPage.getByText("[E2E] Resolved For Filter").first()
+      ).not.toBeVisible();
+      await expect(
+        userAPage.getByText("[E2E] Ready For Filter").first()
       ).not.toBeVisible();
 
       // Click "Resolved" filter
-      await userAPage.getByRole("button", { name: /^Resolved/ }).click();
+      await userAPage.locator("main").getByRole("button", { name: /^Resolved/ }).click();
       await expect(
-        userAPage.getByText("[E2E] Resolved For Filter")
+        userAPage.getByText("[E2E] Resolved For Filter").first()
       ).toBeVisible();
       await expect(
-        userAPage.getByText("[E2E] Open For Filter")
+        userAPage.getByText("[E2E] Open For Filter").first()
       ).not.toBeVisible();
 
-      // Click "All" — both visible again
-      await userAPage.getByRole("button", { name: /^All/ }).click();
+      // Click "Ready" filter
+      await userAPage.locator("main").getByRole("button", { name: /^Ready/ }).click();
       await expect(
-        userAPage.getByText("[E2E] Open For Filter")
+        userAPage.getByText("[E2E] Ready For Filter").first()
       ).toBeVisible();
       await expect(
-        userAPage.getByText("[E2E] Resolved For Filter")
+        userAPage.getByText("[E2E] Open For Filter").first()
+      ).not.toBeVisible();
+      await expect(
+        userAPage.getByText("[E2E] Resolved For Filter").first()
+      ).not.toBeVisible();
+
+      // Click "All" — all visible again
+      await userAPage.locator("main").getByRole("button", { name: /^All/ }).click();
+      await expect(
+        userAPage.getByText("[E2E] Open For Filter").first()
+      ).toBeVisible();
+      await expect(
+        userAPage.getByText("[E2E] Resolved For Filter").first()
+      ).toBeVisible();
+      await expect(
+        userAPage.getByText("[E2E] Ready For Filter").first()
       ).toBeVisible();
     });
 
@@ -271,24 +306,24 @@ test.describe("Discussions", () => {
 
       await userAPage.goto(`/ideas/${ideaId}/discussions`);
       await expect(
-        userAPage.getByText("[E2E] Alpha Feature")
+        userAPage.getByText("[E2E] Alpha Feature").first()
       ).toBeVisible({ timeout: 15_000 });
 
       // Search for "Alpha"
-      const searchInput = userAPage.getByPlaceholder("Search discussions...");
+      const searchInput = userAPage.getByPlaceholder("Search discussions...").first();
       await searchInput.fill("Alpha");
 
       await expect(
-        userAPage.getByText("[E2E] Alpha Feature")
+        userAPage.getByText("[E2E] Alpha Feature").first()
       ).toBeVisible();
       await expect(
-        userAPage.getByText("[E2E] Beta Feature")
+        userAPage.getByText("[E2E] Beta Feature").first()
       ).not.toBeVisible();
 
       // Clear search
       await searchInput.clear();
       await expect(
-        userAPage.getByText("[E2E] Beta Feature")
+        userAPage.getByText("[E2E] Beta Feature").first()
       ).toBeVisible();
     });
 
@@ -307,19 +342,19 @@ test.describe("Discussions", () => {
 
       // Wait for both to appear
       await expect(
-        userAPage.getByText("[E2E] Pinned Discussion")
+        userAPage.getByText("[E2E] Pinned Discussion").first()
       ).toBeVisible({ timeout: 15_000 });
       await expect(
-        userAPage.getByText("[E2E] Regular Discussion")
+        userAPage.getByText("[E2E] Regular Discussion").first()
       ).toBeVisible();
 
       // The pinned badge should be visible
       await expect(
-        userAPage.locator('[data-slot="badge"]').filter({ hasText: "Pinned" }).first()
+        userAPage.getByText("Pinned").first()
       ).toBeVisible();
 
-      // Pinned should come first in the list
-      const items = userAPage.locator("a[href*='/discussions/']");
+      // Pinned should come first in the list (exclude the "New Discussion" nav link)
+      const items = userAPage.locator("a[href*='/discussions/']:not([href$='/new']):not([href$='/discussions'])");
       const firstItemText = await items.first().textContent();
       expect(firstItemText).toContain("[E2E] Pinned Discussion");
     });
@@ -332,7 +367,7 @@ test.describe("Discussions", () => {
 
       await userAPage.goto(`/ideas/${ideaId}/discussions`);
 
-      const link = userAPage.getByText("[E2E] Clickable Discussion");
+      const link = userAPage.getByText("[E2E] Clickable Discussion").first();
       await expect(link).toBeVisible({ timeout: 15_000 });
       await link.click();
 
@@ -437,7 +472,7 @@ test.describe("Discussions", () => {
 
       // The deleted discussion should not appear
       await expect(
-        userAPage.getByText("[E2E] Delete Me")
+        userAPage.getByText("[E2E] Delete Me").first()
       ).not.toBeVisible({ timeout: 5_000 });
     });
 
@@ -498,7 +533,7 @@ test.describe("Discussions", () => {
       await userAPage.goto(`/ideas/${ideaId}/discussions/${discussion.id}`);
 
       // Reply form should be visible
-      const replyTextarea = userAPage.getByPlaceholder(/write a reply/i);
+      const replyTextarea = userAPage.getByPlaceholder(/write a reply/i).first();
       await expect(replyTextarea).toBeVisible({ timeout: 15_000 });
 
       // Type a reply
@@ -516,7 +551,7 @@ test.describe("Discussions", () => {
 
       // The reply should appear in the thread (after refresh)
       await expect(
-        userAPage.getByText("[E2E] This is a test reply from User A")
+        userAPage.getByText("[E2E] This is a test reply from User A").first()
       ).toBeVisible({ timeout: 15_000 });
     });
 
@@ -528,7 +563,7 @@ test.describe("Discussions", () => {
 
       await userBPage.goto(`/ideas/${ideaId}/discussions/${discussion.id}`);
 
-      const replyTextarea = userBPage.getByPlaceholder(/write a reply/i);
+      const replyTextarea = userBPage.getByPlaceholder(/write a reply/i).first();
       await expect(replyTextarea).toBeVisible({ timeout: 15_000 });
 
       await replyTextarea.fill("[E2E] Reply from collaborator");
@@ -538,7 +573,7 @@ test.describe("Discussions", () => {
       await replyButton.click();
 
       await expect(
-        userBPage.getByText("[E2E] Reply from collaborator")
+        userBPage.getByText("[E2E] Reply from collaborator").first()
       ).toBeVisible({ timeout: 15_000 });
 
       // Author name should be visible
@@ -555,21 +590,21 @@ test.describe("Discussions", () => {
 
       await userAPage.goto(`/ideas/${ideaId}/discussions/${discussion.id}`);
 
-      // Initially 0 replies
+      // Initially 0 replies (shown in the Replies heading)
       await expect(
-        userAPage.getByText("0 replies")
+        userAPage.getByRole("heading", { name: "0 Replies" })
       ).toBeVisible({ timeout: 15_000 });
 
       // Post a reply
-      const replyTextarea = userAPage.getByPlaceholder(/write a reply/i);
+      const replyTextarea = userAPage.getByPlaceholder(/write a reply/i).first();
       await replyTextarea.fill("[E2E] A reply to count");
       const replyButton = userAPage.getByRole("button", { name: "Reply", exact: true });
       await expect(replyButton).toBeEnabled();
       await replyButton.click();
 
-      // Reply count should update to "1 reply" (singular)
+      // Reply count should update to "1 Reply" (singular) in the heading
       await expect(
-        userAPage.getByText("1 reply")
+        userAPage.getByRole("heading", { name: "1 Reply" })
       ).toBeVisible({ timeout: 15_000 });
     });
 
@@ -586,20 +621,20 @@ test.describe("Discussions", () => {
 
       // The reply should be visible
       await expect(
-        userAPage.getByText("[E2E] Reply to be deleted")
+        userAPage.getByText("[E2E] Reply to be deleted").first()
       ).toBeVisible({ timeout: 15_000 });
 
       // Accept the confirm dialog
       userAPage.on("dialog", (dialog) => dialog.accept());
 
       // Click the delete button on the reply (Trash2 icon with title "Delete reply")
-      const deleteButton = userAPage.locator('button[title="Delete reply"]');
+      const deleteButton = userAPage.locator('button[title="Delete reply"]').first();
       await expect(deleteButton).toBeVisible({ timeout: 5_000 });
       await deleteButton.click();
 
       // Reply should be removed after refresh
       await expect(
-        userAPage.getByText("[E2E] Reply to be deleted")
+        userAPage.getByText("[E2E] Reply to be deleted").first()
       ).not.toBeVisible({ timeout: 15_000 });
     });
   });
@@ -614,7 +649,7 @@ test.describe("Discussions", () => {
       await userAPage.goto(`/ideas/${ideaId}/discussions/${discussion.id}`);
 
       // Click Edit button on the original post
-      const editButton = userAPage.locator("button").filter({ hasText: "Edit" });
+      const editButton = userAPage.locator("button").filter({ hasText: "Edit" }).first();
       await expect(editButton).toBeVisible({ timeout: 15_000 });
       await editButton.click();
 
@@ -628,7 +663,7 @@ test.describe("Discussions", () => {
       await titleInput.fill("[E2E] Edited Discussion Title");
 
       // Body textarea should appear with current value
-      const bodyTextarea = userAPage.locator("textarea");
+      const bodyTextarea = userAPage.locator("textarea").first();
       await expect(bodyTextarea).toBeVisible();
       await bodyTextarea.clear();
       await bodyTextarea.fill("[E2E] Updated body content after editing.");
@@ -648,7 +683,7 @@ test.describe("Discussions", () => {
 
       // Body should be updated
       await expect(
-        userAPage.getByText("Updated body content after editing")
+        userAPage.getByText("Updated body content after editing").first()
       ).toBeVisible();
     });
 
@@ -661,12 +696,12 @@ test.describe("Discussions", () => {
       await userAPage.goto(`/ideas/${ideaId}/discussions/${discussion.id}`);
 
       // Click Edit
-      const editButton = userAPage.locator("button").filter({ hasText: "Edit" });
+      const editButton = userAPage.locator("button").filter({ hasText: "Edit" }).first();
       await expect(editButton).toBeVisible({ timeout: 15_000 });
       await editButton.click();
 
       // Modify the body
-      const bodyTextarea = userAPage.locator("textarea");
+      const bodyTextarea = userAPage.locator("textarea").first();
       await expect(bodyTextarea).toBeVisible({ timeout: 5_000 });
       await bodyTextarea.clear();
       await bodyTextarea.fill("[E2E] This change should be discarded.");
@@ -676,12 +711,12 @@ test.describe("Discussions", () => {
 
       // Original body should still be visible
       await expect(
-        userAPage.getByText("Original body for cancel test")
+        userAPage.getByText("Original body for cancel test").first()
       ).toBeVisible({ timeout: 10_000 });
 
       // Modified text should not be visible
       await expect(
-        userAPage.getByText("This change should be discarded")
+        userAPage.getByText("This change should be discarded").first()
       ).not.toBeVisible();
     });
 
@@ -718,17 +753,18 @@ test.describe("Discussions", () => {
 
       // The reply should be visible
       await expect(
-        userAPage.getByText("[E2E] Original reply content")
+        userAPage.getByText("[E2E] Original reply content").first()
       ).toBeVisible({ timeout: 15_000 });
 
       // Click the edit button (Pencil icon with title "Edit reply")
-      const editReplyButton = userAPage.locator('button[title="Edit reply"]');
+      const editReplyButton = userAPage.locator('button[title="Edit reply"]').first();
       await expect(editReplyButton).toBeVisible({ timeout: 5_000 });
       await editReplyButton.click();
 
-      // Textarea should appear with current content
-      const replyTextarea = userAPage.locator("textarea").filter({ hasText: "[E2E] Original reply content" });
+      // Textarea should appear with current content (use first() to get the edit textarea, not the reply form)
+      const replyTextarea = userAPage.locator("textarea").first();
       await expect(replyTextarea).toBeVisible({ timeout: 5_000 });
+      await expect(replyTextarea).toHaveValue("[E2E] Original reply content");
 
       // Edit the content
       await replyTextarea.clear();
@@ -744,12 +780,12 @@ test.describe("Discussions", () => {
 
       // Updated reply should be visible
       await expect(
-        userAPage.getByText("[E2E] Edited reply content")
+        userAPage.getByText("[E2E] Edited reply content").first()
       ).toBeVisible({ timeout: 15_000 });
 
       // Original text should no longer be visible
       await expect(
-        userAPage.getByText("[E2E] Original reply content")
+        userAPage.getByText("[E2E] Original reply content").first()
       ).not.toBeVisible();
     });
 
@@ -766,7 +802,7 @@ test.describe("Discussions", () => {
 
       // The reply should be visible
       await expect(
-        userBPage.getByText("[E2E] User A's reply")
+        userBPage.getByText("[E2E] User A's reply").first()
       ).toBeVisible({ timeout: 15_000 });
 
       // Edit button should NOT be visible (User B didn't author this reply)
@@ -790,16 +826,16 @@ test.describe("Discussions", () => {
 
       // The top-level reply should be visible
       await expect(
-        userAPage.getByText("[E2E] Top-level reply from User B")
+        userAPage.getByText("[E2E] Top-level reply from User B").first()
       ).toBeVisible({ timeout: 15_000 });
 
       // Click the inline reply button (Reply icon with title "Reply")
-      const replyIcon = userAPage.locator('button[title="Reply"]');
+      const replyIcon = userAPage.locator('button[title="Reply"]').first();
       await expect(replyIcon).toBeVisible({ timeout: 5_000 });
       await replyIcon.click();
 
-      // Inline reply form should appear
-      const inlineTextarea = userAPage.getByPlaceholder("Write a reply...");
+      // Inline reply form should appear — use last() since the bottom reply form also has this placeholder
+      const inlineTextarea = userAPage.getByPlaceholder(/write a reply/i).last();
       await expect(inlineTextarea).toBeVisible({ timeout: 5_000 });
 
       // Type a nested reply
@@ -817,7 +853,7 @@ test.describe("Discussions", () => {
 
       // The nested reply should appear (inside the indented child section)
       await expect(
-        userAPage.getByText("[E2E] This is a nested reply to User B")
+        userAPage.getByText("[E2E] This is a nested reply to User B").first()
       ).toBeVisible({ timeout: 15_000 });
     });
   });
@@ -861,6 +897,152 @@ test.describe("Discussions", () => {
   // Guest access tests removed: discussions require authentication (requireAuth),
   // so unauthenticated freshPage users are redirected to login.
 
+  test.describe("Ready to convert", () => {
+    let boardColumns: { id: string; title: string }[];
+
+    test.beforeAll(async () => {
+      const { data: existingColumns } = await supabaseAdmin
+        .from("board_columns")
+        .select("id, title")
+        .eq("idea_id", ideaId);
+
+      if (!existingColumns || existingColumns.length === 0) {
+        const columns = await createTestBoardColumns(ideaId);
+        boardColumns = columns.map((c) => ({ id: c.id, title: c.title }));
+      } else {
+        boardColumns = existingColumns;
+      }
+    });
+
+    test("author marks discussion as ready to convert via dialog", async ({ userAPage }) => {
+      const discussion = await createTestDiscussion(ideaId, userAId, {
+        title: "[E2E] Ready To Convert Test",
+        body: "[E2E] This discussion should be queued for conversion.",
+      });
+
+      await userAPage.goto(`/ideas/${ideaId}/discussions/${discussion.id}`);
+
+      // Click "Ready to Convert" button
+      const readyButton = userAPage.getByRole("button", { name: /ready to convert/i });
+      await expect(readyButton).toBeVisible({ timeout: 15_000 });
+      await readyButton.click();
+
+      // Dialog should open
+      const dialog = userAPage.getByRole("dialog");
+      await expect(dialog).toBeVisible({ timeout: 5_000 });
+      await expect(
+        dialog.getByText("Queue for Agent Conversion")
+      ).toBeVisible();
+
+      // Preview section should show discussion title (appears twice: title + "Linked from")
+      await expect(
+        dialog.getByText("[E2E] Ready To Convert Test").first()
+      ).toBeVisible();
+
+      // Click "Queue for Conversion"
+      await dialog.getByRole("button", { name: /queue for conversion/i }).click();
+
+      // Success toast
+      await expect(
+        userAPage.locator("[data-sonner-toast]").filter({ hasText: /queued for conversion/i })
+      ).toBeVisible({ timeout: 10_000 });
+
+      // Status should change to "Ready to Convert"
+      await expect(
+        userAPage.locator('[data-slot="badge"]').filter({ hasText: "Ready to Convert" }).first()
+      ).toBeVisible({ timeout: 15_000 });
+
+      // Amber banner should appear
+      await expect(
+        userAPage.getByText(/queued for conversion/i).first()
+      ).toBeVisible();
+    });
+
+    test("author cancels ready to convert status", async ({ userAPage }) => {
+      const discussion = await createTestDiscussion(ideaId, userAId, {
+        title: "[E2E] Cancel Ready Test",
+        body: "[E2E] Mark ready then cancel.",
+        status: "ready_to_convert",
+        target_column_id: boardColumns[0]?.id,
+      });
+
+      await userAPage.goto(`/ideas/${ideaId}/discussions/${discussion.id}`);
+
+      // Should show "Ready to Convert" badge
+      await expect(
+        userAPage.locator('[data-slot="badge"]').filter({ hasText: "Ready to Convert" }).first()
+      ).toBeVisible({ timeout: 15_000 });
+
+      // Cancel button should be visible
+      const cancelButton = userAPage.getByRole("button", { name: "Cancel" });
+      await expect(cancelButton).toBeVisible({ timeout: 5_000 });
+      await cancelButton.click();
+
+      // Should revert to "Open"
+      await expect(
+        userAPage.locator('[data-slot="badge"]').filter({ hasText: "Open" }).first()
+      ).toBeVisible({ timeout: 15_000 });
+
+      await expect(
+        userAPage.locator("[data-sonner-toast]").filter({ hasText: /reopened/i })
+      ).toBeVisible({ timeout: 5_000 });
+    });
+
+    test("ready to convert discussion shows in Ready filter tab", async ({ userAPage }) => {
+      await supabaseAdmin
+        .from("idea_discussions")
+        .delete()
+        .eq("idea_id", ideaId);
+
+      await createTestDiscussion(ideaId, userAId, {
+        title: "[E2E] Open Discussion Filter",
+        body: "[E2E] Body",
+        status: "open",
+      });
+      await createTestDiscussion(ideaId, userAId, {
+        title: "[E2E] Ready Discussion Filter",
+        body: "[E2E] Body",
+        status: "ready_to_convert",
+        target_column_id: boardColumns[0]?.id,
+      });
+
+      await userAPage.goto(`/ideas/${ideaId}/discussions`);
+      await expect(
+        userAPage.getByText("[E2E] Ready Discussion Filter").first()
+      ).toBeVisible({ timeout: 15_000 });
+
+      // Click "Ready" filter
+      await userAPage.locator("main").getByRole("button", { name: /^Ready/ }).click();
+
+      await expect(
+        userAPage.getByText("[E2E] Ready Discussion Filter").first()
+      ).toBeVisible();
+      await expect(
+        userAPage.getByText("[E2E] Open Discussion Filter").first()
+      ).not.toBeVisible();
+    });
+
+    test("reply form is hidden for ready to convert discussions", async ({ userAPage }) => {
+      const discussion = await createTestDiscussion(ideaId, userAId, {
+        title: "[E2E] No Replies When Ready",
+        body: "[E2E] Replies should be blocked.",
+        status: "ready_to_convert",
+        target_column_id: boardColumns[0]?.id,
+      });
+
+      await userAPage.goto(`/ideas/${ideaId}/discussions/${discussion.id}`);
+
+      await expect(
+        userAPage.getByRole("heading", { name: "[E2E] No Replies When Ready" })
+      ).toBeVisible({ timeout: 15_000 });
+
+      // Reply form should not be visible
+      await expect(
+        userAPage.getByPlaceholder(/write a reply/i)
+      ).not.toBeVisible();
+    });
+  });
+
   test.describe("Convert to task", () => {
     let boardColumns: { id: string; title: string }[];
 
@@ -880,14 +1062,17 @@ test.describe("Discussions", () => {
     });
 
     test("converts discussion to a board task", async ({ userAPage }) => {
+      // Create a ready_to_convert discussion — "Convert to Task" only appears for this status
       const discussion = await createTestDiscussion(ideaId, userAId, {
         title: "[E2E] Convert Me To Task",
         body: "[E2E] This discussion should become a task.",
+        status: "ready_to_convert",
+        target_column_id: boardColumns[0]?.id,
       });
 
       await userAPage.goto(`/ideas/${ideaId}/discussions/${discussion.id}`);
 
-      // Click "Convert to Task" button
+      // Click "Convert to Task" button (available in ready_to_convert status)
       const convertButton = userAPage.getByRole("button", { name: /convert to task/i });
       await expect(convertButton).toBeVisible({ timeout: 15_000 });
       await convertButton.click();
@@ -903,7 +1088,6 @@ test.describe("Discussions", () => {
       const taskTitleInput = dialog.getByLabel("Task Title");
       await expect(taskTitleInput).toHaveValue("[E2E] Convert Me To Task");
 
-      // Column should be pre-selected (first column)
       // Click "Create Task" to convert
       await dialog.getByRole("button", { name: "Create Task" }).click();
 
@@ -919,7 +1103,7 @@ test.describe("Discussions", () => {
 
       // The converted banner should appear with a link to the board
       await expect(
-        userAPage.getByText("This discussion was converted to a board task.")
+        userAPage.getByText("This discussion was converted to a board task.").first()
       ).toBeVisible();
 
       // Action buttons (Resolve, Pin, Delete) should no longer be visible

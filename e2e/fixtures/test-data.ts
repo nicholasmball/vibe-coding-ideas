@@ -123,8 +123,10 @@ export async function createTestDiscussion(
   overrides: {
     title?: string;
     body?: string;
-    status?: "open" | "resolved" | "converted";
+    status?: "open" | "resolved" | "ready_to_convert" | "converted";
     pinned?: boolean;
+    target_column_id?: string;
+    target_assignee_id?: string;
   } = {}
 ) {
   const { data, error } = await supabaseAdmin
@@ -136,6 +138,8 @@ export async function createTestDiscussion(
       body: overrides.body ?? `${E2E_PREFIX} Discussion body for testing.`,
       status: overrides.status ?? "open",
       pinned: overrides.pinned ?? false,
+      target_column_id: overrides.target_column_id ?? null,
+      target_assignee_id: overrides.target_assignee_id ?? null,
     })
     .select()
     .single();
