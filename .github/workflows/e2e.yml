@@ -7,6 +7,10 @@ on:
     branches: [master, develop]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  issues: write
+
 concurrency:
   group: e2e-${{ github.ref }}
   cancel-in-progress: true
