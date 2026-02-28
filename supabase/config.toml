@@ -1,0 +1,11 @@
+# Supabase CLI config — `npx supabase start` manages all local services.
+# Reference: https://supabase.com/docs/guides/local-development/cli/config
+
+project_id = "vibe-coding-ideas"
+
+[db]
+port = 54322
+major_version = 17
+
+[db.migrations]
+enabled = true

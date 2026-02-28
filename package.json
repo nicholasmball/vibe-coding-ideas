@@ -12,11 +12,11 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
-    "docker:down": "docker compose down",
-    "docker:supabase": "docker compose up -d db auth rest realtime storage meta studio kong",
-    "docker:reset": "docker compose down -v && npm run docker:supabase; npm run docker:seed",
-    "docker:seed": "./docker/seed.sh",
-    "docker:studio": "open http://localhost:54323"
+    "supabase:start": "npx supabase start",
+    "supabase:stop": "npx supabase stop",
+    "supabase:reset": "npx supabase db reset",
+    "supabase:migrate": "npx supabase migration up --local",
+    "supabase:studio": "open http://localhost:54323"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.44",
