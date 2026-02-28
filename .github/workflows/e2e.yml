@@ -148,10 +148,13 @@ jobs:
           ISSUE_URL="${{ steps.create-issue.outputs.issue_url }}"
           RUN_URL="${{ steps.create-issue.outputs.run_url }}"
 
+          # Sanitise title for JSON (escape quotes and backslashes)
+          SAFE_TITLE=$(echo "$ISSUE_TITLE" | sed 's/\\/\\\\/g; s/"/\\"/g')
+
           # Get max position in To Do column
           MAX_POS=$(curl -s "${SUPABASE_URL}/rest/v1/board_tasks?idea_id=eq.${IDEA_ID}&column_id=eq.${COLUMN_ID}&select=position&order=position.desc&limit=1" \
             -H "apikey: ${SUPABASE_KEY}" \
-            -H "Authorization: Bearer ${SUPABASE_KEY}" | jq -r '.[0].position // 0')
+            -H "Authorization: Bearer ${SUPABASE_KEY}" | jq -r 'if type == "array" then .[0].position // 0 else 0 end')
           NEW_POS=$((MAX_POS + 1000))
 
           # Create the board task
@@ -163,11 +166,12 @@ jobs:
             -d "{
               \"idea_id\": \"${IDEA_ID}\",
               \"column_id\": \"${COLUMN_ID}\",
-              \"title\": \"${ISSUE_TITLE}\",
+              \"title\": \"${SAFE_TITLE}\",
               \"description\": \"Auto-created from CI failure.\\n\\n**GitHub issue:** ${ISSUE_URL}\\n**CI run:** ${RUN_URL}\",
               \"position\": ${NEW_POS}
             }")
-          TASK_ID=$(echo "$TASK" | jq -r '.[0].id // empty')
+          echo "Supabase response: $TASK"
+          TASK_ID=$(echo "$TASK" | jq -r 'if type == "array" then .[0].id // empty else empty end')
 
           # Assign Bug label
           if [ -n "$TASK_ID" ]; then
@@ -177,4 +181,6 @@ jobs:
               -H "Content-Type: application/json" \
               -d "{\"task_id\": \"${TASK_ID}\", \"label_id\": \"${BUG_LABEL_ID}\"}"
             echo "Created board task ${TASK_ID} with Bug label"
+          else
+            echo "Warning: Failed to create board task. Response was: $TASK"
           fi
