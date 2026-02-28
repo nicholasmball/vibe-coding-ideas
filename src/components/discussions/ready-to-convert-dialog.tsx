@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowRightLeft, LayoutDashboard, MessageSquare } from "lucide-react";
+import { ClipboardCheck, Bot, LayoutDashboard, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -14,7 +14,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -23,51 +22,59 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { convertDiscussionToTask } from "@/actions/discussions";
-import type { IdeaDiscussion, BoardColumn } from "@/types";
+import { markReadyToConvert } from "@/actions/discussions";
+import type { IdeaDiscussion, BoardColumn, User } from "@/types";
 
-interface ConvertToTaskDialogProps {
+interface ReadyToConvertDialogProps {
   discussion: IdeaDiscussion;
   ideaId: string;
   columns: BoardColumn[];
+  teamMembers: User[];
 }
 
-export function ConvertToTaskDialog({
+export function ReadyToConvertDialog({
   discussion,
   ideaId,
   columns,
-}: ConvertToTaskDialogProps) {
+  teamMembers,
+}: ReadyToConvertDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [taskTitle, setTaskTitle] = useState(discussion.title);
   const [columnId, setColumnId] = useState(columns[0]?.id ?? "");
-  const [isConverting, setIsConverting] = useState(false);
+  const [assigneeId, setAssigneeId] = useState<string>("unassigned");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const bots = teamMembers.filter((m) => m.is_bot);
+  const humans = teamMembers.filter((m) => !m.is_bot);
   const selectedColumn = columns.find((c) => c.id === columnId);
+  const selectedAssignee =
+    assigneeId !== "unassigned"
+      ? teamMembers.find((m) => m.id === assigneeId)
+      : null;
 
-  async function handleConvert() {
+  async function handleSubmit() {
     if (!columnId) {
-      toast.error("Please select a column");
+      toast.error("Please select a target column");
       return;
     }
 
-    setIsConverting(true);
+    setIsSubmitting(true);
     try {
-      await convertDiscussionToTask(
+      await markReadyToConvert(
         discussion.id,
         ideaId,
         columnId,
-        taskTitle
+        assigneeId === "unassigned" ? null : assigneeId
       );
-      toast.success("Discussion converted to task");
+      toast.success("Discussion queued for conversion");
       setOpen(false);
       router.refresh();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to convert";
+      const message = err instanceof Error ? err.message : "Failed to update";
       if (message.includes("NEXT_REDIRECT")) throw err;
       toast.error(message);
     } finally {
-      setIsConverting(false);
+      setIsSubmitting(false);
     }
   }
 
@@ -77,34 +84,24 @@ export function ConvertToTaskDialog({
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+          className="gap-1.5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
         >
-          <ArrowRightLeft className="h-3.5 w-3.5" />
-          Convert to Task
+          <ClipboardCheck className="h-3.5 w-3.5" />
+          Ready to Convert
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:!max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>Convert Discussion to Task</DialogTitle>
+          <DialogTitle>Queue for Agent Conversion</DialogTitle>
           <DialogDescription>
-            Create a board task from this discussion. The discussion will be
-            marked as converted.
+            Mark this discussion for an agent to convert into a board task. The
+            task will link back to the original thread.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label htmlFor="taskTitle">Task Title</Label>
-            <Input
-              id="taskTitle"
-              value={taskTitle}
-              onChange={(e) => setTaskTitle(e.target.value)}
-              placeholder="Task title"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="column">Target Column</Label>
+            <Label htmlFor="targetColumn">Target Column</Label>
             <Select value={columnId} onValueChange={setColumnId}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a column" />
@@ -119,6 +116,38 @@ export function ConvertToTaskDialog({
             </Select>
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="assignee">Assignee (optional)</Label>
+            <Select value={assigneeId} onValueChange={setAssigneeId}>
+              <SelectTrigger>
+                <SelectValue placeholder="Unassigned" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
+                {humans.map((member) => (
+                  <SelectItem key={member.id} value={member.id}>
+                    {member.full_name ?? member.email}
+                  </SelectItem>
+                ))}
+                {bots.length > 0 && (
+                  <>
+                    <div className="px-2 py-1.5 text-[10px] font-medium text-muted-foreground">
+                      My Agents
+                    </div>
+                    {bots.map((bot) => (
+                      <SelectItem key={bot.id} value={bot.id}>
+                        <span className="inline-flex items-center gap-1">
+                          <Bot className="h-3 w-3" />
+                          {bot.full_name ?? bot.email}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Preview */}
           <div className="space-y-1.5">
             <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
@@ -128,7 +157,7 @@ export function ConvertToTaskDialog({
               <div className="flex items-center gap-2">
                 <LayoutDashboard className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">
-                  {taskTitle || discussion.title}
+                  {discussion.title}
                 </span>
                 {selectedColumn && (
                   <span className="ml-auto rounded bg-accent px-2 py-0.5 text-[10px] text-muted-foreground">
@@ -136,6 +165,14 @@ export function ConvertToTaskDialog({
                   </span>
                 )}
               </div>
+              {selectedAssignee && (
+                <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
+                  {selectedAssignee.is_bot ? (
+                    <Bot className="h-3 w-3" />
+                  ) : null}
+                  <span>{selectedAssignee.full_name ?? selectedAssignee.email}</span>
+                </div>
+              )}
               <div className="mt-2 flex items-center gap-2 rounded bg-blue-500/[0.06] px-3 py-2 text-xs text-muted-foreground">
                 <MessageSquare className="h-3.5 w-3.5 text-blue-400" />
                 <span>
@@ -151,17 +188,17 @@ export function ConvertToTaskDialog({
           <Button
             variant="ghost"
             onClick={() => setOpen(false)}
-            disabled={isConverting}
+            disabled={isSubmitting}
           >
             Cancel
           </Button>
           <Button
-            onClick={handleConvert}
-            disabled={isConverting || !taskTitle.trim() || !columnId}
+            onClick={handleSubmit}
+            disabled={isSubmitting || !columnId}
             className="gap-2"
           >
-            <LayoutDashboard className="h-4 w-4" />
-            {isConverting ? "Creating..." : "Create Task"}
+            <ClipboardCheck className="h-4 w-4" />
+            {isSubmitting ? "Saving..." : "Queue for Conversion"}
           </Button>
         </DialogFooter>
       </DialogContent>

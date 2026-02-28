@@ -12,7 +12,8 @@ export function sendDiscussionMentionNotifications(
   currentUserId: string,
   teamMembers: User[],
   ideaId: string,
-  discussionId: string
+  discussionId: string,
+  replyId?: string
 ) {
   if (mentionedUserIds.size === 0) return;
   const supabase = createClient();
@@ -29,6 +30,7 @@ export function sendDiscussionMentionNotifications(
         type: "discussion_mention" as const,
         idea_id: ideaId,
         discussion_id: discussionId,
+        reply_id: replyId ?? null,
       })
       .then(({ error }) => {
         if (error)

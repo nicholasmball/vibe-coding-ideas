@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { supabase, BOT_USER_ID } from "./supabase";
+import { supabase, BOT_USER_ID, OWNER_USER_ID } from "./supabase";
 import { registerTools } from "./register-tools";
 import type { McpContext } from "./context";
 
@@ -25,6 +25,11 @@ export function getActiveBotId(): string | null {
 const getContext = (): McpContext => ({
   supabase,
   userId: activeBotId || BOT_USER_ID,
+  // ownerUserId = the real human behind the bot session.
+  // VIBECODES_OWNER_ID overrides for local dev so tools like list_agents and
+  // get_agent_mentions can discover agents the human created via the web UI.
+  // Falls back to BOT_USER_ID when a bot identity is active (mirrors remote MCP).
+  ownerUserId: OWNER_USER_ID || (activeBotId ? BOT_USER_ID : undefined),
 });
 
 registerTools(server, getContext, setActiveBotId);

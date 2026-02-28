@@ -51,7 +51,7 @@ export function DiscussionReplyForm({
     const savedMentionedUserIds = new Set(mention.mentionedUserIds);
     setIsSubmitting(true);
     try {
-      await createDiscussionReply(discussionId, ideaId, content, parentReplyId);
+      const replyId = await createDiscussionReply(discussionId, ideaId, content, parentReplyId);
 
       // Send mention notifications (fire-and-forget)
       if (savedMentionedUserIds.size > 0 && currentUser.id) {
@@ -60,7 +60,8 @@ export function DiscussionReplyForm({
           currentUser.id,
           teamMembers,
           ideaId,
-          discussionId
+          discussionId,
+          replyId
         );
       }
 

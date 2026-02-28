@@ -115,6 +115,11 @@ export async function updateDiscussion(
   }
   if (updates.status !== undefined) {
     updateData.status = updates.status;
+    // Clear target columns when reverting to open
+    if (updates.status === "open") {
+      updateData.target_column_id = null;
+      updateData.target_assignee_id = null;
+    }
   }
   if (updates.pinned !== undefined) {
     updateData.pinned = updates.pinned;
@@ -313,6 +318,41 @@ export async function toggleDiscussionVote(discussionId: string, ideaId: string)
       .insert({ discussion_id: discussionId, user_id: user.id });
     if (error) throw new Error(error.message);
   }
+
+  revalidatePath(`/ideas/${ideaId}/discussions`);
+  revalidatePath(`/ideas/${ideaId}/discussions/${discussionId}`);
+}
+
+export async function markReadyToConvert(
+  discussionId: string,
+  ideaId: string,
+  targetColumnId: string,
+  targetAssigneeId?: string | null
+) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+
+  const { isAuthorOrOwner, isAdmin } = await checkDiscussionPermission(
+    supabase, user.id, discussionId, ideaId
+  );
+  if (!isAuthorOrOwner && !isAdmin) {
+    throw new Error("You don't have permission to update this discussion");
+  }
+
+  const { error } = await supabase
+    .from("idea_discussions")
+    .update({
+      status: "ready_to_convert",
+      target_column_id: targetColumnId,
+      target_assignee_id: targetAssigneeId ?? null,
+    })
+    .eq("id", discussionId);
+
+  if (error) throw new Error(error.message);
 
   revalidatePath(`/ideas/${ideaId}/discussions`);
   revalidatePath(`/ideas/${ideaId}/discussions/${discussionId}`);

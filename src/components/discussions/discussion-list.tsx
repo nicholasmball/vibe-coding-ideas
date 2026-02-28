@@ -6,6 +6,7 @@ import {
   MessageSquare,
   Check,
   ArrowRightLeft,
+  ClipboardCheck,
   Pin,
   Search,
   Star,
@@ -48,7 +49,7 @@ export function stripMarkdown(md: string): string {
     .trim();
 }
 
-type FilterStatus = "all" | "open" | "resolved" | "converted";
+type FilterStatus = "all" | "open" | "resolved" | "ready_to_convert" | "converted";
 
 const STATUS_CONFIG = {
   open: {
@@ -62,6 +63,12 @@ const STATUS_CONFIG = {
     icon: Check,
     iconClassName: "text-violet-400",
     badgeClassName: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+  },
+  ready_to_convert: {
+    label: "Ready to Convert",
+    icon: ClipboardCheck,
+    iconClassName: "text-amber-400",
+    badgeClassName: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   },
   converted: {
     label: "Converted to task",
@@ -100,6 +107,7 @@ export function DiscussionList({ discussions, ideaId }: DiscussionListProps) {
     { value: "all", label: "All", count: discussions.length },
     { value: "open", label: "Open", count: discussions.filter((d) => d.status === "open").length },
     { value: "resolved", label: "Resolved", count: discussions.filter((d) => d.status === "resolved").length },
+    { value: "ready_to_convert", label: "Ready", count: discussions.filter((d) => d.status === "ready_to_convert").length },
   ];
 
   return (

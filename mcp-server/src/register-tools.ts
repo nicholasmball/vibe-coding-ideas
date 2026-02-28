@@ -90,6 +90,8 @@ import {
   updateDiscussionSchema,
   deleteDiscussion,
   deleteDiscussionSchema,
+  getDiscussionsReadyToConvert,
+  getDiscussionsReadyToConvertSchema,
 } from "./tools/discussions";
 import {
   listAttachments,
@@ -107,6 +109,10 @@ import {
   markAllNotificationsRead,
   markAllNotificationsReadSchema,
 } from "./tools/notifications";
+import {
+  getAgentMentions,
+  getAgentMentionsSchema,
+} from "./tools/agent-mentions";
 import {
   updateProfile,
   updateProfileSchema,
@@ -623,6 +629,20 @@ export function registerTools(
     }
   );
 
+  server.tool(
+    "get_discussions_ready_to_convert",
+    "Get discussions marked as ready to convert into board tasks. Returns full context with replies, target column, and assignee. Includes workflow instructions for creating tasks.",
+    getDiscussionsReadyToConvertSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await getDiscussionsReadyToConvert(ctx, getDiscussionsReadyToConvertSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
   // --- Attachment Tools ---
 
   server.tool(
@@ -705,6 +725,20 @@ export function registerTools(
       try {
         const ctx = await getContext(extra);
         return jsonResult(await markAllNotificationsRead(ctx));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "get_agent_mentions",
+    "Get unread @mentions for your agents in discussions. Returns enriched context with agent, actor, idea, and discussion info plus response workflow instructions.",
+    getAgentMentionsSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await getAgentMentions(ctx, getAgentMentionsSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
       }

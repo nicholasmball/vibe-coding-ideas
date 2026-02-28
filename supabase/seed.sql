@@ -41,9 +41,12 @@ INSERT INTO auth.identities (
 
 -- The handle_new_user trigger creates the public.users row automatically.
 -- Now grant admin privileges.
+-- Must bypass prevent_privilege_escalation trigger (auth.uid() is null during seed).
+SELECT set_config('app.trusted_bot_operation', 'true', true);
 UPDATE public.users
 SET is_admin = true, ai_enabled = true
 WHERE id = 'a1111111-1111-4111-a111-111111111111';
+SELECT set_config('app.trusted_bot_operation', '', true);
 
 -- Guest user
 INSERT INTO auth.users (
@@ -85,6 +88,50 @@ SET full_name = 'Guest User'
 WHERE id = 'a2222222-2222-4222-a222-222222222222';
 
 -- ============================================================================
+-- Seed Product Owner agent (owned by admin)
+-- ============================================================================
+
+-- Create auth.users row first (handle_new_user trigger auto-creates public.users)
+INSERT INTO auth.users (
+  instance_id, id, aud, role, email, encrypted_password,
+  email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
+  created_at, updated_at,
+  confirmation_token, recovery_token,
+  email_change, email_change_token_new, email_change_token_current,
+  phone_change, phone_change_token, reauthentication_token
+) VALUES (
+  '00000000-0000-0000-0000-000000000000',
+  'a3333333-3333-4333-a333-333333333333',
+  'authenticated', 'authenticated',
+  'bot-product-owner@vibecodes.local',
+  '',
+  now(),
+  '{"provider": "email", "providers": ["email"]}',
+  '{"full_name": "Product Owner"}',
+  now(), now(),
+  '', '',
+  '', '', '',
+  '', '', ''
+) ON CONFLICT (id) DO NOTHING;
+
+-- Mark as bot (bypass prevent_privilege_escalation trigger)
+SELECT set_config('app.trusted_bot_operation', 'true', true);
+UPDATE public.users
+SET full_name = 'Product Owner', is_bot = true
+WHERE id = 'a3333333-3333-4333-a333-333333333333';
+SELECT set_config('app.trusted_bot_operation', '', true);
+
+INSERT INTO public.bot_profiles (id, owner_id, name, role, system_prompt, is_active)
+VALUES (
+  'a3333333-3333-4333-a333-333333333333',
+  'a1111111-1111-4111-a111-111111111111',  -- owned by admin (visible in web UI Agents page)
+  'Product Owner',
+  'Product Owner',
+  'You are a Product Owner agent. You prioritise features based on user value, define acceptance criteria, and ensure the team is building the right thing. When asked for input on discussions, focus on user impact, scope, and whether the proposed approach aligns with the product vision. Keep responses concise and actionable.',
+  true
+) ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================================
 -- Seed idea with a discussion and reply
 -- ============================================================================
 
@@ -115,7 +162,7 @@ Many users have requested a dark mode option. This would improve accessibility a
 INSERT INTO public.idea_discussions (
   id, idea_id, author_id, title, body
 ) VALUES (
-  'c1111111-1111-4111-c111-111111111111',
+  'c1111111-1111-4111-8111-111111111111',
   'b1111111-1111-4111-b111-111111111111',
   'a1111111-1111-4111-a111-111111111111',
   'Should we support system preference detection?',
@@ -130,12 +177,13 @@ Default to the OS preference via `prefers-color-scheme`, but let users override 
 I lean towards **Option B** since `next-themes` supports this out of the box with the `system` theme value.'
 ) ON CONFLICT (id) DO NOTHING;
 
--- Add a reply to the discussion
+-- Reply 1: admin agrees with Option B
 INSERT INTO public.idea_discussion_replies (
   id, discussion_id, author_id, content
 ) VALUES (
-  'd1111111-1111-4111-d111-111111111111',
-  'c1111111-1111-4111-c111-111111111111',
+  'd1111111-1111-4111-9111-111111111111',
+  'c1111111-1111-4111-8111-111111111111',
   'a1111111-1111-4111-a111-111111111111',
   'Good point — Option B is definitely the way to go. We already have `next-themes` installed so supporting the `system` value is essentially free. We just need to make sure the toggle has three states: Light, Dark, and System.'
 ) ON CONFLICT (id) DO NOTHING;
+
