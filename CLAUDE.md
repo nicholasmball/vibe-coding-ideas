@@ -6,7 +6,7 @@
 - **Build**: `npm run build`
 - **Lint**: `npm run lint`
 - **Test**: `npm run test` (Vitest) / `npm run test:watch` / `npm run test:e2e` (Playwright)
-- **Docker**: `npm run docker:supabase` / `npm run docker:reset` / `npm run docker:seed`
+- **Supabase**: `npm run supabase:start` / `npm run supabase:stop` / `npm run supabase:reset` / `npm run supabase:migrate`
 
 ## Tech Stack
 

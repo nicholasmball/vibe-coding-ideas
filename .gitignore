@@ -63,3 +63,7 @@ nul
 landing-failure.png
 docs/mockup_b64*
 supabase/.temp/
+
+# testing
+playwright-report/
+test-results/
