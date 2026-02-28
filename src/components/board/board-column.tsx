@@ -46,6 +46,7 @@ interface BoardColumnProps {
   hasApiKey?: boolean;
   ideaDescription?: string;
   isReadOnly?: boolean;
+  isDragTarget?: boolean;
 }
 
 export const BoardColumn = memo(function BoardColumn({
@@ -63,6 +64,7 @@ export const BoardColumn = memo(function BoardColumn({
   hasApiKey = false,
   ideaDescription = "",
   isReadOnly = false,
+  isDragTarget = false,
 }: BoardColumnProps) {
   const [addTaskOpen, setAddTaskOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
@@ -79,7 +81,6 @@ export const BoardColumn = memo(function BoardColumn({
     transform,
     transition,
     isDragging,
-    isOver,
   } = useSortable({
     id: column.id,
     data: sortableData,
@@ -138,8 +139,8 @@ export const BoardColumn = memo(function BoardColumn({
         ref={setNodeRef}
         style={style}
         data-testid={`column-${column.id}`}
-        className={`flex max-h-full min-w-[280px] max-w-[320px] shrink-0 snap-start flex-col rounded-lg border border-border bg-muted/50 ${
-          isOver ? "ring-2 ring-primary/50" : ""
+        className={`flex max-h-full min-w-[280px] max-w-[320px] shrink-0 snap-start flex-col rounded-lg border bg-muted/50 ${
+          isDragTarget ? "ring-2 ring-primary/50 border-primary" : "border-border"
         } ${isDragging ? "opacity-50" : ""}`}
       >
         {/* Column header */}
