@@ -132,17 +132,19 @@ const MAX_SPEED = 25;    // max px per frame at the very edge
 
 /**
  * Continuous rAF-based edge scroll that works for BOTH mouse and touch drags.
- * Tracks pointer position via capture-phase listeners and scrolls the container
- * when the pointer is within EDGE_ZONE of either horizontal edge. Speed ramps
- * linearly from 0 at the inner boundary to MAX_SPEED at the outer edge.
- * Touch input uses a square-root curve for faster pickup (fingers can't travel
- * past the screen edge, so linear ramp feels sluggish).
+ * Tracks pointer position via capture-phase listeners and scrolls:
+ * 1. The board container horizontally when near left/right edges
+ * 2. The column task list vertically when near top/bottom edges
+ *
+ * Speed ramps linearly from 0 at the inner boundary to MAX_SPEED at the outer
+ * edge. Touch input uses a square-root curve for faster pickup (fingers can't
+ * travel past the screen edge, so linear ramp feels sluggish).
  */
 function useEdgeScroll(
   scrollContainerRef: RefObject<HTMLDivElement | null>,
   isDragging: boolean,
 ) {
-  const pointerRef = useRef<{ x: number; isTouch: boolean } | null>(null);
+  const pointerRef = useRef<{ x: number; y: number; isTouch: boolean } | null>(null);
 
   useEffect(() => {
     if (!isDragging) {
@@ -153,11 +155,11 @@ function useEdgeScroll(
     // Track pointer position via capture phase so we get coordinates even when
     // @dnd-kit calls preventDefault on the events
     const onPointer = (e: PointerEvent) => {
-      pointerRef.current = { x: e.clientX, isTouch: e.pointerType === "touch" };
+      pointerRef.current = { x: e.clientX, y: e.clientY, isTouch: e.pointerType === "touch" };
     };
     const onTouch = (e: TouchEvent) => {
       const t = e.touches[0] ?? e.changedTouches[0];
-      if (t) pointerRef.current = { x: t.clientX, isTouch: true };
+      if (t) pointerRef.current = { x: t.clientX, y: t.clientY, isTouch: true };
     };
 
     window.addEventListener("pointermove", onPointer, { capture: true, passive: true });
@@ -169,18 +171,39 @@ function useEdgeScroll(
       const pos = pointerRef.current;
       if (el && pos) {
         const rect = el.getBoundingClientRect();
-        let linear = 0;
-        let direction = 0;
+
+        // Horizontal scroll (board container)
+        let hLinear = 0;
+        let hDirection = 0;
         if (pos.x > rect.right - EDGE_ZONE) {
-          linear = Math.min(1, (pos.x - (rect.right - EDGE_ZONE)) / EDGE_ZONE);
-          direction = 1;
+          hLinear = Math.min(1, (pos.x - (rect.right - EDGE_ZONE)) / EDGE_ZONE);
+          hDirection = 1;
         } else if (pos.x < rect.left + EDGE_ZONE) {
-          linear = Math.min(1, ((rect.left + EDGE_ZONE) - pos.x) / EDGE_ZONE);
-          direction = -1;
+          hLinear = Math.min(1, ((rect.left + EDGE_ZONE) - pos.x) / EDGE_ZONE);
+          hDirection = -1;
         }
-        if (direction !== 0) {
-          const t = pos.isTouch ? Math.sqrt(linear) : linear;
-          el.scrollLeft += direction * MAX_SPEED * t;
+        if (hDirection !== 0) {
+          const t = pos.isTouch ? Math.sqrt(hLinear) : hLinear;
+          el.scrollLeft += hDirection * MAX_SPEED * t;
+        }
+
+        // Vertical scroll (column task list under pointer)
+        const colEl = document.elementFromPoint(pos.x, pos.y)?.closest<HTMLElement>(".overflow-y-auto");
+        if (colEl) {
+          const colRect = colEl.getBoundingClientRect();
+          let vLinear = 0;
+          let vDirection = 0;
+          if (pos.y > colRect.bottom - EDGE_ZONE) {
+            vLinear = Math.min(1, (pos.y - (colRect.bottom - EDGE_ZONE)) / EDGE_ZONE);
+            vDirection = 1;
+          } else if (pos.y < colRect.top + EDGE_ZONE) {
+            vLinear = Math.min(1, ((colRect.top + EDGE_ZONE) - pos.y) / EDGE_ZONE);
+            vDirection = -1;
+          }
+          if (vDirection !== 0) {
+            const t = pos.isTouch ? Math.sqrt(vLinear) : vLinear;
+            colEl.scrollTop += vDirection * MAX_SPEED * t;
+          }
         }
       }
       raf = requestAnimationFrame(loop);
