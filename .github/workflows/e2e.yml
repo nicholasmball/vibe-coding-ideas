@@ -74,6 +74,7 @@ jobs:
 
       - name: Create issue on failure
         if: failure()
+        id: create-issue
         uses: actions/github-script@v7
         with:
           script: |
@@ -102,10 +103,11 @@ jobs:
                 issue_number: alreadyReported.number,
                 body: `**${project}** also failed in this run.`,
               });
+              core.setOutput('created', 'false');
               return;
             }
 
-            await github.rest.issues.create({
+            const issue = await github.rest.issues.create({
               owner, repo,
               title: `E2E failure: ${project} — ${commitMsg}`,
               body: [
@@ -124,3 +126,51 @@ jobs:
               labels: ['e2e-failure'],
               assignees: [actor],
             });
+            core.setOutput('created', 'true');
+            core.setOutput('issue_title', `E2E failure: ${project} — ${commitMsg}`);
+            core.setOutput('issue_url', issue.data.html_url);
+            core.setOutput('run_url', runUrl);
+
+      - name: Create board task for E2E failure
+        if: failure() && steps.create-issue.outputs.created == 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          IDEA_ID="62e57071-3645-422f-96c0-b2042e39e6dd"
+          COLUMN_ID="f4f4d4f4-93d0-445f-97af-8045c49f279b"
+          BUG_LABEL_ID="674dffe4-467e-4108-a38c-4d6d75c53868"
+          ISSUE_TITLE="${{ steps.create-issue.outputs.issue_title }}"
+          ISSUE_URL="${{ steps.create-issue.outputs.issue_url }}"
+          RUN_URL="${{ steps.create-issue.outputs.run_url }}"
+
+          # Get max position in To Do column
+          MAX_POS=$(curl -s "${SUPABASE_URL}/rest/v1/board_tasks?idea_id=eq.${IDEA_ID}&column_id=eq.${COLUMN_ID}&select=position&order=position.desc&limit=1" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" | jq -r '.[0].position // 0')
+          NEW_POS=$((MAX_POS + 1000))
+
+          # Create the board task
+          TASK=$(curl -s "${SUPABASE_URL}/rest/v1/board_tasks" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" \
+            -H "Content-Type: application/json" \
+            -H "Prefer: return=representation" \
+            -d "{
+              \"idea_id\": \"${IDEA_ID}\",
+              \"column_id\": \"${COLUMN_ID}\",
+              \"title\": \"${ISSUE_TITLE}\",
+              \"description\": \"Auto-created from CI failure.\\n\\n**GitHub issue:** ${ISSUE_URL}\\n**CI run:** ${RUN_URL}\",
+              \"position\": ${NEW_POS}
+            }")
+          TASK_ID=$(echo "$TASK" | jq -r '.[0].id // empty')
+
+          # Assign Bug label
+          if [ -n "$TASK_ID" ]; then
+            curl -s "${SUPABASE_URL}/rest/v1/board_task_labels" \
+              -H "apikey: ${SUPABASE_KEY}" \
+              -H "Authorization: Bearer ${SUPABASE_KEY}" \
+              -H "Content-Type: application/json" \
+              -d "{\"task_id\": \"${TASK_ID}\", \"label_id\": \"${BUG_LABEL_ID}\"}"
+            echo "Created board task ${TASK_ID} with Bug label"
+          fi
