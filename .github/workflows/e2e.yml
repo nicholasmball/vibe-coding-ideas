@@ -138,8 +138,8 @@ jobs:
       - name: Create board task for E2E failure
         if: failure() && steps.create-issue.outputs.created == 'true'
         env:
-          SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          SUPABASE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_URL: ${{ secrets.PROD_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.PROD_SUPABASE_SERVICE_KEY }}
         run: |
           IDEA_ID="62e57071-3645-422f-96c0-b2042e39e6dd"
           COLUMN_ID="f4f4d4f4-93d0-445f-97af-8045c49f279b"
