@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef, useEffect, createContext } from "react";
+import { useState, useCallback, useMemo, useRef, useEffect, createContext, type RefObject } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -17,14 +17,12 @@ import {
   type DragOverEvent,
   type CollisionDetection,
 } from "@dnd-kit/core";
-import React from "react";
 import {
   SortableContext,
   horizontalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
 import { useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { BoardColumn } from "./board-column";
 import { AddColumnButton } from "./add-column-button";
 import { BoardToolbar } from "./board-toolbar";
@@ -72,7 +70,7 @@ const multiContainerCollision: CollisionDetection = (args) => {
 };
 
 const layoutMeasuring = {
-  droppable: { strategy: MeasuringStrategy.WhileDragging },
+  droppable: { strategy: MeasuringStrategy.Always },
 };
 
 // Overlay content — intentionally NOT wrapped in React.memo because DragOverlay's
@@ -137,12 +135,14 @@ const MAX_SPEED = 25;    // max px per frame at the very edge
  * Tracks pointer position via capture-phase listeners and scrolls the container
  * when the pointer is within EDGE_ZONE of either horizontal edge. Speed ramps
  * linearly from 0 at the inner boundary to MAX_SPEED at the outer edge.
+ * Touch input uses a square-root curve for faster pickup (fingers can't travel
+ * past the screen edge, so linear ramp feels sluggish).
  */
 function useEdgeScroll(
-  scrollContainerRef: React.RefObject<HTMLDivElement | null>,
+  scrollContainerRef: RefObject<HTMLDivElement | null>,
   isDragging: boolean,
 ) {
-  const pointerRef = useRef<{ x: number } | null>(null);
+  const pointerRef = useRef<{ x: number; isTouch: boolean } | null>(null);
 
   useEffect(() => {
     if (!isDragging) {
@@ -153,11 +153,11 @@ function useEdgeScroll(
     // Track pointer position via capture phase so we get coordinates even when
     // @dnd-kit calls preventDefault on the events
     const onPointer = (e: PointerEvent) => {
-      pointerRef.current = { x: e.clientX };
+      pointerRef.current = { x: e.clientX, isTouch: e.pointerType === "touch" };
     };
     const onTouch = (e: TouchEvent) => {
       const t = e.touches[0] ?? e.changedTouches[0];
-      if (t) pointerRef.current = { x: t.clientX };
+      if (t) pointerRef.current = { x: t.clientX, isTouch: true };
     };
 
     window.addEventListener("pointermove", onPointer, { capture: true, passive: true });
@@ -169,14 +169,18 @@ function useEdgeScroll(
       const pos = pointerRef.current;
       if (el && pos) {
         const rect = el.getBoundingClientRect();
+        let linear = 0;
+        let direction = 0;
         if (pos.x > rect.right - EDGE_ZONE) {
-          // Right edge — ramp speed from 0 to MAX_SPEED
-          const t = Math.min(1, (pos.x - (rect.right - EDGE_ZONE)) / EDGE_ZONE);
-          el.scrollLeft += MAX_SPEED * t;
+          linear = Math.min(1, (pos.x - (rect.right - EDGE_ZONE)) / EDGE_ZONE);
+          direction = 1;
         } else if (pos.x < rect.left + EDGE_ZONE) {
-          // Left edge
-          const t = Math.min(1, ((rect.left + EDGE_ZONE) - pos.x) / EDGE_ZONE);
-          el.scrollLeft -= MAX_SPEED * t;
+          linear = Math.min(1, ((rect.left + EDGE_ZONE) - pos.x) / EDGE_ZONE);
+          direction = -1;
+        }
+        if (direction !== 0) {
+          const t = pos.isTouch ? Math.sqrt(linear) : linear;
+          el.scrollLeft += direction * MAX_SPEED * t;
         }
       }
       raf = requestAnimationFrame(loop);
@@ -245,6 +249,7 @@ export function KanbanBoard({
   const dragSourceColumnRef = useRef<string | null>(null);
   const dragCurrentColumnRef = useRef<string | null>(null);
   const [dragTargetColumnName, setDragTargetColumnName] = useState<string | null>(null);
+  const [dragOverColumnId, setDragOverColumnId] = useState<string | null>(null);
   // Snapshot of columns at drag start — used for immediate revert on cancel
   const dragStartColumnsRef = useRef<BoardColumnWithTasks[] | null>(null);
 
@@ -576,6 +581,9 @@ export function KanbanBoard({
         }
       }
 
+      // Always update column highlight — even for same-column hover
+      setDragOverColumnId(overColumnId);
+
       // Use our ref for the current column (never mutate active.data)
       const activeColumnId = dragCurrentColumnRef.current;
       if (!activeColumnId) return;
@@ -640,6 +648,7 @@ export function KanbanBoard({
       // Column drag end
       if (activeData?.type === "column") {
         setActiveColumn(null);
+        setDragOverColumnId(null);
         dragCurrentColumnRef.current = null;
         dragSourceColumnRef.current = null;
         if (!over) {
@@ -678,6 +687,7 @@ export function KanbanBoard({
       // Task drag end — read current column from our ref (not active.data)
       setActiveTask(null);
       setDragTargetColumnName(null);
+      setDragOverColumnId(null);
 
       const currentColumnId = dragCurrentColumnRef.current;
       const movedBetweenColumns = dragSourceColumnRef.current !== currentColumnId;
@@ -762,6 +772,22 @@ export function KanbanBoard({
     [ideaId]
   );
 
+  const handleDragCancel = useCallback(() => {
+    // Revert to pre-drag state
+    if (dragStartColumnsRef.current) {
+      const snapshot = dragStartColumnsRef.current;
+      setColumns(snapshot);
+      columnsRef.current = snapshot;
+    }
+    setActiveTask(null);
+    setActiveColumn(null);
+    setDragTargetColumnName(null);
+    setDragOverColumnId(null);
+    dragCurrentColumnRef.current = null;
+    dragSourceColumnRef.current = null;
+    dragStartColumnsRef.current = null;
+  }, []);
+
   // Detect when the target task exists but is filtered out
   useEffect(() => {
     if (!autoOpenTaskId) return;
@@ -824,13 +850,14 @@ export function KanbanBoard({
         onDragStart={isReadOnly ? undefined : handleDragStart}
         onDragOver={isReadOnly ? undefined : handleDragOver}
         onDragEnd={isReadOnly ? undefined : handleDragEnd}
+        onDragCancel={isReadOnly ? undefined : handleDragCancel}
       >
         <div className="relative min-h-0 flex-1">
           <div
             ref={scrollContainerRef}
             onScroll={handleScrollCheck}
             className={`flex h-full items-start gap-4 overflow-x-auto pb-4 ${
-              activeTask || activeColumn ? "!snap-none scroll-smooth" : "snap-x snap-mandatory sm:snap-none"
+              activeTask || activeColumn ? "!snap-none" : "snap-x snap-mandatory sm:snap-none"
             }`}
           >
             <SortableContext
@@ -856,6 +883,7 @@ export function KanbanBoard({
                     hasApiKey={hasApiKey}
                     ideaDescription={ideaDescription}
                     isReadOnly={isReadOnly}
+                    isDragTarget={dragOverColumnId === filteredCol.id}
                   />
                 );
               })}
