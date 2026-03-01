@@ -59,6 +59,17 @@ Move to "Blocked/Requires User Input" with a comment explaining why.
 - Position calculation: `MAX(position) + 1000` in target column
 - Public boards have read-only guest access; non-team guests see `GuestBoardBanner` with option to request collaboration
 
+### Idea Agent Pool
+- `idea_agents` junction table: `(idea_id, bot_id, added_by)` with `UNIQUE(idea_id, bot_id)`
+- Team members allocate their active bots to an idea's shared pool; all team members can assign pooled bots to tasks
+- RLS: team members + public viewers SELECT; team members INSERT own active bots; adder or idea author DELETE
+- Trigger on collaborator removal: cleans up all bots that collaborator allocated
+- Trigger on agent removal: unassigns bot from all tasks in that idea
+- Server actions in `src/actions/idea-agents.ts`: `allocateAgent`, `removeIdeaAgent`
+- UI: `IdeaAgentsSection` component on idea detail page (between Collaborators and Description)
+- Board dropdown groups pooled agents by owner name instead of flat "My Agents"
+- MCP tools: `allocate_agent`, `remove_idea_agent`, `list_idea_agents` in `mcp-server/src/tools/idea-agents.ts`
+
 ### Collaboration Requests
 - `collaboration_requests` table with `pending`/`accepted`/`declined` status enum
 - Users request access → author accepts/rejects from idea detail page (`pending-requests.tsx`)
@@ -101,11 +112,11 @@ Move to "Blocked/Requires User Input" with a comment explaining why.
 
 ## Database
 
-28 tables with RLS (`supabase/migrations/`):
+29 tables with RLS (`supabase/migrations/`):
 - **Core**: users, ideas, comments, collaborators, votes, notifications, feedback, idea_attachments
 - **Board**: board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items, board_task_activity, board_task_comments, board_task_attachments
 - **Discussions**: idea_discussions, idea_discussion_replies, discussion_votes
-- **Agents**: bot_profiles
+- **Agents**: bot_profiles, idea_agents
 - **AI**: ai_usage_log, ai_prompt_templates
 - **MCP/OAuth**: mcp_oauth_clients, mcp_oauth_codes
 - **Collaboration**: collaboration_requests
@@ -119,7 +130,7 @@ Key columns:
 
 ## Server Actions (src/actions/)
 
-14 files, 64 exported functions:
+15 files, 66 exported functions:
 - `ideas.ts` — create, update, updateStatus, updateIdeaFields (partial inline edit), delete
 - `board.ts` — columns (init, CRUD, reorder), tasks (CRUD, move, archive), labels (CRUD, assign), checklists (CRUD, toggle), task comments (create, update, delete)
 - `collaborators.ts` — requestCollaboration, withdrawRequest, respondToRequest, leaveCollaboration, addCollaborator, removeCollaborator
@@ -134,6 +145,7 @@ Key columns:
 - `prompt-templates.ts` — list, create, delete
 - `discussions.ts` — createDiscussion, updateDiscussion, deleteDiscussion, createDiscussionReply, updateDiscussionReply, deleteDiscussionReply, convertDiscussionToTask
 - `feedback.ts` — submitFeedback, updateFeedbackStatus, deleteFeedback
+- `idea-agents.ts` — allocateAgent, removeIdeaAgent
 
 ## Environment Variables
 

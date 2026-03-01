@@ -1347,6 +1347,52 @@ export type Database = {
           },
         ];
       };
+      idea_agents: {
+        Row: {
+          id: string;
+          idea_id: string;
+          bot_id: string;
+          added_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          idea_id: string;
+          bot_id: string;
+          added_by: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          idea_id?: string;
+          bot_id?: string;
+          added_by?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "idea_agents_idea_id_fkey";
+            columns: ["idea_id"];
+            isOneToOne: false;
+            referencedRelation: "ideas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "idea_agents_bot_id_fkey";
+            columns: ["bot_id"];
+            isOneToOne: false;
+            referencedRelation: "bot_profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "idea_agents_added_by_fkey";
+            columns: ["added_by"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       [_ in never]: never;
