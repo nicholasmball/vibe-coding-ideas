@@ -681,13 +681,22 @@ export async function insertTasksSequentially(
       return { idea_id: ideaId, title: name, position: maxColPosition };
     });
 
-    const { data: newCols, error } = await supabase
-      .from("board_columns")
-      .insert(inserts)
-      .select("id, title");
+    let newCols: { id: string; title: string }[] | null = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const { data, error } = await supabase
+        .from("board_columns")
+        .insert(inserts)
+        .select("id, title");
 
-    if (error) {
-      throw new Error(`Failed to create columns: ${error.message}`);
+      if (!error && data) {
+        newCols = data;
+        break;
+      }
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+      } else {
+        throw new Error(`Failed to create columns: ${error?.message}`);
+      }
     }
 
     for (const col of newCols ?? []) {
@@ -727,13 +736,22 @@ export async function insertTasksSequentially(
       return { idea_id: ideaId, name, color };
     });
 
-    const { data: createdLabels, error } = await supabase
-      .from("board_labels")
-      .insert(labelInserts)
-      .select("id, name");
+    let createdLabels: { id: string; name: string }[] | null = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const { data, error } = await supabase
+        .from("board_labels")
+        .insert(labelInserts)
+        .select("id, name");
 
-    if (error) {
-      throw new Error(`Failed to create labels: ${error.message}`);
+      if (!error && data) {
+        createdLabels = data;
+        break;
+      }
+      if (attempt === 0) {
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+      } else {
+        throw new Error(`Failed to create labels: ${error?.message}`);
+      }
     }
 
     for (const l of createdLabels ?? []) {
