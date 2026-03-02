@@ -25,7 +25,7 @@ import { IdeaAttachmentsSection } from "@/components/ideas/idea-attachments-sect
 import { IdeaAgentsSection } from "@/components/ideas/idea-agents-section";
 import { formatRelativeTime, stripMarkdownForMeta } from "@/lib/utils";
 import { PendingRequests } from "@/components/ideas/pending-requests";
-import type { CommentWithAuthor, CollaboratorWithUser, CollaborationRequestWithRequester, BotProfile, IdeaAgentWithDetails } from "@/types";
+import type { CommentWithAuthor, CollaboratorWithUser, CollaborationRequestWithRequester, BotProfile } from "@/types";
 import type { Metadata } from "next";
 
 export const maxDuration = 120;
@@ -97,7 +97,6 @@ export default async function IdeaDetailPage({ params }: PageProps) {
     { data: collab },
     { data: profile },
     { data: bots },
-    { data: rawIdeaAgents },
     ideaTeam,
   ] = await Promise.all([
     supabase
@@ -132,11 +131,6 @@ export default async function IdeaDetailPage({ params }: PageProps) {
       .eq("owner_id", user.id)
       .eq("is_active", true)
       .order("created_at", { ascending: true }),
-    supabase
-      .from("idea_agents")
-      .select("*, bot:bot_profiles!idea_agents_bot_id_fkey(*), owner:users!idea_agents_added_by_fkey(id, full_name)")
-      .eq("idea_id", id)
-      .order("created_at", { ascending: true }),
     getIdeaTeam(supabase, id, idea.author_id, user.id),
   ]);
 
@@ -145,7 +139,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
   const isAdmin = profile?.is_admin ?? false;
   const userHasApiKey = !!profile?.encrypted_anthropic_key;
   const userBots = (bots ?? []) as BotProfile[];
-  const ideaAgents = (rawIdeaAgents ?? []) as unknown as IdeaAgentWithDetails[];
+  const ideaAgents = ideaTeam.ideaAgentDetails;
 
   // Build threaded comments
   const commentMap = new Map<string, CommentWithAuthor>();

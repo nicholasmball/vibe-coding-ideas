@@ -130,7 +130,7 @@ Key columns:
 
 ## Server Actions (src/actions/)
 
-15 files, 66 exported functions:
+16 files, 80 exported functions:
 - `ideas.ts` — create, update, updateStatus, updateIdeaFields (partial inline edit), delete
 - `board.ts` — columns (init, CRUD, reorder), tasks (CRUD, move, archive), labels (CRUD, assign), checklists (CRUD, toggle), task comments (create, update, delete)
 - `collaborators.ts` — requestCollaboration, withdrawRequest, respondToRequest, leaveCollaboration, addCollaborator, removeCollaborator
@@ -143,7 +143,7 @@ Key columns:
 - `admin.ts` — toggleAiEnabled, setUserAiDailyLimit
 - `users.ts` — deleteUser (admin only)
 - `prompt-templates.ts` — list, create, delete
-- `discussions.ts` — createDiscussion, updateDiscussion, deleteDiscussion, createDiscussionReply, updateDiscussionReply, deleteDiscussionReply, convertDiscussionToTask
+- `discussions.ts` — createDiscussion, updateDiscussion, deleteDiscussion, createDiscussionReply, updateDiscussionReply, deleteDiscussionReply, toggleDiscussionVote, markReadyToConvert, convertDiscussionToTask
 - `feedback.ts` — submitFeedback, updateFeedbackStatus, deleteFeedback
 - `idea-agents.ts` — allocateAgent, removeIdeaAgent
 
@@ -174,7 +174,7 @@ NOTIFICATION_WEBHOOK_SECRET
 
 ## MCP Server
 
-Two modes sharing 46 tools via `mcp-server/src/register-tools.ts` + `McpContext` DI:
+Two modes sharing 49 tools via `mcp-server/src/register-tools.ts` + `McpContext` DI:
 - **Local (stdio)**: `mcp-server/src/index.ts` — service-role client, bypasses RLS
 - **Remote (HTTP)**: `src/app/api/mcp/[[...transport]]/route.ts` — OAuth 2.1 + PKCE, per-user RLS
 

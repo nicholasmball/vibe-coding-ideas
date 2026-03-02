@@ -114,8 +114,7 @@ export type IdeaDiscussionDetail = IdeaDiscussion & {
 // Idea Agent Pool types
 export type IdeaAgent = Database["public"]["Tables"]["idea_agents"]["Row"];
 export type IdeaAgentWithDetails = IdeaAgent & {
-  bot: BotProfile;
-  owner: { id: string; full_name: string | null };
+  bot: BotProfile & { owner: { id: string; full_name: string | null } };
 };
 export type IdeaAgentUser = User & { ownerName: string; ownerId: string };
 

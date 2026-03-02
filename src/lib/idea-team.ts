@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database";
-import type { User, BotProfile, IdeaAgentUser } from "@/types";
+import type { User, BotProfile, IdeaAgentUser, IdeaAgentWithDetails } from "@/types";
 
 type TypedClient = SupabaseClient<Database>;
 
@@ -15,6 +15,8 @@ export interface IdeaTeamResult {
   currentUserBotIds: string[];
   /** BotProfile records from the pool (for AI features) */
   botProfiles: BotProfile[];
+  /** Full idea_agent rows with bot + owner details (for IdeaAgentsSection) */
+  ideaAgentDetails: IdeaAgentWithDetails[];
 }
 
 /**
@@ -40,9 +42,10 @@ export async function getIdeaTeam(
       supabase
         .from("idea_agents")
         .select(
-          "bot_id, bot:bot_profiles!idea_agents_bot_id_fkey(*, owner:users!bot_profiles_owner_id_fkey(id, full_name))"
+          "*, bot:bot_profiles!idea_agents_bot_id_fkey(*, owner:users!bot_profiles_owner_id_fkey(id, full_name))"
         )
-        .eq("idea_id", ideaId),
+        .eq("idea_id", ideaId)
+        .order("created_at", { ascending: true }),
     ]);
 
   // Build deduplicated human team members
@@ -104,11 +107,18 @@ export async function getIdeaTeam(
     ? botIds.filter((id) => botOwnerIdMap.get(id) === currentUserId)
     : [];
 
+  // Build typed idea_agent details for IdeaAgentsSection
+  const ideaAgentDetails = (rawIdeaAgents ?? []).map((row) => {
+    const r = row as unknown as IdeaAgentWithDetails;
+    return r;
+  });
+
   return {
     teamMembers,
     ideaAgents,
     allMentionable,
     currentUserBotIds,
     botProfiles,
+    ideaAgentDetails,
   };
 }

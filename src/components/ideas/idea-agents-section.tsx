@@ -118,7 +118,7 @@ export function IdeaAgentsSection({
                   <Bot className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 text-primary" />
                 </div>
                 <span>{agent.bot.name}</span>
-                <span className="text-xs text-muted-foreground">({agent.owner.full_name ?? "Unknown"})</span>
+                <span className="text-xs text-muted-foreground">({agent.bot.owner?.full_name ?? "Unknown"})</span>
                 {canRemove && (
                   <button
                     onClick={() => handleRemove(agent.bot_id)}
