@@ -126,7 +126,25 @@ import {
   setBotIdentitySchema,
   createBot,
   createBotSchema,
+  toggleAgentVote,
+  toggleAgentVoteSchema,
+  cloneAgent,
+  cloneAgentSchema,
+  publishAgent,
+  publishAgentSchema,
+  listCommunityAgents,
+  listCommunityAgentsSchema,
+  listFeaturedTeams,
+  listFeaturedTeamsSchema,
 } from "./tools/bots";
+import {
+  allocateAgent,
+  allocateAgentSchema,
+  removeIdeaAgent,
+  removeIdeaAgentSchema,
+  listIdeaAgents,
+  listIdeaAgentsSchema,
+} from "./tools/idea-agents";
 
 function jsonResult(data: unknown) {
   return {
@@ -816,6 +834,122 @@ export function registerTools(
       try {
         const ctx = await getContext(extra);
         return jsonResult(await createBot(ctx, createBotSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  // --- Agent Community Tools ---
+
+  server.tool(
+    "toggle_agent_vote",
+    "Toggle the current user's upvote on a published agent. Adds vote if not voted, removes if already voted.",
+    toggleAgentVoteSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await toggleAgentVote(ctx, toggleAgentVoteSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "clone_agent",
+    "Clone a published agent to your own agent list. Creates an independent copy with provenance tracking.",
+    cloneAgentSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await cloneAgent(ctx, cloneAgentSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "publish_agent",
+    "Publish or unpublish an agent to the community marketplace. Optionally share the system prompt.",
+    publishAgentSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await publishAgent(ctx, publishAgentSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "list_community_agents",
+    "List published agents from the community with optional search, role filter, and sort.",
+    listCommunityAgentsSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await listCommunityAgents(ctx, listCommunityAgentsSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "list_featured_teams",
+    "List featured agent teams with their bundled agents. Active teams only by default.",
+    listFeaturedTeamsSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await listFeaturedTeams(ctx, listFeaturedTeamsSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  // --- Idea Agent Pool Tools ---
+
+  server.tool(
+    "allocate_agent",
+    "Allocate a bot to an idea's shared agent pool. The bot becomes available for task assignment by all team members.",
+    allocateAgentSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await allocateAgent(ctx, allocateAgentSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "remove_idea_agent",
+    "Remove a bot from an idea's shared agent pool. The bot will be unassigned from any tasks in that idea.",
+    removeIdeaAgentSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await removeIdeaAgent(ctx, removeIdeaAgentSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "list_idea_agents",
+    "List all agents allocated to an idea's shared pool with bot profile details and who added them.",
+    listIdeaAgentsSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await listIdeaAgents(ctx, listIdeaAgentsSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
       }
