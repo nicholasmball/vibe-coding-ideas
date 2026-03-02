@@ -49,6 +49,14 @@ const EXPECTED_TOOL_NAMES = [
   "get_agent_prompt",
   "set_agent_identity",
   "create_agent",
+  "toggle_agent_vote",
+  "clone_agent",
+  "publish_agent",
+  "list_community_agents",
+  "list_featured_teams",
+  "allocate_agent",
+  "remove_idea_agent",
+  "list_idea_agents",
 ];
 
 function createMockServer() {
@@ -56,13 +64,13 @@ function createMockServer() {
 }
 
 describe("registerTools", () => {
-  it("registers exactly 46 tools", () => {
+  it("registers exactly 54 tools", () => {
     const server = createMockServer();
     const getContext = vi.fn();
 
     registerTools(server, getContext);
 
-    expect(server.tool).toHaveBeenCalledTimes(46);
+    expect(server.tool).toHaveBeenCalledTimes(54);
   });
 
   it("registers all expected tool names", () => {

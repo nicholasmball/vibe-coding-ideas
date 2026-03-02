@@ -15,6 +15,8 @@ export interface IdeaTeamResult {
   currentUserBotIds: string[];
   /** BotProfile records from the pool (for AI features) */
   botProfiles: BotProfile[];
+  /** Bot user ID → role string for mention autocomplete (plain object for serialization) */
+  botRoles: Record<string, string>;
 }
 
 /**
@@ -104,11 +106,18 @@ export async function getIdeaTeam(
     ? botIds.filter((id) => botOwnerIdMap.get(id) === currentUserId)
     : [];
 
+  // Build bot ID → role map for mention autocomplete
+  const botRoles: Record<string, string> = {};
+  for (const bp of botProfiles) {
+    if (bp.role) botRoles[bp.id] = bp.role;
+  }
+
   return {
     teamMembers,
     ideaAgents,
     allMentionable,
     currentUserBotIds,
     botProfiles,
+    botRoles,
   };
 }
