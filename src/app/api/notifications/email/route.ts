@@ -15,6 +15,9 @@ const EMAIL_WORTHY_TYPES: NotificationType[] = [
   "comment_mention",
   "collaboration_request",
   "collaboration_response",
+  "discussion",
+  "discussion_reply",
+  "discussion_mention",
 ];
 
 export async function POST(request: NextRequest) {
@@ -46,6 +49,7 @@ export async function POST(request: NextRequest) {
       idea_id: string | null;
       comment_id: string | null;
       task_id: string | null;
+      discussion_id: string | null;
     };
   };
 
@@ -138,6 +142,7 @@ export async function POST(request: NextRequest) {
     ideaTitle,
     taskTitle,
     notification.idea_id,
+    notification.discussion_id,
     appUrl,
   );
 
@@ -184,9 +189,13 @@ function buildNotificationEmail(
   ideaTitle: string | null,
   taskTitle: string | null,
   ideaId: string | null,
+  discussionId: string | null,
   appUrl: string,
 ): { subject: string; html: string } | null {
   const ideaUrl = ideaId ? `${appUrl}/ideas/${ideaId}` : appUrl;
+  const discussionUrl = ideaId && discussionId
+    ? `${appUrl}/ideas/${ideaId}/discussions/${discussionId}`
+    : ideaId ? `${appUrl}/ideas/${ideaId}/discussions` : appUrl;
   const ideaDisplay = ideaTitle
     ? `<strong style="color:#fafafa;">${escapeBody(ideaTitle)}</strong>`
     : "your idea";
@@ -285,6 +294,45 @@ function buildNotificationEmail(
           ctaText: "View Idea",
           ctaUrl: ideaUrl,
           footerText: "You received this because your collaboration request was reviewed.",
+        }),
+      };
+    }
+
+    case "discussion": {
+      return {
+        subject: `${actorName} started a discussion on your idea`,
+        html: buildEmailHtml({
+          heading: "New discussion",
+          bodyHtml: `<p style="margin:0;">${escapeBody(actorName)} started a new discussion on ${ideaDisplay}.</p>`,
+          ctaText: "View Discussion",
+          ctaUrl: discussionUrl,
+          footerText: "You received this because a new discussion was started on your idea.",
+        }),
+      };
+    }
+
+    case "discussion_reply": {
+      return {
+        subject: `${actorName} replied to a discussion`,
+        html: buildEmailHtml({
+          heading: "New discussion reply",
+          bodyHtml: `<p style="margin:0;">${escapeBody(actorName)} replied to a discussion on ${ideaDisplay}.</p>`,
+          ctaText: "View Discussion",
+          ctaUrl: discussionUrl,
+          footerText: "You received this because someone replied to a discussion you participated in.",
+        }),
+      };
+    }
+
+    case "discussion_mention": {
+      return {
+        subject: `${actorName} mentioned you in a discussion`,
+        html: buildEmailHtml({
+          heading: "You were mentioned",
+          bodyHtml: `<p style="margin:0;">${escapeBody(actorName)} mentioned you in a discussion on ${ideaDisplay}.</p>`,
+          ctaText: "View Discussion",
+          ctaUrl: discussionUrl,
+          footerText: "You received this because you were mentioned in a discussion.",
         }),
       };
     }

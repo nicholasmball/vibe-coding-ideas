@@ -453,3 +453,50 @@ ${taskDescription}
 
   return { enhanced: text };
 }
+
+// ── Enhance Discussion Body ─────────────────────────────────────────────
+
+export async function enhanceDiscussionBody(
+  ideaId: string,
+  discussionTitle: string,
+  discussionBody: string
+) {
+  const { supabase, user, anthropic } = await requireAiAccess();
+
+  const { data: idea } = await supabase
+    .from("ideas")
+    .select("id, title, description")
+    .eq("id", ideaId)
+    .single();
+
+  if (!idea) throw new Error("Idea not found");
+
+  let text: string;
+  let usage: { inputTokens?: number; outputTokens?: number };
+  try {
+    ({ text, usage } = await generateText({
+      model: anthropic(AI_MODEL),
+      system: "You are a concise technical writer. Improve this discussion post's clarity, structure, and persuasiveness. STRICT RULES: Keep the output roughly the same length as the input (never more than 2x). Do NOT add boilerplate sections, templates, checklists, or context the user didn't provide. Just sharpen what's already there. Return ONLY the improved text — no preamble.",
+      prompt: `**Discussion Title:** ${discussionTitle}
+**Current Body:**
+${discussionBody}
+
+**Context (for reference only, do NOT repeat in output):** Project "${idea.title}"`,
+      maxOutputTokens: 2000,
+      abortSignal: AbortSignal.timeout(AI_TIMEOUT_MS),
+    }));
+  } catch (err) {
+    toPlainError(err);
+  }
+
+  await logAiUsage(supabase, {
+    userId: user.id,
+    actionType: "enhance_discussion_body",
+    inputTokens: usage.inputTokens ?? 0,
+    outputTokens: usage.outputTokens ?? 0,
+    model: AI_MODEL,
+    ideaId,
+  });
+
+  return { enhanced: text };
+}

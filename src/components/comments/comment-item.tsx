@@ -180,7 +180,7 @@ export function CommentItem({
               </div>
             ) : (
               <div className="mt-1 text-sm text-foreground/90">
-                <Markdown>{displayContent}</Markdown>
+                <Markdown teamMembers={teamMembers}>{displayContent}</Markdown>
               </div>
             )}
 

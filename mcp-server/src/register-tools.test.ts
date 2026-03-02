@@ -30,12 +30,20 @@ const EXPECTED_TOOL_NAMES = [
   "add_idea_comment",
   "add_task_comment",
   "report_bug",
+  "list_discussions",
+  "get_discussion",
+  "add_discussion_reply",
+  "create_discussion",
+  "update_discussion",
+  "delete_discussion",
+  "get_discussions_ready_to_convert",
   "list_attachments",
   "upload_attachment",
   "delete_attachment",
   "list_notifications",
   "mark_notification_read",
   "mark_all_notifications_read",
+  "get_agent_mentions",
   "update_profile",
   "list_agents",
   "get_agent_prompt",
@@ -48,13 +56,13 @@ function createMockServer() {
 }
 
 describe("registerTools", () => {
-  it("registers exactly 38 tools", () => {
+  it("registers exactly 46 tools", () => {
     const server = createMockServer();
     const getContext = vi.fn();
 
     registerTools(server, getContext);
 
-    expect(server.tool).toHaveBeenCalledTimes(38);
+    expect(server.tool).toHaveBeenCalledTimes(46);
   });
 
   it("registers all expected tool names", () => {

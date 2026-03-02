@@ -445,7 +445,7 @@ export function TaskCommentsSection({
                       </div>
                     ) : (
                       <div className="mt-0.5 text-xs prose-sm">
-                        <Markdown>{comment.content}</Markdown>
+                        <Markdown teamMembers={teamMembers}>{comment.content}</Markdown>
                       </div>
                     )}
                   </div>

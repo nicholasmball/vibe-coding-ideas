@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { User } from "@/types";
 
@@ -17,11 +17,25 @@ export function MentionAutocomplete({
 }: MentionAutocompleteProps) {
   const listRef = useRef<HTMLDivElement>(null);
 
+  const { agents, members } = useMemo(() => {
+    const agents: User[] = [];
+    const members: User[] = [];
+    for (const m of filteredMembers) {
+      if (m.is_bot) {
+        agents.push(m);
+      } else {
+        members.push(m);
+      }
+    }
+    return { agents, members };
+  }, [filteredMembers]);
+
   // Scroll selected item into view
   useEffect(() => {
     const list = listRef.current;
     if (!list) return;
-    const selected = list.children[selectedIndex] as HTMLElement | undefined;
+    const items = list.querySelectorAll("[data-mention-item]");
+    const selected = items[selectedIndex] as HTMLElement | undefined;
     selected?.scrollIntoView({ block: "nearest" });
   }, [selectedIndex]);
 
@@ -35,41 +49,63 @@ export function MentionAutocomplete({
     );
   }
 
+  // Flat index: agents first, then members
+  let flatIndex = 0;
+
+  function renderItem(user: User) {
+    const idx = flatIndex++;
+    const initials =
+      user.full_name
+        ?.split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase() ?? "?";
+
+    return (
+      <button
+        key={user.id}
+        type="button"
+        data-mention-item
+        className={`flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm transition-colors ${
+          idx === selectedIndex
+            ? "bg-accent text-accent-foreground"
+            : "hover:bg-accent/50"
+        }`}
+        onMouseDown={(e) => {
+          e.preventDefault();
+          onSelect(user);
+        }}
+      >
+        <Avatar className="h-5 w-5">
+          <AvatarImage src={user.avatar_url ?? undefined} />
+          <AvatarFallback className="text-[9px]">
+            {initials}
+          </AvatarFallback>
+        </Avatar>
+        <span>{user.full_name ?? user.email}</span>
+      </button>
+    );
+  }
+
   return (
     <div className="absolute bottom-full left-0 z-50 mb-1 w-64 rounded-lg border bg-popover shadow-md">
-      <div ref={listRef} className="max-h-40 overflow-y-auto p-1">
-        {filteredMembers.map((member, i) => {
-          const initials =
-            member.full_name
-              ?.split(" ")
-              .map((n) => n[0])
-              .join("")
-              .toUpperCase() ?? "?";
-
-          return (
-            <button
-              key={member.id}
-              type="button"
-              className={`flex w-full items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm transition-colors ${
-                i === selectedIndex
-                  ? "bg-accent text-accent-foreground"
-                  : "hover:bg-accent/50"
-              }`}
-              onMouseDown={(e) => {
-                e.preventDefault(); // Keep textarea focus
-                onSelect(member);
-              }}
-            >
-              <Avatar className="h-5 w-5">
-                <AvatarImage src={member.avatar_url ?? undefined} />
-                <AvatarFallback className="text-[9px]">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <span>{member.full_name ?? member.email}</span>
-            </button>
-          );
-        })}
+      <div ref={listRef} className="max-h-48 overflow-y-auto p-1">
+        {agents.length > 0 && (
+          <>
+            <div className="px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              Your Agents
+            </div>
+            {agents.map((agent) => renderItem(agent))}
+          </>
+        )}
+        {members.length > 0 && (
+          <>
+            <div className={`px-3 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground ${agents.length > 0 ? "mt-1 border-t border-border pt-2" : ""}`}>
+              Members
+            </div>
+            {members.map((member) => renderItem(member))}
+          </>
+        )}
       </div>
     </div>
   );

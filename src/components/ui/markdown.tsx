@@ -3,60 +3,123 @@
 import React from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import Link from "next/link";
+import type { User } from "@/types";
 
 interface MarkdownProps {
   children: string;
   className?: string;
+  teamMembers?: User[];
 }
 
-function renderMentions(text: string): React.ReactNode[] {
-  const mentionRegex = /@([A-Za-z][\w]*(?:\s[A-Za-z][\w]*)*)/g;
+function renderMentions(text: string, teamMembers?: User[]): React.ReactNode[] {
+  // Sort known names longest-first so "Matt Hammond" matches before "Matt"
+  const knownNames = (teamMembers ?? [])
+    .filter((m) => m.full_name)
+    .map((m) => ({ name: m.full_name!, id: m.id, isBot: !!m.is_bot }))
+    .sort((a, b) => b.name.length - a.name.length);
+
   const parts: React.ReactNode[] = [];
-  let lastIndex = 0;
-  let match;
+  let remaining = text;
+  let keyCounter = 0;
 
-  while ((match = mentionRegex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(text.slice(lastIndex, match.index));
+  while (remaining.length > 0) {
+    const atIndex = remaining.indexOf("@");
+    if (atIndex === -1) {
+      parts.push(remaining);
+      break;
     }
-    parts.push(
-      <span key={match.index} className="text-primary font-medium">
-        @{match[1]}
-      </span>
-    );
-    lastIndex = match.index + match[0].length;
-  }
 
-  if (lastIndex < text.length) {
-    parts.push(text.slice(lastIndex));
+    // Add text before @
+    if (atIndex > 0) {
+      parts.push(remaining.slice(0, atIndex));
+    }
+
+    const afterAt = remaining.slice(atIndex + 1);
+
+    // Try to match a known team member name (longest match wins)
+    let matched = false;
+    for (const { name, id, isBot } of knownNames) {
+      if (afterAt.toLowerCase().startsWith(name.toLowerCase())) {
+        const charAfter = afterAt[name.length];
+        // Boundary: end-of-string or non-word character
+        if (charAfter === undefined || !/\w/.test(charAfter)) {
+          const href = isBot ? "/agents" : `/profile/${id}`;
+          parts.push(
+            <Link
+              key={keyCounter++}
+              href={href}
+              className="font-medium text-blue-400 hover:text-blue-300 hover:underline"
+            >
+              @{afterAt.slice(0, name.length)}
+            </Link>
+          );
+          remaining = afterAt.slice(name.length);
+          matched = true;
+          break;
+        }
+      }
+    }
+
+    if (!matched) {
+      // Fallback: highlight unrecognized @mentions as styled spans
+      const mentionMatch = afterAt.match(/^([A-Za-z][\w]*(?:\s[A-Za-z][\w]*)*)/);
+      if (mentionMatch) {
+        parts.push(
+          <span key={keyCounter++} className="font-medium text-blue-400/70">
+            @{mentionMatch[1]}
+          </span>
+        );
+        remaining = afterAt.slice(mentionMatch[1].length);
+      } else {
+        // Standalone @ with no word following
+        parts.push("@");
+        remaining = afterAt;
+      }
+    }
   }
 
   return parts.length > 0 ? parts : [text];
 }
 
-export function Markdown({ children, className }: MarkdownProps) {
+/** Recursively process React children, replacing string nodes containing @ with mention elements */
+function processMentionChildren(
+  children: React.ReactNode,
+  teamMembers?: User[]
+): React.ReactNode {
+  return React.Children.map(children, (child) => {
+    if (typeof child === "string" && child.includes("@")) {
+      return <>{renderMentions(child, teamMembers)}</>;
+    }
+    return child;
+  });
+}
+
+export function Markdown({ children, className, teamMembers }: MarkdownProps) {
+  const m = (c: React.ReactNode) => processMentionChildren(c, teamMembers);
+
   return (
     <div className={`min-w-0 overflow-hidden break-words ${className ?? ""}`}>
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
         h1: ({ children }) => (
-          <h1 className="text-xl font-bold mt-4 mb-2">{children}</h1>
+          <h1 className="text-xl font-bold mt-4 mb-2">{m(children)}</h1>
         ),
         h2: ({ children }) => (
-          <h2 className="text-lg font-bold mt-3 mb-2">{children}</h2>
+          <h2 className="text-lg font-bold mt-3 mb-2">{m(children)}</h2>
         ),
         h3: ({ children }) => (
-          <h3 className="text-base font-bold mt-3 mb-1">{children}</h3>
+          <h3 className="text-base font-bold mt-3 mb-1">{m(children)}</h3>
         ),
-        p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+        p: ({ children }) => <p className="mb-3 last:mb-0">{m(children)}</p>,
         ul: ({ children }) => (
           <ul className="mb-3 ml-6 list-disc space-y-1">{children}</ul>
         ),
         ol: ({ children }) => (
           <ol className="mb-3 ml-6 list-decimal space-y-1">{children}</ol>
         ),
-        li: ({ children }) => <li>{children}</li>,
+        li: ({ children }) => <li>{m(children)}</li>,
         a: ({ href, children }) => (
           <a
             href={href}
@@ -90,7 +153,7 @@ export function Markdown({ children, className }: MarkdownProps) {
         pre: ({ children }) => <pre className="mb-3 last:mb-0 overflow-x-auto max-w-full">{children}</pre>,
         blockquote: ({ children }) => (
           <blockquote className="mb-3 border-l-2 border-primary/30 pl-4 italic text-muted-foreground">
-            {children}
+            {m(children)}
           </blockquote>
         ),
         hr: () => <hr className="my-4 border-border" />,
@@ -101,21 +164,15 @@ export function Markdown({ children, className }: MarkdownProps) {
         ),
         th: ({ children }) => (
           <th className="border border-border bg-muted px-3 py-2 text-left font-medium">
-            {children}
+            {m(children)}
           </th>
         ),
         td: ({ children }) => (
-          <td className="border border-border px-3 py-2">{children}</td>
+          <td className="border border-border px-3 py-2">{m(children)}</td>
         ),
         strong: ({ children }) => (
-          <strong className="font-semibold">{children}</strong>
+          <strong className="font-semibold">{m(children)}</strong>
         ),
-        text: ({ children }) => {
-          if (typeof children === "string" && children.includes("@")) {
-            return <>{renderMentions(children)}</>;
-          }
-          return <>{children}</>;
-        },
       }}
     >
       {children}

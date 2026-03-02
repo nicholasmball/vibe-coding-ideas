@@ -113,6 +113,36 @@ export function validateLabelName(name: string): string {
   return trimmed;
 }
 
+export const MAX_DISCUSSION_BODY_LENGTH = 10000;
+export const MAX_DISCUSSION_REPLY_LENGTH = 5000;
+
+export function validateDiscussionTitle(title: string): string {
+  const trimmed = title.trim();
+  if (!trimmed) throw new ValidationError("Discussion title is required");
+  if (trimmed.length > MAX_TITLE_LENGTH) {
+    throw new ValidationError(`Discussion title must be ${MAX_TITLE_LENGTH} characters or less`);
+  }
+  return trimmed;
+}
+
+export function validateDiscussionBody(body: string): string {
+  const trimmed = body.trim();
+  if (!trimmed) throw new ValidationError("Discussion body is required");
+  if (trimmed.length > MAX_DISCUSSION_BODY_LENGTH) {
+    throw new ValidationError(`Discussion body must be ${MAX_DISCUSSION_BODY_LENGTH} characters or less`);
+  }
+  return trimmed;
+}
+
+export function validateDiscussionReply(content: string): string {
+  const trimmed = content.trim();
+  if (!trimmed) throw new ValidationError("Reply cannot be empty");
+  if (trimmed.length > MAX_DISCUSSION_REPLY_LENGTH) {
+    throw new ValidationError(`Reply must be ${MAX_DISCUSSION_REPLY_LENGTH} characters or less`);
+  }
+  return trimmed;
+}
+
 export const MAX_AVATAR_URL_LENGTH = 2000;
 
 export function validateAvatarUrl(url: string | null): string | null {
