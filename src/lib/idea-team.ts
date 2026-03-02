@@ -34,7 +34,7 @@ export async function getIdeaTeam(
   // Parallel fetch: author, collaborators, idea agents pool
   const [{ data: author }, { data: collabs }, { data: rawIdeaAgents }] =
     await Promise.all([
-      supabase.from("users").select("*").eq("id", authorId).single(),
+      supabase.from("users").select("*").eq("id", authorId).maybeSingle(),
       supabase
         .from("collaborators")
         .select("user:users!collaborators_user_id_fkey(*)")
