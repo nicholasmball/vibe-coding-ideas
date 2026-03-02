@@ -92,6 +92,25 @@ export type DashboardBot = BotProfile & {
   isActiveMcpBot: boolean;
 };
 
+// Discussion types
+export type IdeaDiscussion = Database["public"]["Tables"]["idea_discussions"]["Row"];
+export type IdeaDiscussionReply = Database["public"]["Tables"]["idea_discussion_replies"]["Row"];
+export type DiscussionVote = Database["public"]["Tables"]["discussion_votes"]["Row"];
+export type DiscussionStatus = Database["public"]["Enums"]["discussion_status"];
+export type IdeaDiscussionWithAuthor = IdeaDiscussion & {
+  author: User;
+};
+export type IdeaDiscussionReplyWithAuthor = IdeaDiscussionReply & {
+  author: User;
+};
+export type IdeaDiscussionReplyWithChildren = IdeaDiscussionReplyWithAuthor & {
+  children: IdeaDiscussionReplyWithAuthor[];
+};
+export type IdeaDiscussionDetail = IdeaDiscussion & {
+  author: User;
+  replies: IdeaDiscussionReplyWithAuthor[];
+};
+
 // AI usage types
 export type AiUsageLog = Database["public"]["Tables"]["ai_usage_log"]["Row"];
 

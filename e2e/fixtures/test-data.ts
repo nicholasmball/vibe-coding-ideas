@@ -116,6 +116,58 @@ export async function createTestComment(
   return data;
 }
 
+/** Create a test discussion on an idea */
+export async function createTestDiscussion(
+  ideaId: string,
+  authorId: string,
+  overrides: {
+    title?: string;
+    body?: string;
+    status?: "open" | "resolved" | "ready_to_convert" | "converted";
+    pinned?: boolean;
+    target_column_id?: string;
+    target_assignee_id?: string;
+  } = {}
+) {
+  const { data, error } = await supabaseAdmin
+    .from("idea_discussions")
+    .insert({
+      idea_id: ideaId,
+      author_id: authorId,
+      title: overrides.title ?? `${E2E_PREFIX} Discussion ${Date.now()}`,
+      body: overrides.body ?? `${E2E_PREFIX} Discussion body for testing.`,
+      status: overrides.status ?? "open",
+      pinned: overrides.pinned ?? false,
+      target_column_id: overrides.target_column_id ?? null,
+      target_assignee_id: overrides.target_assignee_id ?? null,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to create test discussion: ${error.message}`);
+  return data;
+}
+
+/** Create a test discussion reply */
+export async function createTestDiscussionReply(
+  discussionId: string,
+  authorId: string,
+  overrides: { content?: string } = {}
+) {
+  const { data, error } = await supabaseAdmin
+    .from("idea_discussion_replies")
+    .insert({
+      discussion_id: discussionId,
+      author_id: authorId,
+      content: overrides.content ?? `${E2E_PREFIX} Reply ${Date.now()}`,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to create test discussion reply: ${error.message}`);
+  return data;
+}
+
 /** Clean up specific ideas by ID (cascades to board, comments, etc.) */
 export async function cleanupIdeas(ideaIds: string[]) {
   if (ideaIds.length === 0) return;

@@ -235,6 +235,7 @@ export function TaskEditDialog({
       attachment_count: 0,
       cover_image_path: null,
       comment_count: 0,
+      discussion_id: null,
     };
 
     // Optimistically insert & close immediately
