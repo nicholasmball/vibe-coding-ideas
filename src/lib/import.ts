@@ -682,20 +682,37 @@ export async function insertTasksSequentially(
     });
 
     let newCols: { id: string; title: string }[] | null = null;
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const { data, error } = await supabase
-        .from("board_columns")
-        .insert(inserts)
-        .select("id, title");
+    const { data, error } = await supabase
+      .from("board_columns")
+      .insert(inserts)
+      .select("id, title");
 
-      if (!error && data) {
-        newCols = data;
-        break;
-      }
-      if (attempt === 0) {
-        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+    if (!error && data) {
+      newCols = data;
+    } else {
+      // Retry: fetch any columns that were partially created, then insert the rest
+      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+      const { data: existing } = await supabase
+        .from("board_columns")
+        .select("id, title")
+        .eq("idea_id", ideaId)
+        .in(
+          "title",
+          inserts.map((i) => i.title)
+        );
+      const existingTitles = new Set((existing ?? []).map((c) => c.title));
+      const remaining = inserts.filter((i) => !existingTitles.has(i.title));
+      if (remaining.length > 0) {
+        const { data: retryData, error: retryError } = await supabase
+          .from("board_columns")
+          .insert(remaining)
+          .select("id, title");
+        if (retryError) {
+          throw new Error(`Failed to create columns: ${retryError.message}`);
+        }
+        newCols = [...(existing ?? []), ...(retryData ?? [])];
       } else {
-        throw new Error(`Failed to create columns: ${error?.message}`);
+        newCols = existing ?? [];
       }
     }
 
@@ -737,20 +754,39 @@ export async function insertTasksSequentially(
     });
 
     let createdLabels: { id: string; name: string }[] | null = null;
-    for (let attempt = 0; attempt < 2; attempt++) {
-      const { data, error } = await supabase
-        .from("board_labels")
-        .insert(labelInserts)
-        .select("id, name");
+    const { data, error } = await supabase
+      .from("board_labels")
+      .insert(labelInserts)
+      .select("id, name");
 
-      if (!error && data) {
-        createdLabels = data;
-        break;
-      }
-      if (attempt === 0) {
-        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+    if (!error && data) {
+      createdLabels = data;
+    } else {
+      // Retry: fetch any labels that were partially created, then insert the rest
+      await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+      const { data: existing } = await supabase
+        .from("board_labels")
+        .select("id, name")
+        .eq("idea_id", ideaId)
+        .in(
+          "name",
+          labelInserts.map((i) => i.name)
+        );
+      const existingNames = new Set((existing ?? []).map((l) => l.name));
+      const remaining = labelInserts.filter(
+        (i) => !existingNames.has(i.name)
+      );
+      if (remaining.length > 0) {
+        const { data: retryData, error: retryError } = await supabase
+          .from("board_labels")
+          .insert(remaining)
+          .select("id, name");
+        if (retryError) {
+          throw new Error(`Failed to create labels: ${retryError.message}`);
+        }
+        createdLabels = [...(existing ?? []), ...(retryData ?? [])];
       } else {
-        throw new Error(`Failed to create labels: ${error?.message}`);
+        createdLabels = existing ?? [];
       }
     }
 

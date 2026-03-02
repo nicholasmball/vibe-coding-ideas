@@ -141,9 +141,9 @@ jobs:
           SUPABASE_URL: ${{ secrets.PROD_SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.PROD_SUPABASE_SERVICE_KEY }}
         run: |
-          IDEA_ID="62e57071-3645-422f-96c0-b2042e39e6dd"
-          COLUMN_ID="f4f4d4f4-93d0-445f-97af-8045c49f279b"
-          BUG_LABEL_ID="674dffe4-467e-4108-a38c-4d6d75c53868"
+          IDEA_ID="${{ vars.VIBECODES_IDEA_ID }}"
+          COLUMN_ID="${{ vars.VIBECODES_TODO_COLUMN_ID }}"
+          BUG_LABEL_ID="${{ vars.VIBECODES_BUG_LABEL_ID }}"
           ISSUE_TITLE="${{ steps.create-issue.outputs.issue_title }}"
           ISSUE_URL="${{ steps.create-issue.outputs.issue_url }}"
           RUN_URL="${{ steps.create-issue.outputs.run_url }}"
