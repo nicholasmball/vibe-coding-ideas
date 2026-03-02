@@ -2,8 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { validateUuid } from "@/lib/validation";
 
 export async function allocateAgent(ideaId: string, botId: string) {
+  const validIdeaId = validateUuid(ideaId, "Idea ID");
+  const validBotId = validateUuid(botId, "Bot ID");
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -14,8 +18,8 @@ export async function allocateAgent(ideaId: string, botId: string) {
   }
 
   const { error } = await supabase.from("idea_agents").insert({
-    idea_id: ideaId,
-    bot_id: botId,
+    idea_id: validIdeaId,
+    bot_id: validBotId,
     added_by: user.id,
   });
 
@@ -29,6 +33,9 @@ export async function allocateAgent(ideaId: string, botId: string) {
 }
 
 export async function removeIdeaAgent(ideaId: string, botId: string) {
+  const validIdeaId = validateUuid(ideaId, "Idea ID");
+  const validBotId = validateUuid(botId, "Bot ID");
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -41,8 +48,8 @@ export async function removeIdeaAgent(ideaId: string, botId: string) {
   const { error } = await supabase
     .from("idea_agents")
     .delete()
-    .eq("idea_id", ideaId)
-    .eq("bot_id", botId);
+    .eq("idea_id", validIdeaId)
+    .eq("bot_id", validBotId);
 
   if (error) {
     throw new Error("Failed to remove agent");

@@ -19,6 +19,7 @@ CREATE TABLE idea_agents (
 
 CREATE INDEX idea_agents_idea_id_idx ON idea_agents(idea_id);
 CREATE INDEX idea_agents_bot_id_idx ON idea_agents(bot_id);
+CREATE INDEX idea_agents_added_by_idx ON idea_agents(added_by);
 
 -- ============================================================================
 -- 2. RLS
@@ -69,7 +70,7 @@ BEGIN
     AND added_by = OLD.user_id;
   RETURN OLD;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER on_collaborator_remove_cleanup_agents
   AFTER DELETE ON collaborators
@@ -85,7 +86,7 @@ BEGIN
     AND assignee_id = OLD.bot_id;
   RETURN OLD;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER on_idea_agent_remove_unassign
   AFTER DELETE ON idea_agents
