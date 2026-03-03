@@ -351,8 +351,8 @@ export function TaskDetailDialog({
   const currentLabels = useMemo(() => {
     const labelMap = new Map(boardLabels.map((l) => [l.id, l]));
     return task.labels
-      .map((tl) => labelMap.get(tl.id) ?? tl)
-      .filter((l): l is BoardLabel => !!l);
+      .map((tl) => labelMap.get(tl.id))
+      .filter((l): l is BoardLabel => l !== undefined);
   }, [task.labels, boardLabels]);
 
   const commentCount = task.comment_count;

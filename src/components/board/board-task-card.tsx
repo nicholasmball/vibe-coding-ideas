@@ -216,8 +216,8 @@ export const BoardTaskCard = memo(function BoardTaskCard({
   const currentLabels = useMemo(() => {
     const labelMap = new Map(boardLabels.map((l) => [l.id, l]));
     return task.labels
-      .map((tl) => labelMap.get(tl.id) ?? tl)
-      .filter((l): l is BoardLabel => !!l);
+      .map((tl) => labelMap.get(tl.id))
+      .filter((l): l is BoardLabel => l !== undefined);
   }, [task.labels, boardLabels]);
 
   return (
