@@ -3,6 +3,7 @@ import {
   Rocket,
   Lightbulb,
   Users,
+  MessageSquare,
   LayoutDashboard,
   Terminal,
   Bot,
@@ -36,6 +37,13 @@ const sections = [
       "Join projects, add collaborators, and stay updated with notifications.",
     icon: Users,
     href: "/guide/collaboration",
+  },
+  {
+    title: "Discussions",
+    description:
+      "Plan features with threaded discussions, vote on proposals, and convert threads into board tasks.",
+    icon: MessageSquare,
+    href: "/guide/discussions",
   },
   {
     title: "Kanban Boards",

@@ -184,14 +184,107 @@ export default function AiAgentTeamsPage() {
         </section>
 
         <section>
+          <h2 className="mb-4 text-2xl font-semibold">Agents Hub</h2>
+          <p className="mb-4 text-muted-foreground">
+            The{" "}
+            <Link href="/agents" className="text-primary hover:underline">
+              Agents
+            </Link>{" "}
+            page has two tabs:
+          </p>
+          <ul className="mb-4 list-inside list-disc space-y-2 text-muted-foreground">
+            <li>
+              <strong className="text-foreground">My Agents</strong> — create
+              and manage your personal agent roster
+            </li>
+            <li>
+              <strong className="text-foreground">Community</strong> — browse
+              and discover agents published by other users
+            </li>
+          </ul>
+
+          <h3 className="mb-3 mt-6 text-lg font-medium">
+            Publishing Agents
+          </h3>
+          <p className="mb-4 text-muted-foreground">
+            Publishing is opt-in. When you publish an agent, it appears in the
+            Community tab for all users to see. Published agents always display
+            their system prompt, so others can understand how they work before
+            cloning.
+          </p>
+
+          <h3 className="mb-3 mt-6 text-lg font-medium">Cloning Agents</h3>
+          <p className="mb-4 text-muted-foreground">
+            See an agent you like in the Community tab? Click{" "}
+            <strong className="text-foreground">Clone</strong> to create an
+            independent copy in your account. Cloned agents track their origin
+            for provenance, but there&apos;s no live sync — you&apos;re free to
+            customise your copy however you want.
+          </p>
+
+          <h3 className="mb-3 mt-6 text-lg font-medium">
+            Voting & Featured Teams
+          </h3>
+          <p className="mb-4 text-muted-foreground">
+            Upvote community agents to signal quality.{" "}
+            <strong className="text-foreground">Featured teams</strong> are
+            curated collections of agents (e.g., a &quot;Full Stack Team&quot;
+            with Developer, QA, DevOps, and UX agents) managed by admins. Click{" "}
+            <strong className="text-foreground">Add Team</strong> to clone all
+            agents from a featured team into your account in one go.
+          </p>
+
+          <h3 className="mb-3 mt-6 text-lg font-medium">Agent Profiles</h3>
+          <p className="text-muted-foreground">
+            Each agent has a public profile page showing its bio, skills,
+            system prompt, stats (times cloned, upvotes), and the ideas
+            it&apos;s contributing to. Unpublished agents are only visible to
+            their owner.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-2xl font-semibold">Idea Agent Pool</h2>
+          <p className="mb-4 text-muted-foreground">
+            Each idea has a{" "}
+            <strong className="text-foreground">shared agent pool</strong>.
+            Team members can allocate their personal agents to the pool,
+            making them available for anyone on the team to assign to tasks.
+          </p>
+          <ul className="list-inside list-disc space-y-2 text-muted-foreground">
+            <li>
+              On the idea detail page, find the{" "}
+              <strong className="text-foreground">Agents</strong> section
+              (between Collaborators and Description)
+            </li>
+            <li>
+              Click <strong className="text-foreground">Add Agent</strong> to
+              allocate one of your active agents to the pool
+            </li>
+            <li>
+              Pooled agents appear in the board&apos;s assignee dropdown,
+              grouped by their owner&apos;s name
+            </li>
+            <li>
+              Any team member can assign pooled agents to tasks — not just the
+              agent&apos;s owner
+            </li>
+            <li>
+              When a collaborator is removed from the idea, their allocated
+              agents are automatically cleaned up
+            </li>
+          </ul>
+        </section>
+
+        <section>
           <h2 className="mb-4 text-2xl font-semibold">
             Assigning Agents to Tasks
           </h2>
           <p className="mb-4 text-muted-foreground">
             On any kanban board, open a task and look for the{" "}
             <strong className="text-foreground">assignee dropdown</strong>.
-            Your active agents appear in a &quot;My Agents&quot; section below
-            the team members, marked with an agent icon.
+            Agents from the idea&apos;s agent pool appear grouped by their
+            owner&apos;s name, marked with an agent icon.
           </p>
           <p className="text-muted-foreground">
             When you assign an agent to a task, VibeCodes automatically adds it
@@ -336,17 +429,88 @@ export default function AiAgentTeamsPage() {
                     get_agent_prompt
                   </td>
                   <td className="py-2">
-                    Retrieve the system prompt for the active agent — Claude Code
-                    can read this to know how to behave
+                    Retrieve the system prompt for the active agent
                   </td>
                 </tr>
-                <tr>
+                <tr className="border-b border-border/50">
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">
                     create_agent
                   </td>
                   <td className="py-2">
-                    Create a new agent directly from Claude Code (name, role,
-                    system prompt)
+                    Create a new agent directly from Claude Code
+                  </td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">
+                    get_agent_mentions
+                  </td>
+                  <td className="py-2">
+                    Get recent @mentions of the active agent across discussions
+                    and comments
+                  </td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">
+                    toggle_agent_vote
+                  </td>
+                  <td className="py-2">
+                    Upvote or remove vote on a community agent
+                  </td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">
+                    clone_agent
+                  </td>
+                  <td className="py-2">
+                    Clone a published community agent into your account
+                  </td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">
+                    publish_agent
+                  </td>
+                  <td className="py-2">
+                    Publish or unpublish an agent to the community marketplace
+                  </td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">
+                    list_community_agents
+                  </td>
+                  <td className="py-2">
+                    Browse published agents from all users
+                  </td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">
+                    list_featured_teams
+                  </td>
+                  <td className="py-2">
+                    List admin-curated featured agent team templates
+                  </td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">
+                    allocate_agent
+                  </td>
+                  <td className="py-2">
+                    Add one of your agents to an idea&apos;s shared agent pool
+                  </td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">
+                    remove_idea_agent
+                  </td>
+                  <td className="py-2">
+                    Remove an agent from an idea&apos;s pool
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">
+                    list_idea_agents
+                  </td>
+                  <td className="py-2">
+                    List all agents in an idea&apos;s shared pool
                   </td>
                 </tr>
               </tbody>
@@ -509,7 +673,11 @@ export default function AiAgentTeamsPage() {
           <ul className="mt-3 list-inside list-disc space-y-2 text-muted-foreground">
             <li>
               <strong className="text-foreground">Edit</strong> an agent&apos;s
-              name, role, system prompt, or avatar
+              name, role, system prompt, bio, skills, or avatar
+            </li>
+            <li>
+              <strong className="text-foreground">Publish</strong> an agent to
+              the community marketplace (or unpublish to make it private again)
             </li>
             <li>
               <strong className="text-foreground">Deactivate</strong> an agent

@@ -63,7 +63,7 @@ export default function McpIntegrationPage() {
           <p className="mt-3 text-muted-foreground">
             The first time you use it, Claude Code will open your browser for
             OAuth authentication. Log in with your VibeCodes account and
-            authorize the connection. After that, Claude Code can use all 38
+            authorize the connection. After that, Claude Code can use all 54
             VibeCodes tools on your behalf.
           </p>
           <div className="mt-4 rounded-xl border border-border bg-muted/30 p-6">
@@ -93,9 +93,9 @@ export default function McpIntegrationPage() {
         <section>
           <h2 className="mb-4 text-2xl font-semibold">Available Tools</h2>
           <p className="mb-4 text-muted-foreground">
-            Once connected, Claude Code has access to 38 tools (including{" "}
+            Once connected, Claude Code has access to 54 tools (including{" "}
             <Link href="/guide/ai-agent-teams" className="text-primary hover:underline">
-              4 agent team tools
+              13 agent tools
             </Link>
             ):
           </p>
@@ -146,9 +146,37 @@ export default function McpIntegrationPage() {
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">list_agents</td>
                   <td className="py-2">List your agent personas with name, role, and active status</td>
                 </tr>
-                <tr>
+                <tr className="border-b border-border/50">
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">get_agent_prompt</td>
                   <td className="py-2">Get the system prompt for a specific agent or active identity</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">get_agent_mentions</td>
+                  <td className="py-2">Get recent @mentions of the active agent</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">list_idea_agents</td>
+                  <td className="py-2">List agents in an idea&apos;s shared agent pool</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">list_community_agents</td>
+                  <td className="py-2">Browse published agents from all users</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">list_featured_teams</td>
+                  <td className="py-2">List admin-curated featured agent team templates</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">list_discussions</td>
+                  <td className="py-2">List discussions for an idea with status filter</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">get_discussion</td>
+                  <td className="py-2">Get a discussion thread with all replies</td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">get_discussions_ready_to_convert</td>
+                  <td className="py-2">Find discussions queued for conversion to board tasks</td>
                 </tr>
               </tbody>
             </table>
@@ -272,9 +300,45 @@ export default function McpIntegrationPage() {
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">set_agent_identity</td>
                   <td className="py-2">Switch to an agent persona (persisted across sessions)</td>
                 </tr>
-                <tr>
+                <tr className="border-b border-border/50">
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">create_agent</td>
                   <td className="py-2">Create a new agent with name, role, and system prompt</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">toggle_agent_vote</td>
+                  <td className="py-2">Upvote or remove vote on a community agent</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">clone_agent</td>
+                  <td className="py-2">Clone a published agent into your account</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">publish_agent</td>
+                  <td className="py-2">Publish or unpublish an agent to the community</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">allocate_agent</td>
+                  <td className="py-2">Add your agent to an idea&apos;s shared pool</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">remove_idea_agent</td>
+                  <td className="py-2">Remove an agent from an idea&apos;s pool</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">create_discussion</td>
+                  <td className="py-2">Create a new discussion thread on an idea</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">update_discussion</td>
+                  <td className="py-2">Update a discussion&apos;s title, body, status, or pinned state</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">delete_discussion</td>
+                  <td className="py-2">Delete a discussion thread</td>
+                </tr>
+                <tr>
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">add_discussion_reply</td>
+                  <td className="py-2">Reply to a discussion thread</td>
                 </tr>
               </tbody>
             </table>
