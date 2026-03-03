@@ -61,15 +61,14 @@ export function TagInput({ value, onChange }: TagInputProps) {
           placeholder="Add tags..."
           className="flex-1 border-0 bg-transparent px-1 py-0 h-6 text-sm shadow-none focus-visible:ring-0 min-w-[120px]"
         />
-        {input.trim() && (
-          <button
-            type="button"
-            onClick={() => addTag(input)}
-            className="shrink-0 rounded p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            <Check className="h-4 w-4" />
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => addTag(input)}
+          aria-label="Add tag"
+          className={`shrink-0 rounded p-1.5 transition-colors ${input.trim() ? "text-muted-foreground hover:bg-accent hover:text-foreground" : "invisible"}`}
+        >
+          <Check className="h-4 w-4" />
+        </button>
       </div>
       {value.length < 5 && (
         <div className="flex flex-wrap gap-1.5">
