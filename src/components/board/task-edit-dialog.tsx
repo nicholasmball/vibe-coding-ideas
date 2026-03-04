@@ -34,7 +34,7 @@ interface TaskEditDialogProps {
   boardLabels: BoardLabel[];
   currentUserId: string;
   ideaAgents?: User[];
-  hasApiKey?: boolean;
+  canUseAi?: boolean;
   hasByokKey?: boolean;
   starterCredits?: number;
   ideaDescription?: string;
@@ -49,7 +49,7 @@ export function TaskEditDialog({
   boardLabels,
   currentUserId,
   ideaAgents = [],
-  hasApiKey = false,
+  canUseAi = false,
   hasByokKey = false,
   starterCredits = 0,
   ideaDescription = "",
@@ -67,7 +67,7 @@ export function TaskEditDialog({
   const dialogRef = useRef<HTMLDivElement>(null);
   const ops = useBoardOps();
 
-  const showAiEnhance = hasApiKey && description.trim().length > 10;
+  const showAiEnhance = canUseAi && description.trim().length > 10;
 
   async function handleEnhanceDescription() {
     if (!title.trim() || !description.trim()) return;

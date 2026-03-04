@@ -35,7 +35,8 @@ interface BoardToolbarProps {
   ideaId: string;
   ideaDescription?: string;
   currentUserId: string;
-  hasApiKey?: boolean;
+  canUseAi?: boolean;
+  hasByokKey?: boolean;
   starterCredits?: number;
   botProfiles?: BotProfile[];
   isReadOnly?: boolean;
@@ -59,7 +60,8 @@ export function BoardToolbar({
   ideaId,
   ideaDescription = "",
   currentUserId,
-  hasApiKey = false,
+  canUseAi = false,
+  hasByokKey = false,
   starterCredits = 0,
   botProfiles = [],
   isReadOnly = false,
@@ -219,19 +221,19 @@ export function BoardToolbar({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <span tabIndex={!hasApiKey ? 0 : undefined}>
+                <span tabIndex={!canUseAi ? 0 : undefined}>
                   <Button
                     variant="outline"
                     size="sm"
-                    className={`h-8 gap-1.5 text-xs ${!hasApiKey ? "pointer-events-none opacity-50" : ""}`}
+                    className={`h-8 gap-1.5 text-xs ${!canUseAi ? "pointer-events-none opacity-50" : ""}`}
                     onClick={() => {
-                      if (!hasApiKey) return;
+                      if (!canUseAi) return;
                       setAiGenerateOpen(true);
                     }}
                   >
                     <Sparkles className="h-3.5 w-3.5" />
                     <span className="hidden sm:inline">AI Generate</span>
-                    {hasApiKey && starterCredits > 0 && (
+                    {!hasByokKey && starterCredits > 0 && (
                       <span className="rounded-full bg-primary px-1.5 text-[10px] leading-none text-primary-foreground">
                         {starterCredits}
                       </span>
@@ -239,7 +241,7 @@ export function BoardToolbar({
                   </Button>
                 </span>
               </TooltipTrigger>
-              {!hasApiKey && (
+              {!canUseAi && (
                 <TooltipContent side="bottom">
                   You&apos;ve used all 10 free AI credits — add your API key in profile settings for unlimited use
                 </TooltipContent>

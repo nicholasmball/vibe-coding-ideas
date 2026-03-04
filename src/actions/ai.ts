@@ -5,12 +5,9 @@ import { generateText, generateObject } from "ai";
 import { z } from "zod";
 import {
   AI_MODEL,
-  getAnthropicProvider,
-  getPlatformAnthropicProvider,
   logAiUsage,
   decrementStarterCredit,
-  PLATFORM_AI_DAILY_LIMIT,
-  getPlatformAiCallsToday,
+  resolveAiProvider,
 } from "@/lib/ai-helpers";
 import type { AiAccess } from "@/lib/ai-helpers";
 
@@ -37,37 +34,10 @@ async function requireAiAccess() {
 
   if (!user) throw new Error("Not authenticated");
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("encrypted_anthropic_key, ai_starter_credits")
-    .eq("id", user.id)
-    .single();
+  const resolved = await resolveAiProvider(supabase, user.id);
+  if (!resolved.ok) throw new Error(resolved.error);
 
-  if (!profile) throw new Error("User profile not found");
-
-  // Path 1: User has their own API key (BYOK)
-  if (profile.encrypted_anthropic_key) {
-    const anthropic = getAnthropicProvider(profile.encrypted_anthropic_key);
-    return { supabase, user, anthropic, keyType: "byok" as const };
-  }
-
-  // Path 2: User has starter credits — use platform key
-  if (profile.ai_starter_credits > 0) {
-    // Safety cap: check daily platform usage
-    if (PLATFORM_AI_DAILY_LIMIT > 0) {
-      const todayCount = await getPlatformAiCallsToday(supabase, user.id);
-      if (todayCount >= PLATFORM_AI_DAILY_LIMIT) {
-        throw new Error("Daily AI safety limit reached. Please try again tomorrow.");
-      }
-    }
-    const anthropic = getPlatformAnthropicProvider();
-    return { supabase, user, anthropic, keyType: "platform" as const };
-  }
-
-  // Path 3: No key and no credits
-  throw new Error(
-    "You've used all your free AI credits. Add your API key in profile settings for unlimited use."
-  );
+  return { supabase, user, anthropic: resolved.anthropic, keyType: resolved.keyType };
 }
 
 // ── Check AI Access Status ──────────────────────────────────────────────

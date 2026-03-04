@@ -41,7 +41,7 @@ interface BoardTaskCardProps {
   ideaAgents?: User[];
   initialCoverUrl?: string;
   isReadOnly?: boolean;
-  hasApiKey?: boolean;
+  canUseAi?: boolean;
   hasByokKey?: boolean;
   starterCredits?: number;
 }
@@ -83,7 +83,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
   ideaAgents = [],
   initialCoverUrl,
   isReadOnly = false,
-  hasApiKey = false,
+  canUseAi = false,
   hasByokKey = false,
   starterCredits = 0,
 }: BoardTaskCardProps) {
@@ -392,7 +392,7 @@ export const BoardTaskCard = memo(function BoardTaskCard({
           initialTab={initialTab}
           ideaAgents={ideaAgents}
           isReadOnly={isReadOnly}
-          hasApiKey={hasApiKey}
+          canUseAi={canUseAi}
           hasByokKey={hasByokKey}
           starterCredits={starterCredits}
         />

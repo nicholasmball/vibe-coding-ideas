@@ -44,7 +44,7 @@ interface TaskDetailDialogProps {
   initialTab?: string;
   ideaAgents?: User[];
   isReadOnly?: boolean;
-  hasApiKey?: boolean;
+  canUseAi?: boolean;
   hasByokKey?: boolean;
   starterCredits?: number;
 }
@@ -61,7 +61,7 @@ export function TaskDetailDialog({
   initialTab,
   ideaAgents = [],
   isReadOnly = false,
-  hasApiKey = false,
+  canUseAi = false,
   hasByokKey = false,
   starterCredits = 0,
 }: TaskDetailDialogProps) {
@@ -284,7 +284,7 @@ export function TaskDetailDialog({
     }
   }
 
-  const showAiEnhance = hasApiKey && !isReadOnly && editingDescription && description.trim().length > 10;
+  const showAiEnhance = canUseAi && !isReadOnly && editingDescription && description.trim().length > 10;
 
   async function handleEnhanceDescription() {
     if (!title.trim() || !description.trim()) return;

@@ -42,6 +42,48 @@ export function getPlatformAnthropicProvider() {
   return createAnthropic({ apiKey });
 }
 
+/** Shared AI access resolution: BYOK key → platform key with credits → error.
+ *  Used by both server actions (requireAiAccess) and streaming API routes. */
+export type ResolvedAiAccess =
+  | { ok: true; anthropic: ReturnType<typeof createAnthropic>; keyType: "byok" | "platform" }
+  | { ok: false; error: string; status: number };
+
+export async function resolveAiProvider(
+  supabase: SupabaseClient<Database>,
+  userId: string
+): Promise<ResolvedAiAccess> {
+  const { data: profile } = await supabase
+    .from("users")
+    .select("encrypted_anthropic_key, ai_starter_credits")
+    .eq("id", userId)
+    .single();
+
+  if (!profile) return { ok: false, error: "User profile not found", status: 404 };
+
+  // Path 1: User has their own API key (BYOK)
+  if (profile.encrypted_anthropic_key) {
+    return { ok: true, anthropic: getAnthropicProvider(profile.encrypted_anthropic_key), keyType: "byok" };
+  }
+
+  // Path 2: User has starter credits — use platform key
+  if (profile.ai_starter_credits > 0) {
+    if (PLATFORM_AI_DAILY_LIMIT > 0) {
+      const todayCount = await getPlatformAiCallsToday(supabase, userId);
+      if (todayCount >= PLATFORM_AI_DAILY_LIMIT) {
+        return { ok: false, error: "Daily AI safety limit reached. Please try again tomorrow.", status: 429 };
+      }
+    }
+    return { ok: true, anthropic: getPlatformAnthropicProvider(), keyType: "platform" };
+  }
+
+  // Path 3: No key and no credits
+  return {
+    ok: false,
+    error: "You've used all your free AI credits. Add your API key in profile settings for unlimited use.",
+    status: 403,
+  };
+}
+
 /** Read remaining starter credits for a user. */
 export async function getStarterCreditsRemaining(
   supabase: SupabaseClient<Database>,

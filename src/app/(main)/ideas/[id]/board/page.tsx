@@ -186,8 +186,9 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
     }
   }
 
-  const userHasApiKey = !isReadOnly && (!!userProfile?.encrypted_anthropic_key || (userProfile?.ai_starter_credits ?? 0) > 0);
+  const userHasByokKey = !isReadOnly && !!userProfile?.encrypted_anthropic_key;
   const starterCredits = userProfile?.ai_starter_credits ?? 0;
+  const userCanUseAi = !isReadOnly && (userHasByokKey || starterCredits > 0);
 
   // Batch-create signed URLs for cover images (single API call instead of N)
   const coverPaths = (rawTasks ?? []).map((t) => t.cover_image_path).filter((p): p is string => !!p);
@@ -248,7 +249,8 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
         currentUserId={user.id}
         initialTaskId={initialTaskId}
         ideaAgents={ideaAgents}
-        hasApiKey={userHasApiKey}
+        canUseAi={userCanUseAi}
+        hasByokKey={userHasByokKey}
         starterCredits={starterCredits}
         botProfiles={ideaAgentBotProfiles}
         coverImageUrls={coverImageUrls}

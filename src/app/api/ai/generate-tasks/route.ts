@@ -3,12 +3,9 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import {
   AI_MODEL,
-  getAnthropicProvider,
-  getPlatformAnthropicProvider,
   logAiUsage,
   decrementStarterCredit,
-  PLATFORM_AI_DAILY_LIMIT,
-  getPlatformAiCallsToday,
+  resolveAiProvider,
 } from "@/lib/ai-helpers";
 
 export const maxDuration = 300;
@@ -36,38 +33,11 @@ export async function POST(req: Request) {
       return Response.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { data: profile } = await supabase
-      .from("users")
-      .select("encrypted_anthropic_key, ai_starter_credits")
-      .eq("id", user.id)
-      .single();
-
-    // Determine key type: BYOK → platform with credits → 403
-    let keyType: "byok" | "platform";
-    let anthropic;
-
-    if (profile?.encrypted_anthropic_key) {
-      keyType = "byok";
-      anthropic = getAnthropicProvider(profile.encrypted_anthropic_key);
-    } else if ((profile?.ai_starter_credits ?? 0) > 0) {
-      keyType = "platform";
-      // Safety cap check
-      if (PLATFORM_AI_DAILY_LIMIT > 0) {
-        const todayCount = await getPlatformAiCallsToday(supabase, user.id);
-        if (todayCount >= PLATFORM_AI_DAILY_LIMIT) {
-          return Response.json(
-            { error: "Daily AI safety limit reached. Please try again tomorrow." },
-            { status: 429 }
-          );
-        }
-      }
-      anthropic = getPlatformAnthropicProvider();
-    } else {
-      return Response.json(
-        { error: "You've used all your free AI credits. Add your API key in profile settings for unlimited use." },
-        { status: 403 }
-      );
+    const resolved = await resolveAiProvider(supabase, user.id);
+    if (!resolved.ok) {
+      return Response.json({ error: resolved.error }, { status: resolved.status });
     }
+    const { anthropic, keyType } = resolved;
 
     const body = await req.json();
     const { ideaId, prompt, personaPrompt } = body as {
