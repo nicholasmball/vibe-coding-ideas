@@ -122,6 +122,7 @@ interface KanbanBoardProps {
   initialTaskId?: string;
   ideaAgents?: User[];
   hasApiKey?: boolean;
+  starterCredits?: number;
   botProfiles?: BotProfile[];
   coverImageUrls?: Record<string, string>;
   isReadOnly?: boolean;
@@ -230,6 +231,7 @@ export function KanbanBoard({
   initialTaskId,
   ideaAgents = [],
   hasApiKey = false,
+  starterCredits = 0,
   botProfiles = [],
   coverImageUrls = {},
   isReadOnly = false,
@@ -873,6 +875,7 @@ export function KanbanBoard({
         ideaDescription={ideaDescription}
         currentUserId={currentUserId}
         hasApiKey={hasApiKey}
+        starterCredits={starterCredits}
         botProfiles={botProfiles}
         isReadOnly={isReadOnly}
       />

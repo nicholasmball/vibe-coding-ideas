@@ -123,7 +123,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
       .maybeSingle(),
     supabase
       .from("users")
-      .select("is_admin, encrypted_anthropic_key")
+      .select("is_admin, encrypted_anthropic_key, ai_starter_credits")
       .eq("id", user.id)
       .single(),
     supabase
@@ -138,7 +138,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
   const hasVoted = !!vote;
   const isCollaborator = !!collab;
   const isAdmin = profile?.is_admin ?? false;
-  const userHasApiKey = !!profile?.encrypted_anthropic_key;
+  const userHasApiKey = !!profile?.encrypted_anthropic_key || (profile?.ai_starter_credits ?? 0) > 0;
   const userBots = (bots ?? []) as BotProfile[];
   const ideaAgents = ideaTeam.ideaAgentDetails;
 

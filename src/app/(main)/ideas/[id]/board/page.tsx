@@ -143,7 +143,7 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
     isTeamMember
       ? supabase
           .from("users")
-          .select("encrypted_anthropic_key")
+          .select("encrypted_anthropic_key, ai_starter_credits")
           .eq("id", user.id)
           .single()
       : Promise.resolve({ data: null }),
@@ -186,7 +186,8 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
     }
   }
 
-  const userHasApiKey = !isReadOnly && !!userProfile?.encrypted_anthropic_key;
+  const userHasApiKey = !isReadOnly && (!!userProfile?.encrypted_anthropic_key || (userProfile?.ai_starter_credits ?? 0) > 0);
+  const starterCredits = userProfile?.ai_starter_credits ?? 0;
 
   // Batch-create signed URLs for cover images (single API call instead of N)
   const coverPaths = (rawTasks ?? []).map((t) => t.cover_image_path).filter((p): p is string => !!p);
@@ -248,6 +249,7 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
         initialTaskId={initialTaskId}
         ideaAgents={ideaAgents}
         hasApiKey={userHasApiKey}
+        starterCredits={starterCredits}
         botProfiles={ideaAgentBotProfiles}
         coverImageUrls={coverImageUrls}
         isReadOnly={isReadOnly}

@@ -3,7 +3,11 @@ import { createClient } from "@/lib/supabase/server";
 import {
   AI_MODEL,
   getAnthropicProvider,
+  getPlatformAnthropicProvider,
   logAiUsage,
+  decrementStarterCredit,
+  PLATFORM_AI_DAILY_LIMIT,
+  getPlatformAiCallsToday,
 } from "@/lib/ai-helpers";
 
 export const maxDuration = 300; // Streaming keeps the connection alive; allow generous time
@@ -21,13 +25,32 @@ export async function POST(req: Request) {
 
     const { data: profile } = await supabase
       .from("users")
-      .select("encrypted_anthropic_key")
+      .select("encrypted_anthropic_key, ai_starter_credits")
       .eq("id", user.id)
       .single();
 
-    if (!profile?.encrypted_anthropic_key) {
+    // Determine key type: BYOK → platform with credits → 403
+    let keyType: "byok" | "platform";
+    let anthropic;
+
+    if (profile?.encrypted_anthropic_key) {
+      keyType = "byok";
+      anthropic = getAnthropicProvider(profile.encrypted_anthropic_key);
+    } else if ((profile?.ai_starter_credits ?? 0) > 0) {
+      keyType = "platform";
+      if (PLATFORM_AI_DAILY_LIMIT > 0) {
+        const todayCount = await getPlatformAiCallsToday(supabase, user.id);
+        if (todayCount >= PLATFORM_AI_DAILY_LIMIT) {
+          return Response.json(
+            { error: "Daily AI safety limit reached. Please try again tomorrow." },
+            { status: 429 }
+          );
+        }
+      }
+      anthropic = getPlatformAnthropicProvider();
+    } else {
       return Response.json(
-        { error: "No API key configured — add your Anthropic key in your profile settings" },
+        { error: "You've used all your free AI credits. Add your API key in profile settings for unlimited use." },
         { status: 403 }
       );
     }
@@ -45,8 +68,6 @@ export async function POST(req: Request) {
     if (!ideaId || !prompt) {
       return Response.json({ error: "Missing ideaId or prompt" }, { status: 400 });
     }
-
-    const anthropic = getAnthropicProvider(profile.encrypted_anthropic_key);
 
     const { data: idea } = await supabase
       .from("ideas")
@@ -120,7 +141,11 @@ Use the answers above to inform your enhanced description. Make the enhancement 
           outputTokens: usage.outputTokens ?? 0,
           model: AI_MODEL,
           ideaId,
+          keyType,
         });
+        if (keyType === "platform") {
+          await decrementStarterCredit(supabase, user.id);
+        }
         if (finishReason === "length") {
           console.warn(`[AI Enhance] Output truncated for idea ${ideaId}`);
         }

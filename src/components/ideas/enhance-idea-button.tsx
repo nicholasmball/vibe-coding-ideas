@@ -74,7 +74,7 @@ export function EnhanceIdeaButton({
           </TooltipTrigger>
           {disabled && (
             <TooltipContent side="bottom">
-              Add your API key in profile settings to enable AI
+              You&apos;ve used all 10 free AI credits — add your API key in profile settings for unlimited use
             </TooltipContent>
           )}
         </Tooltip>

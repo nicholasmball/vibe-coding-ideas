@@ -5,6 +5,12 @@ import type { Database } from "@/types/database";
 
 export const AI_MODEL = "claude-sonnet-4-6";
 
+export type AiAccess = {
+  hasApiKey: boolean;
+  starterCredits: number;
+  canUseAi: boolean;
+};
+
 export type AiActionType =
   | "enhance_description"
   | "generate_questions"
@@ -25,6 +31,43 @@ export function getAnthropicProvider(encryptedKey: string | null) {
     throw new Error("Failed to decrypt API key — please re-save your key in profile settings");
   }
   return createAnthropic({ apiKey });
+}
+
+/** Create an Anthropic provider using the platform API key. */
+export function getPlatformAnthropicProvider() {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    throw new Error("Platform AI is not configured");
+  }
+  return createAnthropic({ apiKey });
+}
+
+/** Read remaining starter credits for a user. */
+export async function getStarterCreditsRemaining(
+  supabase: SupabaseClient<Database>,
+  userId: string
+): Promise<number> {
+  const { data } = await supabase
+    .from("users")
+    .select("ai_starter_credits")
+    .eq("id", userId)
+    .single();
+  return data?.ai_starter_credits ?? 0;
+}
+
+/** Atomically decrement a starter credit. Returns remaining count. */
+export async function decrementStarterCredit(
+  supabase: SupabaseClient<Database>,
+  userId: string
+): Promise<number> {
+  const { data, error } = await supabase.rpc("decrement_starter_credit", {
+    p_user_id: userId,
+  });
+  if (error) {
+    console.error("[AI Starter Credits] Failed to decrement:", error.message);
+    return 0;
+  }
+  return data ?? 0;
 }
 
 export async function logAiUsage(
