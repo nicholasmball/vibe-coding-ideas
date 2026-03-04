@@ -234,10 +234,10 @@ export default function KanbanBoardsPage() {
       </div>
 
       <div className="mt-12 flex justify-between border-t border-border pt-6">
-        <Link href="/guide/collaboration">
+        <Link href="/guide/discussions">
           <Button variant="outline" className="gap-2">
             <ArrowLeft className="h-4 w-4" />
-            Collaboration
+            Discussions
           </Button>
         </Link>
         <Link href="/guide/mcp-integration">

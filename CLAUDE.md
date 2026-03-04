@@ -59,11 +59,52 @@ Move to "Blocked/Requires User Input" with a comment explaining why.
 - Position calculation: `MAX(position) + 1000` in target column
 - Public boards have read-only guest access; non-team guests see `GuestBoardBanner` with option to request collaboration
 
+### Idea Agent Pool
+- `idea_agents` junction table: `(idea_id, bot_id, added_by)` with `UNIQUE(idea_id, bot_id)`
+- Team members allocate their active bots to an idea's shared pool; all team members can assign pooled bots to tasks
+- RLS: team members + public viewers SELECT; team members INSERT own active bots; adder or idea author DELETE
+- Trigger on collaborator removal: cleans up all bots that collaborator allocated
+- Trigger on agent removal: unassigns bot from all tasks in that idea
+- Server actions in `src/actions/idea-agents.ts`: `allocateAgent`, `removeIdeaAgent`
+- UI: `IdeaAgentsSection` component on idea detail page (between Collaborators and Description)
+- Board dropdown groups pooled agents by owner name instead of flat "My Agents"
+- MCP tools: `allocate_agent`, `remove_idea_agent`, `list_idea_agents` in `mcp-server/src/tools/idea-agents.ts`
+
+### Agents Hub
+- `/agents` page is tabbed: "My Agents" + "Community" tabs via `AgentsHub` component
+- `bot_profiles` extended with `bio`, `skills` (text[]), `is_published`, `community_upvotes`, `times_cloned`, `cloned_from` (FK → self)
+- `agent_votes` table for community upvotes with trigger-based denormalization to `bot_profiles.community_upvotes`
+- Publishing is opt-in (`is_published`); published agents always show their system prompt; `is_published` filtered at query level (RLS unchanged)
+- Clone = independent copy; `cloned_from` FK for provenance only, no live sync
+- Featured teams stored in DB (`featured_teams` + `featured_team_agents` junction table); admin-managed via `/admin?tab=teams`
+- `addFeaturedTeam(teamId)` clones each team agent into user's account, skipping duplicate roles
+- Agent profile pages at `/agents/[id]` — private if not published (except owner); shows stats, skills, prompt display, contributing ideas
+- Components in `src/components/agents/`: agents-hub, my-agents-grid, agent-card, create-agent-dialog, edit-agent-dialog, empty-state, community-tab, featured-teams, agent-vote-button, clone-agent-button, agent-profile
+- Admin components in `src/components/admin/`: admin-agents-dashboard, create-admin-agent-dialog, admin-teams-dashboard, team-editor-dialog, user-credits-table
+- Server actions in `src/actions/bots.ts`: createBot (extended with bio/skills), updateBot (extended with bio/skills/is_published), toggleAgentVote, cloneAgent, addFeaturedTeam
+- Admin actions in `src/actions/admin-agents.ts`: createAdminAgent, updateAdminAgent, deleteAdminAgent, createFeaturedTeam, updateFeaturedTeam, deleteFeaturedTeam, toggleFeaturedTeamActive, setTeamAgents
+- VibeCodes system user (`VIBECODES_USER_ID` in constants.ts) owns admin agents; admin agents auto-published
+- MCP tools: `toggle_agent_vote`, `clone_agent`, `publish_agent`, `list_community_agents`, `list_featured_teams` in `mcp-server/src/tools/bots.ts`
+- Avatar upload reuses `avatars` bucket; path: `avatars/{botId}/avatar`, upload after RPC returns bot ID
+- `create_bot_user` RPC untouched; new columns set via follow-up UPDATE
+
 ### Collaboration Requests
 - `collaboration_requests` table with `pending`/`accepted`/`declined` status enum
 - Users request access → author accepts/rejects from idea detail page (`pending-requests.tsx`)
 - Actions: `requestCollaboration`, `withdrawRequest`, `respondToRequest`, `leaveCollaboration` in `src/actions/collaborators.ts`
 - Guards against concurrent responses via `.eq("status", "pending")`
+
+### Discussions
+- `idea_discussions` + `idea_discussion_replies` + `discussion_votes` tables for titled, threaded planning conversations per idea
+- Four statuses: `open` → `resolved` (concluded), `ready_to_convert` (queued for agent), or `converted` (promoted to board task)
+- Pinnable threads, denormalized `reply_count` + `last_activity_at` + `upvotes` via triggers
+- `board_tasks.discussion_id` back-links converted discussions to their resulting tasks
+- `ideas.discussion_count` denormalized via trigger
+- Routes: `/ideas/[id]/discussions` (list), `/ideas/[id]/discussions/[discussionId]` (thread), `/ideas/[id]/discussions/new`
+- Server actions in `src/actions/discussions.ts`: createDiscussion, updateDiscussion, deleteDiscussion, createDiscussionReply, updateDiscussionReply, deleteDiscussionReply, toggleDiscussionVote, markReadyToConvert, convertDiscussionToTask
+- `convertDiscussionToTask` uses status guard (`.in("status", [...])`) to prevent concurrent conversion, with orphaned task cleanup on failure
+- RLS: team members can write; authenticated users can read public idea discussions
+- Notification types: `discussion`, `discussion_reply`, `discussion_mention` (trigger-based); controlled by `discussions` notification preference (falls back to `comments`)
 
 ### Idea Attachments
 - `idea_attachments` table with `idea-attachments` private storage bucket (signed URLs for access)
@@ -78,48 +119,65 @@ Move to "Blocked/Requires User Input" with a comment explaining why.
 ### Email Notifications
 - `/api/notifications/email` webhook endpoint, verified via `NOTIFICATION_WEBHOOK_SECRET`
 - Triggered by Supabase pg_net webhook on notification inserts
-- Sends via Resend API for high-signal types (comment, collaborator, status_change, task_mention)
+- Sends via Resend API for high-signal types (comment, collaborator, status_change, task_mention, discussion, discussion_reply)
 - Respects `users.email_notifications` preference; skips bot users
 - Template: `src/lib/email-template.ts` (`buildEmailHtml`)
 
+### AI Starter Credits
+- New users get 10 lifetime AI credits (`users.ai_starter_credits`, default 10)
+- `resolveAiProvider()` in `src/lib/ai-helpers.ts`: shared access resolution for both server actions and API routes — BYOK key → platform key with credits → error. Returns discriminated union `{ ok: true, anthropic, keyType } | { ok: false, error, status }`
+- `requireAiAccess()` in `src/actions/ai.ts` wraps `resolveAiProvider()` for server actions (throws on failure)
+- `getAiAccess()` returns `{ canUseAi, hasByokKey, starterCredits }` for UI gating — `canUseAi` means BYOK or credits available, `hasByokKey` means user has their own Anthropic API key
+- `getPlatformAnthropicProvider()` in `src/lib/ai-helpers.ts` uses `ANTHROPIC_API_KEY` env var
+- `decrement_starter_credit` RPC atomically decrements; `grant_starter_credits` RPC is admin-only
+- Onboarding enhance is a separate freebie — doesn't deduct credits
+- Daily safety cap: `PLATFORM_AI_DAILY_LIMIT` env var (default 50) prevents abuse
+- Credit badge shown on AI Generate button when `!hasByokKey && starterCredits > 0`
+- Admin credits dashboard (`/admin?tab=credits`): view/grant credits via `UserCreditsTable` component
+
 ### Validation
 - `src/lib/validation.ts` — all server actions validate before DB ops
-- Limits: title 200, description 50K, comment 5K, bio 500, tags 50 chars / 10 max
+- Limits: title 200, description 50K, comment 5K, discussion body 10K, discussion reply 5K, bio 500, tags 50 chars / 10 max, skills 30 chars / 10 max, team name 200, team description 1K
 - Idea attachments: 10 MB per file, 10 files per idea, allowed types: images (png/jpg/gif/webp/svg), PDF, Markdown
 
 ## Database
 
-22 tables with RLS (58 migrations in `supabase/migrations/`):
+32 tables with RLS (`supabase/migrations/`):
 - **Core**: users, ideas, comments, collaborators, votes, notifications, feedback, idea_attachments
 - **Board**: board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items, board_task_activity, board_task_comments, board_task_attachments
-- **Agents**: bot_profiles
+- **Discussions**: idea_discussions, idea_discussion_replies, discussion_votes
+- **Agents**: bot_profiles, idea_agents, agent_votes, featured_teams, featured_team_agents
 - **AI**: ai_usage_log, ai_prompt_templates
 - **MCP/OAuth**: mcp_oauth_clients, mcp_oauth_codes
 - **Collaboration**: collaboration_requests
 
 Key columns:
-- `users.is_bot`, `users.is_admin`, `users.ai_daily_limit` (default 10), `users.ai_enabled`, `users.default_board_columns`, `users.email_notifications`, `users.active_bot_id`, `users.encrypted_anthropic_key`
+- `users.is_bot`, `users.is_admin`, `users.ai_daily_limit` (default 10), `users.ai_enabled`, `users.ai_starter_credits` (default 10, lifetime), `users.default_board_columns`, `users.email_notifications`, `users.active_bot_id`, `users.encrypted_anthropic_key`
 - `ideas.visibility` (public/private) enforced by RLS
-- Denormalized counts on ideas (upvotes, comment_count, collaborator_count, attachment_count) via triggers
-- `admin_delete_user` RPC cascades from auth.users
+- Denormalized counts on ideas (upvotes, comment_count, collaborator_count, discussion_count, attachment_count) via triggers
+- `admin_delete_user` RPC cascades from auth.users; `admin_delete_bot_user` + `admin_update_bot_user` RPCs for admin agent management
 - Board tables use `is_idea_team_member()` RLS function
 
 ## Server Actions (src/actions/)
 
-13 files, 57 exported functions:
+18 files, 94 exported functions:
 - `ideas.ts` — create, update, updateStatus, updateIdeaFields (partial inline edit), delete
 - `board.ts` — columns (init, CRUD, reorder), tasks (CRUD, move, archive), labels (CRUD, assign), checklists (CRUD, toggle), task comments (create, update, delete)
 - `collaborators.ts` — requestCollaboration, withdrawRequest, respondToRequest, leaveCollaboration, addCollaborator, removeCollaborator
-- `ai.ts` — enhanceIdeaDescription, generateClarifyingQuestions, enhanceIdeaWithContext, applyEnhancedDescription, generateBoardTasks, enhanceTaskDescription, getAiRemainingCredits
+- `ai.ts` — enhanceIdeaDescription, generateClarifyingQuestions, enhanceIdeaWithContext, applyEnhancedDescription, generateBoardTasks, enhanceTaskDescription, enhanceDiscussionBody, getAiAccess, hasApiKey (deprecated)
 - `comments.ts` — create, incorporate, delete, update
 - `votes.ts` — toggleVote
 - `notifications.ts` — markNotificationsRead, markAllNotificationsRead, updateNotificationPreferences
 - `profile.ts` — updateProfile, updateDefaultBoardColumns, saveApiKey, removeApiKey
-- `bots.ts` — createBot, updateBot, deleteBot, listMyBots
-- `admin.ts` — toggleAiEnabled, setUserAiDailyLimit
+- `bots.ts` — createBot, updateBot, deleteBot, listMyBots, toggleAgentVote, cloneAgent, addFeaturedTeam
+- `admin-agents.ts` — createAdminAgent, updateAdminAgent, deleteAdminAgent, createFeaturedTeam, updateFeaturedTeam, deleteFeaturedTeam, toggleFeaturedTeamActive, setTeamAgents
+- `admin.ts` — grantStarterCredits
 - `users.ts` — deleteUser (admin only)
 - `prompt-templates.ts` — list, create, delete
+- `discussions.ts` — createDiscussion, updateDiscussion, deleteDiscussion, createDiscussionReply, updateDiscussionReply, deleteDiscussionReply, toggleDiscussionVote, markReadyToConvert, convertDiscussionToTask
 - `feedback.ts` — submitFeedback, updateFeedbackStatus, deleteFeedback
+- `idea-agents.ts` — allocateAgent, removeIdeaAgent
+- `onboarding.ts` — completeOnboarding, enhanceOnboardingDescription, generateOnboardingClarifyingQuestions, enhanceOnboardingWithContext
 
 ## Environment Variables
 
@@ -131,11 +189,36 @@ NOTIFICATION_WEBHOOK_SECRET
 
 ## Deployment
 
-- **Platform**: Vercel (zero-config Next.js, auto-deploys on push to `master`)
-- **Production domain**: `vibecodes.co.uk`
+See `docs/release-process.md` for full details.
+
+### Environments
+
+| Environment | URL | Branch | Database |
+|---|---|---|---|
+| Local | http://localhost:3000 | any | Docker Supabase |
+| Staging | https://staging.vibecodes.co.uk | `develop` | Staging Supabase project |
+| Production | https://vibecodes.co.uk | `master` | Production Supabase project |
+
+### Branching (Git Flow Lite)
+- Feature branches → PR to `develop` (staging) → PR to `master` (production)
+- Hotfixes branch directly from `master`
+- Vercel auto-deploys: Preview for `develop`, Production for `master`
+
+### Database Migrations
+- **Staging**: auto-applied via CI when migrations merge to `develop` (`supabase db push`)
+- **Production**: manual trigger via `workflow_dispatch` with approval gate (GitHub Environment `production`)
+- **PR validation**: naming convention, non-empty check, destructive keyword warnings — posts summary comment
+- Flow: feature branch → `develop` (staging DB, auto) → `master` (production DB, manual trigger)
+- Migrations cannot be rolled back — only corrective forward migrations
+- Required secrets: `SUPABASE_ACCESS_TOKEN`, `STAGING_PROJECT_REF`, `PROD_PROJECT_REF`
+- GitHub Environment `Production` with required reviewer (`nicholasmball`) gates production deploys
+- `migration-failure` label used for auto-created failure issues
+
+### CI & Monitoring
 - **CI**: GitHub Actions E2E tests (`.github/workflows/e2e.yml`) — 3-browser matrix (Desktop Chrome, Desktop Firefox, Mobile Chrome)
+- **CI**: GitHub Actions database migrations (`.github/workflows/migrations.yml`) — auto-apply staging, manual production, PR validation
 - **Monitoring**: Sentry (`@sentry/nextjs` with source maps), Vercel Analytics + Speed Insights
-- **No deployment gates** — E2E runs in parallel but doesn't block Vercel deployment
+- E2E runs on all PRs to both `develop` and `master` but doesn't block Vercel deployment
 
 ## Adding DB Tables
 
@@ -148,7 +231,7 @@ NOTIFICATION_WEBHOOK_SECRET
 
 ## MCP Server
 
-Two modes sharing 38 tools via `mcp-server/src/register-tools.ts` + `McpContext` DI:
+Two modes sharing 54 tools via `mcp-server/src/register-tools.ts` + `McpContext` DI:
 - **Local (stdio)**: `mcp-server/src/index.ts` — service-role client, bypasses RLS
 - **Remote (HTTP)**: `src/app/api/mcp/[[...transport]]/route.ts` — OAuth 2.1 + PKCE, per-user RLS
 
@@ -168,4 +251,11 @@ Auto-inject `idea_id` into MCP tool calls from `.vibecodes/config.json`.
 
 ## Testing Convention
 
-Write tests for all new pure logic, validators, parsers, utilities. Tests co-located as `*.test.ts`. Component changes verified via build + manual testing. Currently 16 unit test files (14 in `src/` + 2 in `mcp-server/`) and 42 E2E spec files across 15 directories.
+Write tests for all new pure logic, validators, parsers, utilities. Tests co-located as `*.test.ts`. Component changes verified via build + manual testing. Currently 23 unit test files (18 in `src/` + 5 in `mcp-server/src/`) and 43 E2E spec files across 21 directories.
+
+### E2E Test Conventions
+- Shared constants in `e2e/fixtures/constants.ts`: `EXPECT_TIMEOUT` (15s)
+- `getTestUserId()` helper in `e2e/fixtures/test-data.ts` for user lookups
+- `scopedTitle()` for unique test data (replaces `[E2E]` prefix)
+- Scope locators to `page.getByRole("main")` to avoid Playwright strict mode violations from sidebar matches
+- Playwright config: `fullyParallel: false`, `retries: 0` locally (2 in CI), `expect.timeout: 5_000` default

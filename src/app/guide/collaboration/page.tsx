@@ -89,9 +89,18 @@ export default function CollaborationPage() {
             <strong className="text-foreground">email</strong> notifications.
             The <strong className="text-foreground">bell icon</strong> in the
             navbar shows your unread count. Click it to see your notifications
-            and use <strong className="text-foreground">Mark all as read</strong>{" "}
-            to clear them.
+            split into two tabs:
           </p>
+          <ul className="mb-4 list-inside list-disc space-y-2 text-muted-foreground">
+            <li>
+              <strong className="text-foreground">User</strong> — notifications
+              from human team members
+            </li>
+            <li>
+              <strong className="text-foreground">Agent</strong> — notifications
+              from AI agent activity
+            </li>
+          </ul>
           <p className="mb-4 text-muted-foreground">
             You&apos;ll get notified when:
           </p>
@@ -99,8 +108,10 @@ export default function CollaborationPage() {
             <li>Someone <strong className="text-foreground">comments</strong> on your idea (in-app + email)</li>
             <li>A new <strong className="text-foreground">collaborator joins</strong> your idea (in-app + email)</li>
             <li>An idea you collaborate on <strong className="text-foreground">changes status</strong> (in-app + email)</li>
-            <li>You&apos;re <strong className="text-foreground">@mentioned</strong> in a task comment (in-app + email)</li>
+            <li>You&apos;re <strong className="text-foreground">@mentioned</strong> in a task comment or discussion (in-app + email)</li>
             <li>Someone <strong className="text-foreground">votes</strong> on your idea (in-app only)</li>
+            <li>A new <strong className="text-foreground">discussion</strong> is created on your idea (in-app + email)</li>
+            <li>Someone <strong className="text-foreground">replies</strong> to a discussion you&apos;re part of (in-app + email)</li>
           </ul>
           <div className="rounded-xl border border-border bg-muted/30 p-6">
             <p className="text-sm text-muted-foreground">
@@ -131,9 +142,9 @@ export default function CollaborationPage() {
             Ideas & Voting
           </Button>
         </Link>
-        <Link href="/guide/kanban-boards">
+        <Link href="/guide/discussions">
           <Button variant="outline" className="gap-2">
-            Kanban Boards
+            Discussions
             <ArrowRight className="h-4 w-4" />
           </Button>
         </Link>

@@ -12,15 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
-import { Bot, X, Image as ImageIcon, Sparkles, Loader2, Eye, Pencil } from "lucide-react";
+import { X, Image as ImageIcon, Sparkles, Loader2, Eye, Pencil } from "lucide-react";
+import { AssigneeSelect } from "./assignee-select";
 import { Markdown } from "@/components/ui/markdown";
 import { getLabelColorConfig } from "@/lib/utils";
 import { createBoardTask, addLabelsToTask } from "@/actions/board";
@@ -39,8 +33,10 @@ interface TaskEditDialogProps {
   teamMembers: User[];
   boardLabels: BoardLabel[];
   currentUserId: string;
-  userBots?: User[];
-  hasApiKey?: boolean;
+  ideaAgents?: User[];
+  canUseAi?: boolean;
+  hasByokKey?: boolean;
+  starterCredits?: number;
   ideaDescription?: string;
 }
 
@@ -52,8 +48,10 @@ export function TaskEditDialog({
   teamMembers,
   boardLabels,
   currentUserId,
-  userBots = [],
-  hasApiKey = false,
+  ideaAgents = [],
+  canUseAi = false,
+  hasByokKey = false,
+  starterCredits = 0,
   ideaDescription = "",
 }: TaskEditDialogProps) {
   const [title, setTitle] = useState("");
@@ -69,7 +67,7 @@ export function TaskEditDialog({
   const dialogRef = useRef<HTMLDivElement>(null);
   const ops = useBoardOps();
 
-  const showAiEnhance = hasApiKey && description.trim().length > 10;
+  const showAiEnhance = canUseAi && description.trim().length > 10;
 
   async function handleEnhanceDescription() {
     if (!title.trim() || !description.trim()) return;
@@ -213,7 +211,7 @@ export function TaskEditDialog({
     // Build optimistic task
     const tempId = `temp-${crypto.randomUUID()}`;
     const assignee = assigneeId
-      ? [...teamMembers, ...userBots].find((m) => m.id === assigneeId) ?? null
+      ? [...teamMembers, ...ideaAgents].find((m) => m.id === assigneeId) ?? null
       : null;
     const selectedLabels = boardLabels.filter((l) => selectedLabelIds.has(l.id));
     const tempTask: BoardTaskWithAssignee = {
@@ -235,6 +233,7 @@ export function TaskEditDialog({
       attachment_count: 0,
       cover_image_path: null,
       comment_count: 0,
+      discussion_id: null,
     };
 
     // Optimistically insert & close immediately
@@ -360,7 +359,7 @@ export function TaskEditDialog({
                     className="h-6 gap-1 px-2 text-xs text-muted-foreground"
                     onClick={handleEnhanceDescription}
                     disabled={enhancing}
-                    title="Enhance with AI"
+                    title={hasByokKey ? "Enhance with AI — using your API key" : `Enhance with AI — ${starterCredits} free credit${starterCredits !== 1 ? "s" : ""} remaining`}
                   >
                     {enhancing ? (
                       <Loader2 className="h-3 w-3 animate-spin" />
@@ -403,36 +402,12 @@ export function TaskEditDialog({
           </div>
           <div className="space-y-2">
             <Label htmlFor="task-assignee">Assignee</Label>
-            <Select value={assigneeId} onValueChange={setAssigneeId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Unassigned" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
-                {teamMembers.map((member) => (
-                  <SelectItem key={member.id} value={member.id}>
-                    {member.full_name ?? member.email}
-                  </SelectItem>
-                ))}
-                {userBots.length > 0 && (
-                  <>
-                    <div className="px-2 py-1.5 text-[10px] font-medium text-muted-foreground">
-                      My Agents
-                    </div>
-                    {userBots
-                      .filter((b) => !teamMembers.some((m) => m.id === b.id))
-                      .map((bot) => (
-                        <SelectItem key={bot.id} value={bot.id}>
-                          <span className="inline-flex items-center gap-1">
-                            <Bot className="h-3 w-3" />
-                            {bot.full_name ?? bot.email}
-                          </span>
-                        </SelectItem>
-                      ))}
-                  </>
-                )}
-              </SelectContent>
-            </Select>
+            <AssigneeSelect
+              value={assigneeId}
+              onValueChange={setAssigneeId}
+              teamMembers={teamMembers}
+              ideaAgents={ideaAgents}
+            />
           </div>
           {boardLabels.length > 0 && (
             <div className="space-y-2">

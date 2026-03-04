@@ -10,6 +10,13 @@ import {
   validateLabelName,
   validateBio,
   validateAvatarUrl,
+  validateUuid,
+  validateDiscussionTitle,
+  validateDiscussionBody,
+  validateDiscussionReply,
+  validateSkills,
+  validateTeamName,
+  validateTeamDescription,
   ValidationError,
   MAX_TITLE_LENGTH,
   MAX_DESCRIPTION_LENGTH,
@@ -19,6 +26,12 @@ import {
   MAX_TAGS,
   MAX_LABEL_NAME_LENGTH,
   MAX_AVATAR_URL_LENGTH,
+  MAX_DISCUSSION_BODY_LENGTH,
+  MAX_DISCUSSION_REPLY_LENGTH,
+  MAX_SKILLS,
+  MAX_SKILL_LENGTH,
+  MAX_TEAM_NAME_LENGTH,
+  MAX_TEAM_DESCRIPTION_LENGTH,
 } from "./validation";
 
 describe("validateTitle", () => {
@@ -209,5 +222,168 @@ describe("validateBio", () => {
     expect(() => validateBio("a".repeat(MAX_BIO_LENGTH + 1))).toThrow(
       ValidationError
     );
+  });
+});
+
+describe("validateUuid", () => {
+  it("accepts valid UUIDs", () => {
+    expect(validateUuid("a0000000-0000-4000-a000-000000000001")).toBe(
+      "a0000000-0000-4000-a000-000000000001"
+    );
+    expect(validateUuid("  A0000000-0000-4000-A000-000000000001  ")).toBe(
+      "A0000000-0000-4000-A000-000000000001"
+    );
+  });
+
+  it("throws on empty value", () => {
+    expect(() => validateUuid("")).toThrow(ValidationError);
+    expect(() => validateUuid("   ")).toThrow(ValidationError);
+  });
+
+  it("throws on invalid UUID format", () => {
+    expect(() => validateUuid("not-a-uuid")).toThrow(ValidationError);
+    expect(() => validateUuid("12345")).toThrow(ValidationError);
+    expect(() => validateUuid("a0000000-0000-4000-a000-00000000000g")).toThrow(
+      ValidationError
+    );
+  });
+
+  it("uses custom label in error message", () => {
+    expect(() => validateUuid("bad", "Bot ID")).toThrow("Bot ID must be a valid UUID");
+  });
+});
+
+describe("validateDiscussionTitle", () => {
+  it("returns trimmed title", () => {
+    expect(validateDiscussionTitle("  Phase 2 Planning  ")).toBe("Phase 2 Planning");
+  });
+
+  it("throws on empty title", () => {
+    expect(() => validateDiscussionTitle("")).toThrow(ValidationError);
+    expect(() => validateDiscussionTitle("   ")).toThrow(ValidationError);
+  });
+
+  it("throws on too-long title", () => {
+    expect(() => validateDiscussionTitle("a".repeat(MAX_TITLE_LENGTH + 1))).toThrow(
+      ValidationError
+    );
+  });
+});
+
+describe("validateDiscussionBody", () => {
+  it("returns trimmed body", () => {
+    expect(validateDiscussionBody("  Hello world  ")).toBe("Hello world");
+  });
+
+  it("throws on empty body", () => {
+    expect(() => validateDiscussionBody("")).toThrow(ValidationError);
+    expect(() => validateDiscussionBody("   ")).toThrow(ValidationError);
+  });
+
+  it("throws on too-long body", () => {
+    expect(() => validateDiscussionBody("a".repeat(MAX_DISCUSSION_BODY_LENGTH + 1))).toThrow(
+      ValidationError
+    );
+  });
+});
+
+describe("validateDiscussionReply", () => {
+  it("returns trimmed content", () => {
+    expect(validateDiscussionReply("  Great idea!  ")).toBe("Great idea!");
+  });
+
+  it("throws on empty reply", () => {
+    expect(() => validateDiscussionReply("")).toThrow(ValidationError);
+    expect(() => validateDiscussionReply("   ")).toThrow(ValidationError);
+  });
+
+  it("throws on too-long reply", () => {
+    expect(() => validateDiscussionReply("a".repeat(MAX_DISCUSSION_REPLY_LENGTH + 1))).toThrow(
+      ValidationError
+    );
+  });
+});
+
+describe("validateSkills", () => {
+  it("returns empty array for empty input", () => {
+    expect(validateSkills([])).toEqual([]);
+  });
+
+  it("trims, lowercases, and deduplicates", () => {
+    expect(validateSkills(["  Testing  ", "testing", " Debugging "])).toEqual([
+      "testing",
+      "debugging",
+    ]);
+  });
+
+  it("filters out empty strings", () => {
+    expect(validateSkills(["code-review", "", "  ", "debugging"])).toEqual([
+      "code-review",
+      "debugging",
+    ]);
+  });
+
+  it("throws on too many skills", () => {
+    const skills = Array.from({ length: MAX_SKILLS + 1 }, (_, i) => `skill${i}`);
+    expect(() => validateSkills(skills)).toThrow(ValidationError);
+  });
+
+  it("throws on too-long skill", () => {
+    expect(() => validateSkills(["a".repeat(MAX_SKILL_LENGTH + 1)])).toThrow(
+      ValidationError
+    );
+  });
+
+  it("accepts max skills at max length", () => {
+    const skills = Array.from({ length: MAX_SKILLS }, (_, i) =>
+      `skill${i}`.padEnd(MAX_SKILL_LENGTH, "x")
+    );
+    expect(validateSkills(skills)).toHaveLength(MAX_SKILLS);
+  });
+});
+
+describe("validateTeamName", () => {
+  it("returns trimmed name", () => {
+    expect(validateTeamName("  Full Product Team  ")).toBe("Full Product Team");
+  });
+
+  it("throws on empty name", () => {
+    expect(() => validateTeamName("")).toThrow(ValidationError);
+    expect(() => validateTeamName("   ")).toThrow(ValidationError);
+  });
+
+  it("throws on too-long name", () => {
+    expect(() => validateTeamName("a".repeat(MAX_TEAM_NAME_LENGTH + 1))).toThrow(
+      ValidationError
+    );
+  });
+
+  it("accepts max length name", () => {
+    expect(validateTeamName("a".repeat(MAX_TEAM_NAME_LENGTH))).toHaveLength(
+      MAX_TEAM_NAME_LENGTH
+    );
+  });
+});
+
+describe("validateTeamDescription", () => {
+  it("returns null for empty/null", () => {
+    expect(validateTeamDescription(null)).toBeNull();
+    expect(validateTeamDescription("")).toBeNull();
+    expect(validateTeamDescription("   ")).toBeNull();
+  });
+
+  it("returns trimmed description", () => {
+    expect(validateTeamDescription("  Hello  ")).toBe("Hello");
+  });
+
+  it("throws on too-long description", () => {
+    expect(() =>
+      validateTeamDescription("a".repeat(MAX_TEAM_DESCRIPTION_LENGTH + 1))
+    ).toThrow(ValidationError);
+  });
+
+  it("accepts max length description", () => {
+    const desc = "a".repeat(MAX_TEAM_DESCRIPTION_LENGTH);
+    expect(validateTeamDescription(desc)).toHaveLength(MAX_TEAM_DESCRIPTION_LENGTH);
   });
 });

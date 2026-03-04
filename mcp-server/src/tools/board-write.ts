@@ -38,6 +38,11 @@ export const createTaskSchema = z.object({
     .string()
     .optional()
     .describe("Due date in ISO 8601 format (YYYY-MM-DD)"),
+  discussion_id: z
+    .string()
+    .uuid()
+    .optional()
+    .describe("Link task back to a source discussion (for converted discussions)"),
 });
 
 export async function createTask(ctx: McpContext, params: z.infer<typeof createTaskSchema>) {
@@ -52,6 +57,7 @@ export async function createTask(ctx: McpContext, params: z.infer<typeof createT
       description: params.description ?? null,
       assignee_id: params.assignee_id ?? null,
       due_date: params.due_date ?? null,
+      discussion_id: params.discussion_id ?? null,
       position,
     })
     .select("id, title, column_id, position")

@@ -23,6 +23,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { useSearchParams } from "next/navigation";
+import { BotRolesProvider } from "@/components/bot-roles-context";
 import { BoardColumn } from "./board-column";
 import { AddColumnButton } from "./add-column-button";
 import { BoardToolbar } from "./board-toolbar";
@@ -119,8 +120,10 @@ interface KanbanBoardProps {
   checklistItemsByTaskId: Record<string, BoardChecklistItem[]>;
   currentUserId: string;
   initialTaskId?: string;
-  userBots?: User[];
-  hasApiKey?: boolean;
+  ideaAgents?: User[];
+  canUseAi?: boolean;
+  hasByokKey?: boolean;
+  starterCredits?: number;
   botProfiles?: BotProfile[];
   coverImageUrls?: Record<string, string>;
   isReadOnly?: boolean;
@@ -227,12 +230,23 @@ export function KanbanBoard({
   checklistItemsByTaskId,
   currentUserId,
   initialTaskId,
-  userBots = [],
-  hasApiKey = false,
+  ideaAgents = [],
+  canUseAi = false,
+  hasByokKey = false,
+  starterCredits = 0,
   botProfiles = [],
   coverImageUrls = {},
   isReadOnly = false,
 }: KanbanBoardProps) {
+  // Build botRoles map from botProfiles for @mention autocomplete
+  const botRoles = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const bp of botProfiles) {
+      if (bp.role) map[bp.id] = bp.role;
+    }
+    return map;
+  }, [botProfiles]);
+
   // Auto-open: detect taskId from URL navigation (Link clicks) as well as server props.
   // useSearchParams reacts to Link navigations, which may not propagate through server
   // props when the board is already mounted (memo chain can block the update).
@@ -842,6 +856,7 @@ export function KanbanBoard({
   return (
     <BoardOpsContext.Provider value={boardOps}>
     <TaskAutoOpenContext.Provider value={autoOpenCtx}>
+    <BotRolesProvider botRoles={botRoles}>
     <div className="flex min-h-0 flex-1 flex-col">
       <BoardToolbar
         searchQuery={searchQuery}
@@ -861,11 +876,14 @@ export function KanbanBoard({
         ideaId={ideaId}
         ideaDescription={ideaDescription}
         currentUserId={currentUserId}
-        hasApiKey={hasApiKey}
+        canUseAi={canUseAi}
+        hasByokKey={hasByokKey}
+        starterCredits={starterCredits}
         botProfiles={botProfiles}
         isReadOnly={isReadOnly}
       />
       <DndContext
+        id="kanban-board"
         sensors={isReadOnly ? [] : sensors}
         collisionDetection={multiContainerCollision}
         measuring={layoutMeasuring}
@@ -901,9 +919,9 @@ export function KanbanBoard({
                     highlightQuery={searchQuery}
                     currentUserId={currentUserId}
                     initialTaskId={autoOpenTaskId}
-                    userBots={userBots}
+                    ideaAgents={ideaAgents}
                     coverImageUrls={coverImageUrls}
-                    hasApiKey={hasApiKey}
+                    canUseAi={canUseAi}
                     ideaDescription={ideaDescription}
                     isReadOnly={isReadOnly}
                     isDragTarget={dragOverColumnId === filteredCol.id}
@@ -925,6 +943,7 @@ export function KanbanBoard({
         )}
       </DndContext>
     </div>
+    </BotRolesProvider>
     </TaskAutoOpenContext.Provider>
     </BoardOpsContext.Provider>
   );

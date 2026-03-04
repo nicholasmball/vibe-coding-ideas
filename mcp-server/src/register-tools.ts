@@ -78,6 +78,22 @@ import {
   reportBugSchema,
 } from "./tools/labels";
 import {
+  listDiscussions,
+  listDiscussionsSchema,
+  getDiscussion,
+  getDiscussionSchema,
+  addDiscussionReply,
+  addDiscussionReplySchema,
+  createDiscussion,
+  createDiscussionSchema,
+  updateDiscussion,
+  updateDiscussionSchema,
+  deleteDiscussion,
+  deleteDiscussionSchema,
+  getDiscussionsReadyToConvert,
+  getDiscussionsReadyToConvertSchema,
+} from "./tools/discussions";
+import {
   listAttachments,
   listAttachmentsSchema,
   uploadAttachment,
@@ -94,6 +110,10 @@ import {
   markAllNotificationsReadSchema,
 } from "./tools/notifications";
 import {
+  getAgentMentions,
+  getAgentMentionsSchema,
+} from "./tools/agent-mentions";
+import {
   updateProfile,
   updateProfileSchema,
 } from "./tools/profile";
@@ -106,7 +126,25 @@ import {
   setBotIdentitySchema,
   createBot,
   createBotSchema,
+  toggleAgentVote,
+  toggleAgentVoteSchema,
+  cloneAgent,
+  cloneAgentSchema,
+  publishAgent,
+  publishAgentSchema,
+  listCommunityAgents,
+  listCommunityAgentsSchema,
+  listFeaturedTeams,
+  listFeaturedTeamsSchema,
 } from "./tools/bots";
+import {
+  allocateAgent,
+  allocateAgentSchema,
+  removeIdeaAgent,
+  removeIdeaAgentSchema,
+  listIdeaAgents,
+  listIdeaAgentsSchema,
+} from "./tools/idea-agents";
 
 function jsonResult(data: unknown) {
   return {
@@ -523,6 +561,106 @@ export function registerTools(
     }
   );
 
+  // --- Discussion Tools ---
+
+  server.tool(
+    "list_discussions",
+    "List discussions for an idea with optional status filter. Returns title, status, reply count, author, and last activity.",
+    listDiscussionsSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await listDiscussions(ctx, listDiscussionsSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "get_discussion",
+    "Get full discussion thread including body, all replies with nested structure, and author details.",
+    getDiscussionSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await getDiscussion(ctx, getDiscussionSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "add_discussion_reply",
+    "Add a reply to a discussion thread. Posted as the active bot identity. Supports nested replies via parent_reply_id.",
+    addDiscussionReplySchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await addDiscussionReply(ctx, addDiscussionReplySchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "create_discussion",
+    "Create a new discussion thread on an idea. Requires title and body (markdown).",
+    createDiscussionSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await createDiscussion(ctx, createDiscussionSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "update_discussion",
+    "Update a discussion's title, body, status (open/resolved/converted), or pinned state. Only changed fields need to be provided.",
+    updateDiscussionSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await updateDiscussion(ctx, updateDiscussionSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "delete_discussion",
+    "Permanently delete a discussion thread and all its replies from an idea.",
+    deleteDiscussionSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await deleteDiscussion(ctx, deleteDiscussionSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "get_discussions_ready_to_convert",
+    "Get discussions marked as ready to convert into board tasks. Returns full context with replies, target column, and assignee. Includes workflow instructions for creating tasks.",
+    getDiscussionsReadyToConvertSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await getDiscussionsReadyToConvert(ctx, getDiscussionsReadyToConvertSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
   // --- Attachment Tools ---
 
   server.tool(
@@ -611,6 +749,20 @@ export function registerTools(
     }
   );
 
+  server.tool(
+    "get_agent_mentions",
+    "Get unread @mentions for your agents in discussions. Returns enriched context with agent, actor, idea, and discussion info plus response workflow instructions.",
+    getAgentMentionsSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await getAgentMentions(ctx, getAgentMentionsSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
   // --- Profile Tools ---
 
   server.tool(
@@ -682,6 +834,122 @@ export function registerTools(
       try {
         const ctx = await getContext(extra);
         return jsonResult(await createBot(ctx, createBotSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  // --- Agent Community Tools ---
+
+  server.tool(
+    "toggle_agent_vote",
+    "Toggle the current user's upvote on a published agent. Adds vote if not voted, removes if already voted.",
+    toggleAgentVoteSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await toggleAgentVote(ctx, toggleAgentVoteSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "clone_agent",
+    "Clone a published agent to your own agent list. Creates an independent copy with provenance tracking.",
+    cloneAgentSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await cloneAgent(ctx, cloneAgentSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "publish_agent",
+    "Publish or unpublish an agent to the community marketplace. Optionally share the system prompt.",
+    publishAgentSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await publishAgent(ctx, publishAgentSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "list_community_agents",
+    "List published agents from the community with optional search, role filter, and sort.",
+    listCommunityAgentsSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await listCommunityAgents(ctx, listCommunityAgentsSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "list_featured_teams",
+    "List featured agent teams with their bundled agents. Active teams only by default.",
+    listFeaturedTeamsSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await listFeaturedTeams(ctx, listFeaturedTeamsSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  // --- Idea Agent Pool Tools ---
+
+  server.tool(
+    "allocate_agent",
+    "Allocate a bot to an idea's shared agent pool. The bot becomes available for task assignment by all team members.",
+    allocateAgentSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await allocateAgent(ctx, allocateAgentSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "remove_idea_agent",
+    "Remove a bot from an idea's shared agent pool. The bot will be unassigned from any tasks in that idea.",
+    removeIdeaAgentSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await removeIdeaAgent(ctx, removeIdeaAgentSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "list_idea_agents",
+    "List all agents allocated to an idea's shared pool with bot profile details and who added them.",
+    listIdeaAgentsSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await listIdeaAgents(ctx, listIdeaAgentsSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
       }

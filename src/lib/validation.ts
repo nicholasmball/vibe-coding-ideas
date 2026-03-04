@@ -25,6 +25,8 @@ const VALID_LABEL_COLORS = [
   "rose", "zinc",
 ];
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const GITHUB_URL_PATTERN = /^https:\/\/github\.com\/.+/;
 
 export class ValidationError extends Error {
@@ -113,6 +115,58 @@ export function validateLabelName(name: string): string {
   return trimmed;
 }
 
+export const MAX_DISCUSSION_BODY_LENGTH = 10000;
+export const MAX_DISCUSSION_REPLY_LENGTH = 5000;
+
+export function validateDiscussionTitle(title: string): string {
+  const trimmed = title.trim();
+  if (!trimmed) throw new ValidationError("Discussion title is required");
+  if (trimmed.length > MAX_TITLE_LENGTH) {
+    throw new ValidationError(`Discussion title must be ${MAX_TITLE_LENGTH} characters or less`);
+  }
+  return trimmed;
+}
+
+export function validateDiscussionBody(body: string): string {
+  const trimmed = body.trim();
+  if (!trimmed) throw new ValidationError("Discussion body is required");
+  if (trimmed.length > MAX_DISCUSSION_BODY_LENGTH) {
+    throw new ValidationError(`Discussion body must be ${MAX_DISCUSSION_BODY_LENGTH} characters or less`);
+  }
+  return trimmed;
+}
+
+export function validateDiscussionReply(content: string): string {
+  const trimmed = content.trim();
+  if (!trimmed) throw new ValidationError("Reply cannot be empty");
+  if (trimmed.length > MAX_DISCUSSION_REPLY_LENGTH) {
+    throw new ValidationError(`Reply must be ${MAX_DISCUSSION_REPLY_LENGTH} characters or less`);
+  }
+  return trimmed;
+}
+
+export const MAX_TEAM_NAME_LENGTH = 200;
+export const MAX_TEAM_DESCRIPTION_LENGTH = 1000;
+
+export function validateTeamName(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) throw new ValidationError("Team name is required");
+  if (trimmed.length > MAX_TEAM_NAME_LENGTH) {
+    throw new ValidationError(`Team name must be ${MAX_TEAM_NAME_LENGTH} characters or less`);
+  }
+  return trimmed;
+}
+
+export function validateTeamDescription(description: string | null): string | null {
+  if (!description) return null;
+  const trimmed = description.trim();
+  if (!trimmed) return null;
+  if (trimmed.length > MAX_TEAM_DESCRIPTION_LENGTH) {
+    throw new ValidationError(`Team description must be ${MAX_TEAM_DESCRIPTION_LENGTH} characters or less`);
+  }
+  return trimmed;
+}
+
 export const MAX_AVATAR_URL_LENGTH = 2000;
 
 export function validateAvatarUrl(url: string | null): string | null {
@@ -129,6 +183,15 @@ export function validateAvatarUrl(url: string | null): string | null {
   return trimmed;
 }
 
+export function validateUuid(value: string, label = "ID"): string {
+  const trimmed = value.trim();
+  if (!trimmed) throw new ValidationError(`${label} is required`);
+  if (!UUID_PATTERN.test(trimmed)) {
+    throw new ValidationError(`${label} must be a valid UUID`);
+  }
+  return trimmed;
+}
+
 export function validateBio(bio: string | null): string | null {
   if (!bio) return null;
   const trimmed = bio.trim();
@@ -137,4 +200,24 @@ export function validateBio(bio: string | null): string | null {
     throw new ValidationError(`Bio must be ${MAX_BIO_LENGTH} characters or less`);
   }
   return trimmed;
+}
+
+export const MAX_SKILLS = 10;
+export const MAX_SKILL_LENGTH = 30;
+
+export function validateSkills(skills: string[]): string[] {
+  if (!skills || skills.length === 0) return [];
+  const cleaned = skills
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  const unique = [...new Set(cleaned)];
+  if (unique.length > MAX_SKILLS) {
+    throw new ValidationError(`Maximum ${MAX_SKILLS} skills allowed`);
+  }
+  for (const skill of unique) {
+    if (skill.length > MAX_SKILL_LENGTH) {
+      throw new ValidationError(`Skill "${skill}" exceeds ${MAX_SKILL_LENGTH} characters`);
+    }
+  }
+  return unique;
 }

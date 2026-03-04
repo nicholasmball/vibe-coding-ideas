@@ -5,9 +5,11 @@ import { generateText, generateObject } from "ai";
 import { z } from "zod";
 import {
   AI_MODEL,
-  getAnthropicProvider,
   logAiUsage,
+  decrementStarterCredit,
+  resolveAiProvider,
 } from "@/lib/ai-helpers";
+import type { AiAccess } from "@/lib/ai-helpers";
 
 const AI_TIMEOUT_MS = 90_000; // 90s — fail gracefully before Vercel's 120s function timeout
 
@@ -23,7 +25,7 @@ function toPlainError(err: unknown): never {
   throw new Error("An unexpected AI error occurred");
 }
 
-/** Common auth + BYOK key check for all AI actions. */
+/** Common auth + AI access check. Uses BYOK key if available, falls back to platform key with starter credits. */
 async function requireAiAccess() {
   const supabase = await createClient();
   const {
@@ -32,36 +34,42 @@ async function requireAiAccess() {
 
   if (!user) throw new Error("Not authenticated");
 
-  const { data: profile } = await supabase
-    .from("users")
-    .select("encrypted_anthropic_key")
-    .eq("id", user.id)
-    .single();
+  const resolved = await resolveAiProvider(supabase, user.id);
+  if (!resolved.ok) throw new Error(resolved.error);
 
-  if (!profile) throw new Error("User profile not found");
-
-  const anthropic = getAnthropicProvider(profile.encrypted_anthropic_key);
-
-  return { supabase, user, anthropic };
+  return { supabase, user, anthropic: resolved.anthropic, keyType: resolved.keyType };
 }
 
-// ── Check API Key Status ────────────────────────────────────────────────
+// ── Check AI Access Status ──────────────────────────────────────────────
 
-export async function hasApiKey(): Promise<boolean> {
+export async function getAiAccess(): Promise<AiAccess> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return false;
+  if (!user) return { hasApiKey: false, starterCredits: 0, canUseAi: false };
 
   const { data: profile } = await supabase
     .from("users")
-    .select("encrypted_anthropic_key")
+    .select("encrypted_anthropic_key, ai_starter_credits")
     .eq("id", user.id)
     .single();
 
-  return !!profile?.encrypted_anthropic_key;
+  const hasKey = !!profile?.encrypted_anthropic_key;
+  const credits = profile?.ai_starter_credits ?? 0;
+
+  return {
+    hasApiKey: hasKey,
+    starterCredits: credits,
+    canUseAi: hasKey || credits > 0,
+  };
+}
+
+/** @deprecated Use getAiAccess() instead. Kept for backward compatibility. */
+export async function hasApiKey(): Promise<boolean> {
+  const access = await getAiAccess();
+  return access.canUseAi;
 }
 
 // ── Enhance Idea Description ───────────────────────────────────────────
@@ -71,7 +79,7 @@ export async function enhanceIdeaDescription(
   prompt: string,
   personaPrompt?: string | null
 ) {
-  const { supabase, user, anthropic } = await requireAiAccess();
+  const { supabase, user, anthropic, keyType } = await requireAiAccess();
 
   const { data: idea } = await supabase
     .from("ideas")
@@ -110,7 +118,9 @@ export async function enhanceIdeaDescription(
     outputTokens: usage.outputTokens ?? 0,
     model: AI_MODEL,
     ideaId,
+    keyType,
   });
+  if (keyType === "platform") await decrementStarterCredit(supabase, user.id);
 
   return { enhanced: text, original: idea.description, truncated: finishReason === "length" };
 }
@@ -134,7 +144,7 @@ export async function generateClarifyingQuestions(
   prompt: string,
   personaPrompt?: string | null
 ) {
-  const { supabase, user, anthropic } = await requireAiAccess();
+  const { supabase, user, anthropic, keyType } = await requireAiAccess();
 
   const { data: idea } = await supabase
     .from("ideas")
@@ -182,7 +192,9 @@ ${idea.description}`,
     outputTokens: usage.outputTokens ?? 0,
     model: AI_MODEL,
     ideaId,
+    keyType,
   });
+  if (keyType === "platform") await decrementStarterCredit(supabase, user.id);
 
   return { questions: object.questions };
 }
@@ -199,7 +211,7 @@ export async function enhanceIdeaWithContext(
     refinementFeedback?: string;
   }
 ) {
-  const { supabase, user, anthropic } = await requireAiAccess();
+  const { supabase, user, anthropic, keyType } = await requireAiAccess();
 
   const { data: idea } = await supabase
     .from("ideas")
@@ -277,7 +289,9 @@ Use the answers above to inform your enhanced description. Make the enhancement 
     outputTokens: usage.outputTokens ?? 0,
     model: AI_MODEL,
     ideaId,
+    keyType,
   });
+  if (keyType === "platform") await decrementStarterCredit(supabase, user.id);
 
   return { enhanced: text, original: idea.description, truncated: finishReason === "length" };
 }
@@ -323,7 +337,7 @@ export async function generateBoardTasks(
   prompt: string,
   personaPrompt?: string | null
 ) {
-  const { supabase, user, anthropic } = await requireAiAccess();
+  const { supabase, user, anthropic, keyType } = await requireAiAccess();
 
   const { data: idea } = await supabase
     .from("ideas")
@@ -396,7 +410,9 @@ export async function generateBoardTasks(
     outputTokens: usage.outputTokens ?? 0,
     model: AI_MODEL,
     ideaId,
+    keyType,
   });
+  if (keyType === "platform") await decrementStarterCredit(supabase, user.id);
 
   // Cap at 50 tasks (Anthropic API doesn't support maxItems in schema)
   const tasks = object.tasks.slice(0, 50);
@@ -414,7 +430,7 @@ export async function enhanceTaskDescription(
   taskTitle: string,
   taskDescription: string
 ) {
-  const { supabase, user, anthropic } = await requireAiAccess();
+  const { supabase, user, anthropic, keyType } = await requireAiAccess();
 
   const { data: idea } = await supabase
     .from("ideas")
@@ -449,7 +465,58 @@ ${taskDescription}
     outputTokens: usage.outputTokens ?? 0,
     model: AI_MODEL,
     ideaId,
+    keyType,
   });
+  if (keyType === "platform") await decrementStarterCredit(supabase, user.id);
+
+  return { enhanced: text };
+}
+
+// ── Enhance Discussion Body ─────────────────────────────────────────────
+
+export async function enhanceDiscussionBody(
+  ideaId: string,
+  discussionTitle: string,
+  discussionBody: string
+) {
+  const { supabase, user, anthropic, keyType } = await requireAiAccess();
+
+  const { data: idea } = await supabase
+    .from("ideas")
+    .select("id, title, description")
+    .eq("id", ideaId)
+    .single();
+
+  if (!idea) throw new Error("Idea not found");
+
+  let text: string;
+  let usage: { inputTokens?: number; outputTokens?: number };
+  try {
+    ({ text, usage } = await generateText({
+      model: anthropic(AI_MODEL),
+      system: "You are a concise technical writer. Improve this discussion post's clarity, structure, and persuasiveness. STRICT RULES: Keep the output roughly the same length as the input (never more than 2x). Do NOT add boilerplate sections, templates, checklists, or context the user didn't provide. Just sharpen what's already there. Return ONLY the improved text — no preamble.",
+      prompt: `**Discussion Title:** ${discussionTitle}
+**Current Body:**
+${discussionBody}
+
+**Context (for reference only, do NOT repeat in output):** Project "${idea.title}"`,
+      maxOutputTokens: 2000,
+      abortSignal: AbortSignal.timeout(AI_TIMEOUT_MS),
+    }));
+  } catch (err) {
+    toPlainError(err);
+  }
+
+  await logAiUsage(supabase, {
+    userId: user.id,
+    actionType: "enhance_discussion_body",
+    inputTokens: usage.inputTokens ?? 0,
+    outputTokens: usage.outputTokens ?? 0,
+    model: AI_MODEL,
+    ideaId,
+    keyType,
+  });
+  if (keyType === "platform") await decrementStarterCredit(supabase, user.id);
 
   return { enhanced: text };
 }

@@ -41,9 +41,11 @@ interface BoardColumnProps {
   highlightQuery?: string;
   currentUserId: string;
   initialTaskId?: string;
-  userBots?: User[];
+  ideaAgents?: User[];
   coverImageUrls?: Record<string, string>;
-  hasApiKey?: boolean;
+  canUseAi?: boolean;
+  hasByokKey?: boolean;
+  starterCredits?: number;
   ideaDescription?: string;
   isReadOnly?: boolean;
   isDragTarget?: boolean;
@@ -59,9 +61,11 @@ export const BoardColumn = memo(function BoardColumn({
   highlightQuery,
   currentUserId,
   initialTaskId,
-  userBots = [],
+  ideaAgents = [],
   coverImageUrls = {},
-  hasApiKey = false,
+  canUseAi = false,
+  hasByokKey = false,
+  starterCredits = 0,
   ideaDescription = "",
   isReadOnly = false,
   isDragTarget = false,
@@ -219,10 +223,12 @@ export const BoardColumn = memo(function BoardColumn({
                 highlightQuery={highlightQuery}
                 currentUserId={currentUserId}
                 autoOpen={task.id === initialTaskId}
-                userBots={userBots}
+                ideaAgents={ideaAgents}
                 initialCoverUrl={task.cover_image_path ? coverImageUrls[task.cover_image_path] : undefined}
                 isReadOnly={isReadOnly}
-                hasApiKey={hasApiKey}
+                canUseAi={canUseAi}
+                hasByokKey={hasByokKey}
+                starterCredits={starterCredits}
               />
             ))}
           </SortableContext>
@@ -254,8 +260,10 @@ export const BoardColumn = memo(function BoardColumn({
             teamMembers={teamMembers}
             boardLabels={boardLabels}
             currentUserId={currentUserId}
-            userBots={userBots}
-            hasApiKey={hasApiKey}
+            ideaAgents={ideaAgents}
+            canUseAi={canUseAi}
+            hasByokKey={hasByokKey}
+            starterCredits={starterCredits}
             ideaDescription={ideaDescription}
           />
           <ColumnEditDialog

@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Users, Pencil, LayoutDashboard, Trash2, Sparkles } from "lucide-react";
+import { Users, Pencil, LayoutDashboard, MessageSquare, Trash2, Sparkles } from "lucide-react";
 import { requireAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { getIdeaTeam } from "@/lib/idea-team";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -21,9 +22,11 @@ import { InlineIdeaHeader } from "@/components/ideas/inline-idea-header";
 import { InlineIdeaBody } from "@/components/ideas/inline-idea-body";
 import { InlineIdeaTags } from "@/components/ideas/inline-idea-tags";
 import { IdeaAttachmentsSection } from "@/components/ideas/idea-attachments-section";
-import { formatRelativeTime, stripMarkdownForMeta } from "@/lib/utils";
+import { IdeaAgentsSection } from "@/components/ideas/idea-agents-section";
+import { formatRelativeTime, getInitials, stripMarkdownForMeta } from "@/lib/utils";
+import { BotRolesProvider } from "@/components/bot-roles-context";
 import { PendingRequests } from "@/components/ideas/pending-requests";
-import type { CommentWithAuthor, CollaboratorWithUser, CollaborationRequestWithRequester, BotProfile, User } from "@/types";
+import type { CommentWithAuthor, CollaboratorWithUser, CollaborationRequestWithRequester, BotProfile } from "@/types";
 import type { Metadata } from "next";
 
 export const maxDuration = 120;
@@ -95,6 +98,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
     { data: collab },
     { data: profile },
     { data: bots },
+    ideaTeam,
   ] = await Promise.all([
     supabase
       .from("comments")
@@ -119,7 +123,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
       .maybeSingle(),
     supabase
       .from("users")
-      .select("is_admin, encrypted_anthropic_key")
+      .select("is_admin, encrypted_anthropic_key, ai_starter_credits")
       .eq("id", user.id)
       .single(),
     supabase
@@ -128,13 +132,15 @@ export default async function IdeaDetailPage({ params }: PageProps) {
       .eq("owner_id", user.id)
       .eq("is_active", true)
       .order("created_at", { ascending: true }),
+    getIdeaTeam(supabase, id, idea.author_id, user.id),
   ]);
 
   const hasVoted = !!vote;
   const isCollaborator = !!collab;
   const isAdmin = profile?.is_admin ?? false;
-  const userHasApiKey = !!profile?.encrypted_anthropic_key;
+  const userCanUseAi = !!profile?.encrypted_anthropic_key || (profile?.ai_starter_credits ?? 0) > 0;
   const userBots = (bots ?? []) as BotProfile[];
+  const ideaAgents = ideaTeam.ideaAgentDetails;
 
   // Build threaded comments
   const commentMap = new Map<string, CommentWithAuthor>();
@@ -184,24 +190,9 @@ export default async function IdeaDetailPage({ params }: PageProps) {
 
   const isAuthor = user?.id === idea.author_id;
   const canDelete = isAuthor || isAdmin;
-  // Build team members list for @mention autocomplete (author + collaborators, deduplicated)
-  const teamMembersMap = new Map<string, User>();
-  const ideaAuthor = idea.author as unknown as User;
-  teamMembersMap.set(ideaAuthor.id, ideaAuthor);
-  (collaborators as unknown as CollaboratorWithUser[])?.forEach((collab) => {
-    if (!teamMembersMap.has(collab.user_id)) {
-      teamMembersMap.set(collab.user_id, collab.user);
-    }
-  });
-  const teamMembers = Array.from(teamMembersMap.values());
 
   const author = idea.author as unknown as { full_name: string | null; avatar_url: string | null; id: string };
-  const authorInitials =
-    author.full_name
-      ?.split(" ")
-      .map((n: string) => n[0])
-      .join("")
-      .toUpperCase() ?? "?";
+  const authorInitials = getInitials(author.full_name);
 
   return (
     <div className="mx-auto max-w-3xl px-4 pt-10 pb-4">
@@ -256,12 +247,25 @@ export default async function IdeaDetailPage({ params }: PageProps) {
           />
         )}
         {(isAuthor || isCollaborator || idea.visibility === "public") && (
-          <Link href={`/ideas/${idea.id}/board`}>
-            <Button variant="outline" size="sm" className="gap-2">
-              <LayoutDashboard className="h-4 w-4" />
-              Board
-            </Button>
-          </Link>
+          <>
+            <Link href={`/ideas/${idea.id}/board`}>
+              <Button variant="outline" size="sm" className="gap-2">
+                <LayoutDashboard className="h-4 w-4" />
+                Board
+              </Button>
+            </Link>
+            <Link href={`/ideas/${idea.id}/discussions`}>
+              <Button variant="outline" size="sm" className="gap-2">
+                <MessageSquare className="h-4 w-4" />
+                Discussions
+                {idea.discussion_count > 0 && (
+                  <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] leading-none">
+                    {idea.discussion_count}
+                  </span>
+                )}
+              </Button>
+            </Link>
+          </>
         )}
         {/* Desktop: show Edit, Enhance, Delete inline */}
         {isAuthor && (
@@ -279,7 +283,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
               ideaTitle={idea.title}
               currentDescription={idea.description}
               bots={userBots}
-              disabled={!userHasApiKey}
+              disabled={!userCanUseAi}
             />
           </span>
         )}
@@ -296,7 +300,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
             currentDescription={idea.description}
             isAuthor={isAuthor}
             canDelete={canDelete}
-            hasApiKey={userHasApiKey}
+            canUseAi={userCanUseAi}
             bots={userBots}
           />
         )}
@@ -321,12 +325,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
           </h3>
           <div className="flex flex-wrap gap-2">
             {(collaborators as unknown as CollaboratorWithUser[])?.map((collab) => {
-              const collabInitials =
-                collab.user.full_name
-                  ?.split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .toUpperCase() ?? "?";
+              const collabInitials = getInitials(collab.user.full_name);
               return (
                 <div
                   key={collab.id}
@@ -359,6 +358,16 @@ export default async function IdeaDetailPage({ params }: PageProps) {
         </div>
       )}
 
+      {/* Agent Pool */}
+      <IdeaAgentsSection
+        ideaId={idea.id}
+        ideaAgents={ideaAgents}
+        currentUserId={user.id}
+        isAuthor={isAuthor}
+        isTeamMember={isAuthor || isCollaborator}
+        userBots={userBots}
+      />
+
       {/* Description + GitHub URL */}
       <Separator className="mt-8 mb-6" />
       <InlineIdeaBody
@@ -379,14 +388,16 @@ export default async function IdeaDetailPage({ params }: PageProps) {
 
       {/* Comments */}
       <Separator className="my-6" />
-      <CommentThread
-        comments={topLevelComments}
-        ideaId={idea.id}
-        ideaAuthorId={idea.author_id}
-        currentUserId={user?.id}
-        userBotIds={userBots.map((b) => b.id)}
-        teamMembers={teamMembers}
-      />
+      <BotRolesProvider botRoles={ideaTeam.botRoles}>
+        <CommentThread
+          comments={topLevelComments}
+          ideaId={idea.id}
+          ideaAuthorId={idea.author_id}
+          currentUserId={user?.id}
+          userBotIds={ideaTeam.currentUserBotIds}
+          teamMembers={ideaTeam.allMentionable}
+        />
+      </BotRolesProvider>
     </div>
   );
 }

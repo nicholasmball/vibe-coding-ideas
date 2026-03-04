@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
-import { Tag, Trash2, Archive, ArchiveRestore, Pencil, X, Bot, Link2, Sparkles, Loader2, Eye } from "lucide-react";
+import { Tag, Trash2, Archive, ArchiveRestore, Pencil, X, Bot, Link2, Sparkles, Loader2, Eye, MessageSquare } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -10,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AssigneeSelect } from "./assignee-select";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { TaskLabelBadges } from "./task-label-badges";
 import { LabelPicker } from "./label-picker";
@@ -26,7 +27,10 @@ import { enhanceTaskDescription } from "@/actions/ai";
 import { useBoardOps } from "./board-context";
 import { createClient } from "@/lib/supabase/client";
 import { logTaskActivity } from "@/lib/activity";
-import type { BoardTaskWithAssignee, BoardLabel, BoardChecklistItem, User } from "@/types";
+import { useBotRoles } from "@/components/bot-roles-context";
+import { getRoleColor } from "@/lib/agent-colors";
+import { getInitials } from "@/lib/utils";
+import type { BoardTaskWithAssignee, BoardLabel, BoardChecklistItem, User, IdeaAgentUser } from "@/types";
 
 interface TaskDetailDialogProps {
   open: boolean;
@@ -38,9 +42,11 @@ interface TaskDetailDialogProps {
   teamMembers: User[];
   currentUserId: string;
   initialTab?: string;
-  userBots?: User[];
+  ideaAgents?: User[];
   isReadOnly?: boolean;
-  hasApiKey?: boolean;
+  canUseAi?: boolean;
+  hasByokKey?: boolean;
+  starterCredits?: number;
 }
 
 export function TaskDetailDialog({
@@ -53,11 +59,30 @@ export function TaskDetailDialog({
   teamMembers,
   currentUserId,
   initialTab,
-  userBots = [],
+  ideaAgents = [],
   isReadOnly = false,
-  hasApiKey = false,
+  canUseAi = false,
+  hasByokKey = false,
+  starterCredits = 0,
 }: TaskDetailDialogProps) {
+  const botRoles = useBotRoles();
   const ops = useBoardOps();
+
+  // Combine humans + pooled agents for @mention autocomplete
+  const allMentionable = useMemo(() => {
+    const ids = new Set(teamMembers.map((m) => m.id));
+    return [...teamMembers, ...ideaAgents.filter((a) => !ids.has(a.id))];
+  }, [teamMembers, ideaAgents]);
+
+  // Current user's bots from the pool (for canModify checks on bot-authored comments)
+  const currentUserBotIds = useMemo(
+    () =>
+      ideaAgents
+        .filter((a) => (a as IdeaAgentUser).ownerId === currentUserId)
+        .map((a) => a.id),
+    [ideaAgents, currentUserId]
+  );
+
   const [activeTab, setActiveTab] = useState("details");
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
@@ -259,7 +284,7 @@ export function TaskDetailDialog({
     }
   }
 
-  const showAiEnhance = hasApiKey && !isReadOnly && editingDescription && description.trim().length > 10;
+  const showAiEnhance = canUseAi && !isReadOnly && editingDescription && description.trim().length > 10;
 
   async function handleEnhanceDescription() {
     if (!title.trim() || !description.trim()) return;
@@ -282,7 +307,7 @@ export function TaskDetailDialog({
     try {
       await updateBoardTask(task.id, ideaId, { assignee_id: assigneeId });
       if (assigneeId) {
-        const member = teamMembers.find((m) => m.id === assigneeId) ?? userBots.find((b) => b.id === assigneeId);
+        const member = teamMembers.find((m) => m.id === assigneeId) ?? ideaAgents.find((b) => b.id === assigneeId);
         logTaskActivity(task.id, ideaId, currentUserId, "assigned", {
           assignee_name: member?.full_name ?? "Unknown",
         });
@@ -336,15 +361,12 @@ export function TaskDetailDialog({
 
   const localAssignee = localAssigneeId
     ? (teamMembers.find((m) => m.id === localAssigneeId) ??
-      userBots.find((b) => b.id === localAssigneeId) ??
+      ideaAgents.find((b) => b.id === localAssigneeId) ??
       task.assignee)
     : null;
-  const assigneeInitials =
-    localAssignee?.full_name
-      ?.split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase() ?? null;
+  const assigneeInitials = localAssignee
+    ? getInitials(localAssignee.full_name)
+    : null;
 
   // Derive current label display data from boardLabels prop (always up-to-date)
   // instead of task.labels snapshot (stale after label edits until full page reload)
@@ -550,54 +572,33 @@ export function TaskDetailDialog({
                   <span className="text-sm font-medium">Assignee</span>
                   <div className="flex items-center gap-2">
                     {localAssignee && (
-                      <div className="relative">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src={localAssignee.avatar_url ?? undefined} />
-                          <AvatarFallback className="text-[10px]">{assigneeInitials}</AvatarFallback>
-                        </Avatar>
-                        {localAssignee.is_bot && (
-                          <Bot className="absolute -bottom-0.5 -right-0.5 h-3 w-3 text-primary" />
-                        )}
-                      </div>
+                      (() => {
+                        const ac = localAssignee.is_bot ? getRoleColor(botRoles?.[localAssignee.id]) : null;
+                        return (
+                          <div className="relative">
+                            <Avatar className="h-6 w-6">
+                              <AvatarImage src={localAssignee.avatar_url ?? undefined} />
+                              <AvatarFallback className={`text-[10px] ${ac ? `${ac.avatarBg} ${ac.avatarText}` : ""}`}>{assigneeInitials}</AvatarFallback>
+                            </Avatar>
+                            {localAssignee.is_bot && (
+                              <Bot className="absolute -bottom-0.5 -right-0.5 h-3 w-3 text-primary" />
+                            )}
+                          </div>
+                        );
+                      })()
                     )}
                     {isReadOnly ? (
                       <span className="text-xs">
                         {localAssignee?.full_name ?? "Unassigned"}
                       </span>
                     ) : (
-                      <Select
+                      <AssigneeSelect
                         value={localAssigneeId ?? "unassigned"}
                         onValueChange={handleAssigneeChange}
-                      >
-                        <SelectTrigger className="h-8 w-40 text-xs">
-                          <SelectValue placeholder="Unassigned" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="unassigned">Unassigned</SelectItem>
-                          {teamMembers.map((member) => (
-                            <SelectItem key={member.id} value={member.id}>
-                              {member.full_name ?? member.email}
-                            </SelectItem>
-                          ))}
-                          {userBots.length > 0 && (
-                            <>
-                              <div className="px-2 py-1.5 text-[10px] font-medium text-muted-foreground">
-                                My Agents
-                              </div>
-                              {userBots
-                                .filter((b) => !teamMembers.some((m) => m.id === b.id))
-                                .map((bot) => (
-                                  <SelectItem key={bot.id} value={bot.id}>
-                                    <span className="inline-flex items-center gap-1">
-                                      <Bot className="h-3 w-3" />
-                                      {bot.full_name ?? bot.email}
-                                    </span>
-                                  </SelectItem>
-                                ))}
-                            </>
-                          )}
-                        </SelectContent>
-                      </Select>
+                        teamMembers={teamMembers}
+                        ideaAgents={ideaAgents}
+                        triggerClassName="h-8 w-40 text-xs"
+                      />
                     )}
                   </div>
                 </div>
@@ -623,6 +624,17 @@ export function TaskDetailDialog({
                 </div>
               </div>
 
+              {/* Discussion backlink */}
+              {task.discussion_id && (
+                <Link
+                  href={`/ideas/${ideaId}/discussions/${task.discussion_id}`}
+                  className="flex items-center gap-2 rounded-md border border-blue-500/20 bg-blue-500/5 px-3 py-2 text-xs text-blue-400 hover:bg-blue-500/10"
+                >
+                  <MessageSquare className="h-3.5 w-3.5" />
+                  From discussion &mdash; View source thread
+                </Link>
+              )}
+
               <Separator />
 
               {/* Description */}
@@ -639,7 +651,7 @@ export function TaskDetailDialog({
                         onMouseDown={() => { skipBlurRef.current = true; }}
                         onClick={handleEnhanceDescription}
                         disabled={enhancing}
-                        title="Enhance with AI"
+                        title={hasByokKey ? "Enhance with AI — using your API key" : `Enhance with AI — ${starterCredits} free credit${starterCredits !== 1 ? "s" : ""} remaining`}
                       >
                         {enhancing ? (
                           <Loader2 className="h-3 w-3 animate-spin" />
@@ -687,7 +699,7 @@ export function TaskDetailDialog({
                 {isReadOnly ? (
                   description ? (
                     <div className="rounded-md px-3 py-2 text-sm">
-                      <Markdown>{description}</Markdown>
+                      <Markdown teamMembers={teamMembers}>{description}</Markdown>
                     </div>
                   ) : (
                     <p className="text-xs text-muted-foreground">No description</p>
@@ -698,7 +710,7 @@ export function TaskDetailDialog({
                       className="min-h-[156px] rounded-md border border-input px-3 py-2 text-sm"
                       onBlur={handleDescriptionBlur}
                     >
-                      <Markdown>{description}</Markdown>
+                      <Markdown teamMembers={teamMembers}>{description}</Markdown>
                     </div>
                   ) : (
                     <div className="relative">
@@ -733,7 +745,7 @@ export function TaskDetailDialog({
                       });
                     }}
                   >
-                    <Markdown>{description}</Markdown>
+                    <Markdown teamMembers={teamMembers}>{description}</Markdown>
                   </div>
                 ) : (
                   <div
@@ -769,8 +781,8 @@ export function TaskDetailDialog({
               taskId={task.id}
               ideaId={ideaId}
               currentUserId={currentUserId}
-              teamMembers={teamMembers}
-              userBotIds={userBots.map((b) => b.id)}
+              teamMembers={allMentionable}
+              userBotIds={currentUserBotIds}
               isReadOnly={isReadOnly}
             />
           </TabsContent>

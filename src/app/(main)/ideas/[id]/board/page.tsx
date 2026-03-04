@@ -4,6 +4,7 @@ import { ArrowLeft } from "lucide-react";
 import { requireAuth } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { initializeBoardColumns } from "@/actions/board";
+import { getIdeaTeam } from "@/lib/idea-team";
 import { KanbanBoard } from "@/components/board/kanban-board";
 import { BoardRealtime } from "@/components/board/board-realtime";
 import { GuestBoardBanner } from "@/components/board/guest-board-banner";
@@ -14,7 +15,6 @@ import type {
   BoardLabel,
   BoardChecklistItem,
   User,
-  BotProfile,
 } from "@/types";
 import type { Metadata } from "next";
 
@@ -115,16 +115,14 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
     await initializeBoardColumns(id);
   }
 
-  // Phase 2: Parallel fetch of all board data
+  // Phase 2: Parallel fetch of all board data + team info
   const [
     { data: rawColumns },
     { data: rawTasks },
     { data: boardLabels },
     { data: rawChecklistItems },
-    { data: collabs },
-    { data: author },
-    { data: rawUserBots },
     { data: userProfile },
+    ideaTeam,
   ] = await Promise.all([
     supabase.from("board_columns").select("*").eq("idea_id", id).order("position", { ascending: true }),
     supabase
@@ -142,52 +140,27 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
       .select("*")
       .eq("idea_id", id)
       .order("position", { ascending: true }),
-    supabase
-      .from("collaborators")
-      .select("user:users!collaborators_user_id_fkey(*)")
-      .eq("idea_id", id),
-    supabase
-      .from("users")
-      .select("*")
-      .eq("id", idea.author_id)
-      .single(),
-    // Write-only fetches — skip for read-only guests
-    isTeamMember
-      ? supabase
-          .from("bot_profiles")
-          .select("*")
-          .eq("owner_id", user.id)
-          .eq("is_active", true)
-      : Promise.resolve({ data: null }),
     isTeamMember
       ? supabase
           .from("users")
-          .select("encrypted_anthropic_key")
+          .select("encrypted_anthropic_key, ai_starter_credits")
           .eq("id", user.id)
           .single()
       : Promise.resolve({ data: null }),
+    getIdeaTeam(supabase, id, idea.author_id, user.id),
   ]);
+
+  const { teamMembers, ideaAgents, botProfiles: ideaAgentBotProfiles } = ideaTeam;
 
   // Phase 3: Queries that depend on Phase 2 results
   const taskIds = (rawTasks ?? []).map((t) => t.id);
-  const userBotProfiles = (rawUserBots ?? []) as BotProfile[];
-  const userBotIds = userBotProfiles.map((b) => b.id);
 
-  const [{ data: taskLabelRows }, userBots] = await Promise.all([
-    taskIds.length > 0
-      ? supabase
-          .from("board_task_labels")
-          .select("task_id, label:board_labels!board_task_labels_label_id_fkey(*)")
-          .in("task_id", taskIds)
-      : Promise.resolve({ data: null }),
-    userBotIds.length > 0
-      ? supabase
-          .from("users")
-          .select("*")
-          .in("id", userBotIds)
-          .then(({ data }) => (data ?? []) as User[])
-      : Promise.resolve([] as User[]),
-  ]);
+  const { data: taskLabelRows } = taskIds.length > 0
+    ? await supabase
+        .from("board_task_labels")
+        .select("task_id, label:board_labels!board_task_labels_label_id_fkey(*)")
+        .in("task_id", taskIds)
+    : { data: null };
 
   // Build taskLabelsMap: Record<taskId, BoardLabel[]>
   const taskLabelsMap: Record<string, BoardLabel[]> = {};
@@ -213,19 +186,9 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
     }
   }
 
-  // Build team members list
-  const teamMembers: User[] = [];
-  if (author) teamMembers.push(author as User);
-  if (collabs) {
-    collabs.forEach((c) => {
-      const u = c.user as unknown as User;
-      if (u && !teamMembers.find((m) => m.id === u.id)) {
-        teamMembers.push(u);
-      }
-    });
-  }
-
-  const userHasApiKey = !isReadOnly && !!userProfile?.encrypted_anthropic_key;
+  const userHasByokKey = !isReadOnly && !!userProfile?.encrypted_anthropic_key;
+  const starterCredits = userProfile?.ai_starter_credits ?? 0;
+  const userCanUseAi = !isReadOnly && (userHasByokKey || starterCredits > 0);
 
   // Batch-create signed URLs for cover images (single API call instead of N)
   const coverPaths = (rawTasks ?? []).map((t) => t.cover_image_path).filter((p): p is string => !!p);
@@ -285,9 +248,11 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
         checklistItemsByTaskId={checklistItemsByTaskId}
         currentUserId={user.id}
         initialTaskId={initialTaskId}
-        userBots={userBots}
-        hasApiKey={userHasApiKey}
-        botProfiles={userBotProfiles}
+        ideaAgents={ideaAgents}
+        canUseAi={userCanUseAi}
+        hasByokKey={userHasByokKey}
+        starterCredits={starterCredits}
+        botProfiles={ideaAgentBotProfiles}
         coverImageUrls={coverImageUrls}
         isReadOnly={isReadOnly}
       />
