@@ -22,6 +22,8 @@ interface AssigneeSelectProps {
   teamMembers: User[];
   ideaAgents?: User[];
   triggerClassName?: string;
+  /** Current assignee (from task data) — included in dropdown even if not a collaborator/agent */
+  currentAssignee?: Pick<User, "id" | "full_name" | "email" | "avatar_url" | "is_bot"> | null;
 }
 
 export function AssigneeSelect({
@@ -30,12 +32,21 @@ export function AssigneeSelect({
   teamMembers,
   ideaAgents = [],
   triggerClassName,
+  currentAssignee,
 }: AssigneeSelectProps) {
   const botRoles = useBotRoles();
-  const humanMembers = useMemo(
-    () => teamMembers.filter((m) => !m.is_bot),
-    [teamMembers],
-  );
+  const humanMembers = useMemo(() => {
+    const humans = teamMembers.filter((m) => !m.is_bot);
+    // Include current assignee if they're a human not in the team
+    if (
+      currentAssignee &&
+      !currentAssignee.is_bot &&
+      !humans.some((m) => m.id === currentAssignee.id)
+    ) {
+      humans.push(currentAssignee as User);
+    }
+    return humans;
+  }, [teamMembers, currentAssignee]);
 
   const allAgents = useMemo(() => {
     const agents = [...ideaAgents];
@@ -44,8 +55,16 @@ export function AssigneeSelect({
         agents.push(m);
       }
     }
+    // Include current assignee if they're a bot not in the list
+    if (
+      currentAssignee &&
+      currentAssignee.is_bot &&
+      !agents.some((a) => a.id === currentAssignee.id)
+    ) {
+      agents.push(currentAssignee as User);
+    }
     return agents;
-  }, [teamMembers, ideaAgents]);
+  }, [teamMembers, ideaAgents, currentAssignee]);
 
   return (
     <Select value={value} onValueChange={onValueChange}>

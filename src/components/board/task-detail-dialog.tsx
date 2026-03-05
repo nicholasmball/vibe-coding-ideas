@@ -597,6 +597,7 @@ export function TaskDetailDialog({
                         onValueChange={handleAssigneeChange}
                         teamMembers={teamMembers}
                         ideaAgents={ideaAgents}
+                        currentAssignee={task.assignee}
                         triggerClassName="h-8 w-40 text-xs"
                       />
                     )}
