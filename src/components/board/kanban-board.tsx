@@ -125,6 +125,7 @@ interface KanbanBoardProps {
   hasByokKey?: boolean;
   starterCredits?: number;
   botProfiles?: BotProfile[];
+  userBotProfiles?: BotProfile[];
   coverImageUrls?: Record<string, string>;
   isReadOnly?: boolean;
 }
@@ -235,6 +236,7 @@ export function KanbanBoard({
   hasByokKey = false,
   starterCredits = 0,
   botProfiles = [],
+  userBotProfiles = [],
   coverImageUrls = {},
   isReadOnly = false,
 }: KanbanBoardProps) {
@@ -880,6 +882,7 @@ export function KanbanBoard({
         hasByokKey={hasByokKey}
         starterCredits={starterCredits}
         botProfiles={botProfiles}
+        userBotProfiles={userBotProfiles}
         isReadOnly={isReadOnly}
       />
       <DndContext

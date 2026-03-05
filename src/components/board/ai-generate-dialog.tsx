@@ -21,7 +21,9 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -79,6 +81,7 @@ interface AiGenerateDialogProps {
   boardLabels: BoardLabel[];
   teamMembers: User[];
   bots: BotProfile[];
+  userBotProfiles?: BotProfile[];
 }
 
 export function AiGenerateDialog({
@@ -91,6 +94,7 @@ export function AiGenerateDialog({
   boardLabels,
   teamMembers,
   bots,
+  userBotProfiles = [],
 }: AiGenerateDialogProps) {
   const router = useRouter();
   const [phase, setPhase] = useState<DialogPhase>("configure");
@@ -120,7 +124,12 @@ export function AiGenerateDialog({
 
   const busy = generating || phase === "inserting" || phase === "loading-board";
 
-  const activeBots = bots.filter((b) => b.is_active);
+  // User's own active bots (already filtered to is_active at query level)
+  const myAgents = userBotProfiles;
+  const myAgentIds = new Set(myAgents.map((b) => b.id));
+  // Pool bots not owned by current user (deduplicates bots that are in both lists)
+  const ideaAgentBots = bots.filter((b) => b.is_active && !myAgentIds.has(b.id));
+  const allBots = [...myAgents, ...ideaAgentBots];
 
   // Auto-close when board refresh completes
   useEffect(() => {
@@ -157,15 +166,22 @@ export function AiGenerateDialog({
     setGeneratedTasks([]);
     setPhase("preview");
     try {
-      const personaPrompt =
+      const selectedBot =
         selectedBotId !== "default"
-          ? activeBots.find((b) => b.id === selectedBotId)?.system_prompt
+          ? allBots.find((b) => b.id === selectedBotId)
           : null;
 
       const res = await fetch("/api/ai/generate-tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ideaId, prompt, personaPrompt }),
+        body: JSON.stringify({
+          ideaId,
+          prompt,
+          personaPrompt: selectedBot?.system_prompt ?? null,
+          agentRole: selectedBot?.role ?? null,
+          agentSkills: selectedBot?.skills ?? null,
+          agentBio: selectedBot?.bio ?? null,
+        }),
       });
 
       if (!res.ok) {
@@ -435,7 +451,7 @@ export function AiGenerateDialog({
         {/* ── Configure Phase ─────────────────────────────────── */}
         {phase === "configure" && (
           <div className="space-y-4">
-            {activeBots.length > 0 && (
+            {allBots.length > 0 && (
               <div className="space-y-2">
                 <Label>AI Persona</Label>
                 <Select value={selectedBotId} onValueChange={setSelectedBotId}>
@@ -446,12 +462,28 @@ export function AiGenerateDialog({
                     <SelectItem value="default">
                       Default (Project Manager)
                     </SelectItem>
-                    {activeBots.map((bot) => (
-                      <SelectItem key={bot.id} value={bot.id}>
-                        {bot.name}
-                        {bot.role ? ` (${bot.role})` : ""}
-                      </SelectItem>
-                    ))}
+                    {myAgents.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel>My Agents</SelectLabel>
+                        {myAgents.map((bot) => (
+                          <SelectItem key={bot.id} value={bot.id}>
+                            {bot.name}
+                            {bot.role ? ` (${bot.role})` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )}
+                    {ideaAgentBots.length > 0 && (
+                      <SelectGroup>
+                        <SelectLabel>Idea Agents</SelectLabel>
+                        {ideaAgentBots.map((bot) => (
+                          <SelectItem key={bot.id} value={bot.id}>
+                            {bot.name}
+                            {bot.role ? ` (${bot.role})` : ""}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    )}
                   </SelectContent>
                 </Select>
               </div>

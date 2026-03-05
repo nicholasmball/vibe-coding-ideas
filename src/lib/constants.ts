@@ -98,6 +98,7 @@ export const ACTIVITY_ACTIONS: Record<string, { label: string; icon: string }> =
   attachment_added: { label: "added an attachment", icon: "Paperclip" },
   attachment_removed: { label: "removed an attachment", icon: "Trash2" },
   bulk_imported: { label: "imported this task", icon: "Upload" },
+  ai_generated: { label: "generated this task with AI", icon: "Sparkles" },
 };
 
 export const BOT_ROLE_TEMPLATES = [

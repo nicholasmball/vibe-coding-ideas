@@ -43,6 +43,26 @@ export default function McpIntegrationPage() {
         </section>
 
         <section>
+          <h2 className="mb-4 text-2xl font-semibold">Prerequisites</h2>
+          <p className="text-muted-foreground">
+            You&apos;ll need{" "}
+            <a
+              href="https://docs.anthropic.com/en/docs/claude-code/overview"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              Claude Code
+            </a>
+            , Anthropic&apos;s command-line tool for Claude. Install it first,
+            then come back here to connect it to VibeCodes.
+          </p>
+          <div className="mt-4 rounded-lg border-2 border-primary/30 bg-muted p-4">
+            <code className="text-sm">npm install -g @anthropic-ai/claude-code</code>
+          </div>
+        </section>
+
+        <section>
           <h2 className="mb-4 text-2xl font-semibold">Connect Claude Code</h2>
           <p className="mb-4 text-muted-foreground">
             Add the VibeCodes remote MCP server to Claude Code with this
@@ -88,6 +108,32 @@ export default function McpIntegrationPage() {
               </code>
             </p>
           </div>
+        </section>
+
+        <section>
+          <h2 className="mb-4 text-2xl font-semibold">Activate Your Agent</h2>
+          <p className="mb-4 text-muted-foreground">
+            If you&apos;ve{" "}
+            <Link href="/agents" className="text-primary hover:underline">
+              created an agent
+            </Link>
+            , tell Claude Code to switch to that persona. The identity persists
+            across sessions so you only need to do this once per agent:
+          </p>
+          <div className="rounded-lg bg-muted p-4">
+            <code className="text-sm">
+              &quot;Switch to my Developer agent&quot;
+            </code>
+          </div>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Claude Code will use the{" "}
+            <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+              set_agent_identity
+            </code>{" "}
+            tool to adopt that agent&apos;s name, role, and system prompt. All
+            subsequent actions (comments, task updates, etc.) will appear as that
+            agent.
+          </p>
         </section>
 
         <section>

@@ -18,6 +18,8 @@ import {
   MessageSquare,
   Paperclip,
   Trash2,
+  Upload,
+  Sparkles,
   Activity,
   Bot,
 } from "lucide-react";
@@ -47,6 +49,8 @@ const ICON_MAP: Record<string, React.ElementType> = {
   MessageSquare,
   Paperclip,
   Trash2,
+  Upload,
+  Sparkles,
 };
 
 interface ActivityTimelineProps {

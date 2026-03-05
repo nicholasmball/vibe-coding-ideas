@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Bot, Plus } from "lucide-react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Bot, Plus, X, Cable } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MyAgentsGrid } from "./my-agents-grid";
 import { CommunityTab } from "./community-tab";
@@ -30,6 +31,26 @@ export function AgentsHub({
 }: AgentsHubProps) {
   const [activeTab, setActiveTab] = useState<Tab>("my-agents");
   const [createOpen, setCreateOpen] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(true);
+
+  useEffect(() => {
+    try {
+      setBannerDismissed(
+        localStorage.getItem("agents-mcp-banner-dismissed") === "true"
+      );
+    } catch {
+      // localStorage unavailable
+    }
+  }, []);
+
+  function dismissBanner() {
+    setBannerDismissed(true);
+    try {
+      localStorage.setItem("agents-mcp-banner-dismissed", "true");
+    } catch {
+      // localStorage unavailable
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -83,6 +104,31 @@ export function AgentsHub({
           Browse
         </button>
       </div>
+
+      {/* MCP setup banner */}
+      {!bannerDismissed && myBots.length > 0 && (
+        <div className="flex items-center gap-3 rounded-lg border border-violet-500/15 bg-violet-500/[0.04] px-4 py-3">
+          <Cable className="h-4 w-4 shrink-0 text-violet-400" />
+          <p className="flex-1 text-sm text-muted-foreground">
+            Agents work through{" "}
+            <span className="font-medium text-foreground">Claude Code</span> via
+            MCP. Set up the connection to start using your agents.{" "}
+            <Link
+              href="/guide/mcp-integration"
+              className="font-medium text-violet-400 hover:text-violet-300"
+            >
+              Setup guide &rarr;
+            </Link>
+          </p>
+          <button
+            onClick={dismissBanner}
+            className="shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-muted-foreground"
+            aria-label="Dismiss MCP setup banner"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Tab content */}
       {activeTab === "my-agents" ? (

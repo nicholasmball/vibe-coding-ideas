@@ -39,6 +39,7 @@ interface BoardToolbarProps {
   hasByokKey?: boolean;
   starterCredits?: number;
   botProfiles?: BotProfile[];
+  userBotProfiles?: BotProfile[];
   isReadOnly?: boolean;
 }
 
@@ -64,6 +65,7 @@ export function BoardToolbar({
   hasByokKey = false,
   starterCredits = 0,
   botProfiles = [],
+  userBotProfiles = [],
   isReadOnly = false,
 }: BoardToolbarProps) {
   const [importOpen, setImportOpen] = useState(false);
@@ -283,6 +285,7 @@ export function BoardToolbar({
           boardLabels={boardLabels}
           teamMembers={teamMembers}
           bots={botProfiles}
+          userBotProfiles={userBotProfiles}
         />
       )}
     </div>

@@ -123,6 +123,7 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
     { data: rawChecklistItems },
     { data: userProfile },
     ideaTeam,
+    { data: userBotProfiles },
   ] = await Promise.all([
     supabase.from("board_columns").select("*").eq("idea_id", id).order("position", { ascending: true }),
     supabase
@@ -148,6 +149,13 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
           .single()
       : Promise.resolve({ data: null }),
     getIdeaTeam(supabase, id, idea.author_id, user.id),
+    isTeamMember
+      ? supabase
+          .from("bot_profiles")
+          .select("*")
+          .eq("owner_id", user.id)
+          .eq("is_active", true)
+      : Promise.resolve({ data: null }),
   ]);
 
   const { teamMembers, ideaAgents, botProfiles: ideaAgentBotProfiles } = ideaTeam;
@@ -253,6 +261,7 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
         hasByokKey={userHasByokKey}
         starterCredits={starterCredits}
         botProfiles={ideaAgentBotProfiles}
+        userBotProfiles={(userBotProfiles ?? []) as import("@/types").BotProfile[]}
         coverImageUrls={coverImageUrls}
         isReadOnly={isReadOnly}
       />
