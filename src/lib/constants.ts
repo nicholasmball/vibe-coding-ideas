@@ -1,6 +1,16 @@
 import type { IdeaStatus, CommentType, SortOption } from "@/types";
 
 export const VIBECODES_USER_ID = "a0000000-0000-4000-a000-000000000001";
+export const DEFAULT_ORCHESTRATOR_BOT_ID = "b0000000-0000-4000-a000-000000000016";
+
+/** Static user record for the system-wide default orchestration agent (seeded in migration 00067). */
+export const DEFAULT_ORCHESTRATOR_BOT = {
+  id: DEFAULT_ORCHESTRATOR_BOT_ID,
+  full_name: "VibeCodes Orchestration Agent",
+  is_bot: true,
+  email: "bot-orchestrator@vibecodes.local",
+  avatar_url: null,
+} as const;
 
 export const STATUS_CONFIG: Record<
   IdeaStatus,
@@ -92,8 +102,11 @@ export const ACTIVITY_ACTIONS: Record<string, { label: string; icon: string }> =
   unarchived: { label: "unarchived this task", icon: "ArchiveRestore" },
   title_changed: { label: "changed the title", icon: "Pencil" },
   description_changed: { label: "updated the description", icon: "FileText" },
-  checklist_item_added: { label: "added a checklist item", icon: "ListPlus" },
-  checklist_item_completed: { label: "completed a checklist item", icon: "CheckSquare" },
+  workflow_step_added: { label: "added a workflow step", icon: "ListPlus" },
+  workflow_step_started: { label: "started a workflow step", icon: "Play" },
+  workflow_step_completed: { label: "completed a workflow step", icon: "CheckSquare" },
+  workflow_step_failed: { label: "workflow step failed", icon: "AlertCircle" },
+  workflow_step_reset: { label: "reset a workflow step", icon: "RotateCcw" },
   comment_added: { label: "added a comment", icon: "MessageSquare" },
   attachment_added: { label: "added an attachment", icon: "Paperclip" },
   attachment_removed: { label: "removed an attachment", icon: "Trash2" },

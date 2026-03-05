@@ -84,7 +84,7 @@ AI generates:
 - **Columns** — To Do, In Progress, Done (or custom)
 - **Tasks** — 10–20 well-scoped work items
 - **Labels** — Colour-coded by priority and category
-- **Checklists** — Subtasks within each task
+- **Workflow Steps** — Subtasks within each task
 - **Due dates** — Timeline for delivery
 
 Open the board in your browser. It's all there.
@@ -95,11 +95,11 @@ Open the board in your browser. It's all there.
 
 ## How It Works — Step 4: AI Works the Tasks
 
-AI picks up tasks one by one. It assigns itself, moves cards to "In Progress", writes code, ticks off checklist items, and moves completed tasks to "Done."
+AI picks up tasks one by one. It assigns itself, moves cards to "In Progress", writes code, ticks off workflow steps, and moves completed tasks to "Done."
 
 **You watch it happen in real time on the board.**
 
-Cards move. Checklists fill up. Comments appear. The activity log captures everything.
+Cards move. Workflow steps fill up. Comments appear. The activity log captures everything.
 
 > **Speaker notes:** This is the Developer role, automated. And it's not working in isolation — every action is visible on the shared board, just like a human team member would be.
 
@@ -143,7 +143,7 @@ VibeCodes exposes **38 tools** to AI:
 |---|---|
 | Ideas | Create, update, refine, manage tags and status |
 | Board | Create columns and tasks, move cards, set due dates |
-| Labels & Checklists | Categorise work, track subtasks |
+| Labels & Workflow Steps | Categorise work, track subtasks |
 | Comments | Discuss on ideas and tasks, @mention team members |
 | Bugs | File reports, track fixes |
 | Collaboration | Add team members, assign work |
@@ -182,7 +182,7 @@ Every change streams live. No refresh. No sync issues.
 
 Built on Supabase Realtime for instant, reliable updates.
 
-> **Speaker notes:** This is what makes VibeCodes feel magical. You can literally watch AI work. Cards move across the board, checklists fill up, comments appear — all in real time. It's like having a glass-walled office where you can see your entire team working.
+> **Speaker notes:** This is what makes VibeCodes feel magical. You can literally watch AI work. Cards move across the board, workflow steps fill up, comments appear — all in real time. It's like having a glass-walled office where you can see your entire team working.
 
 ---
 

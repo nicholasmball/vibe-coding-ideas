@@ -9,6 +9,7 @@ import {
   validateDiscussionReply,
   validateTitle,
 } from "@/lib/validation";
+import { generateWorkflowSteps } from "@/actions/ai";
 import type { DiscussionStatus } from "@/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -435,6 +436,28 @@ export async function convertDiscussionToTask(
     // Another concurrent conversion won — cleanup our task
     await supabase.from("board_tasks").delete().eq("id", task.id);
     throw new Error("Discussion was already converted by another user");
+  }
+
+  // Auto-generate workflow steps from discussion content (non-fatal)
+  try {
+    const { data: replies } = await supabase
+      .from("idea_discussion_replies")
+      .select("content, users!idea_discussion_replies_author_id_fkey(full_name)")
+      .eq("discussion_id", discussionId)
+      .order("created_at", { ascending: true });
+
+    await generateWorkflowSteps({
+      taskId: task.id,
+      ideaId,
+      discussionTitle: discussion.title,
+      discussionBody: discussion.body,
+      replies: (replies ?? []).map((r) => ({
+        author: (r as unknown as { users: { full_name: string | null } }).users?.full_name ?? "Unknown",
+        content: r.content,
+      })),
+    });
+  } catch (err) {
+    console.error("[convertDiscussionToTask] Workflow step generation failed:", err);
   }
 
   revalidatePath(`/ideas/${ideaId}/discussions`);

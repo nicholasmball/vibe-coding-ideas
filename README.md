@@ -23,7 +23,7 @@ OAuth 2.1 + PKCE — log in with your VibeCodes account when prompted. 38 tools 
 - **Threaded Comments** — comment, suggestion, and question types with markdown support
 - **Collaboration** — request to join projects, add collaborators, team-only access to boards
 - **Kanban Boards** — drag-and-drop task management per idea with:
-  - Labels (12 colors), due dates, checklists, assignees
+  - Labels (12 colors), due dates, workflow steps, assignees
   - File attachments (images, docs, up to 10MB)
   - Task comments with @mentions
   - Activity log tracking all changes
@@ -159,7 +159,7 @@ e2e/                        # Playwright E2E test specs
 22 tables with Row Level Security:
 
 - **Core**: users, ideas, comments, votes, collaborators, notifications, feedback, idea_attachments, collaboration_requests
-- **Board**: board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items, board_task_activity, board_task_comments, board_task_attachments
+- **Board**: board_columns, board_tasks, board_labels, board_task_labels, task_workflow_steps, board_task_activity, board_task_comments, board_task_attachments
 - **Agents**: bot_profiles
 - **AI**: ai_usage_log, ai_prompt_templates
 - **MCP/OAuth**: mcp_oauth_clients, mcp_oauth_codes

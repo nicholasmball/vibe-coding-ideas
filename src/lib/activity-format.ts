@@ -8,8 +8,11 @@
  *   unassigned:                {} | { assignee_id: string }
  *   due_date_set:              { due_date: string } (MCP only)
  *   label_added/label_removed: { label_name: string }
- *   checklist_item_added:      { title: string } (UI) or { item_title: string } (MCP)
- *   checklist_item_completed:  { title: string } (UI) or { item_title: string } (MCP)
+ *   workflow_step_added:       { title: string }
+ *   workflow_step_started:     { title: string }
+ *   workflow_step_completed:   { title: string }
+ *   workflow_step_failed:      { title: string, reason: string }
+ *   workflow_step_reset:       { title: string }
  *   attachment_added/removed:  { file_name: string }
  */
 export function formatActivityDetails(
@@ -50,11 +53,18 @@ export function formatActivityDetails(
       return name ? `"${name}"` : null;
     }
 
-    case "checklist_item_added":
-    case "checklist_item_completed": {
-      const title =
-        (details.title as string | undefined) ??
-        (details.item_title as string | undefined);
+    case "workflow_step_added":
+    case "workflow_step_started":
+    case "workflow_step_completed":
+    case "workflow_step_reset": {
+      const title = details.title as string | undefined;
+      return title ? `"${title}"` : null;
+    }
+
+    case "workflow_step_failed": {
+      const title = details.title as string | undefined;
+      const reason = details.reason as string | undefined;
+      if (title && reason) return `"${title}" — ${reason}`;
       return title ? `"${title}"` : null;
     }
 

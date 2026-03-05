@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import {
   ArrowUp,
   MessageSquare,
+  Workflow,
   CheckSquare,
   Bot,
   GripVertical,
@@ -116,10 +117,10 @@ interface MockTask {
 }
 
 function TaskCard({ task }: { task: MockTask }) {
-  const hasChecklist =
+  const hasWorkflow =
     task.checkTotal !== undefined && task.checkTotal > 0;
-  const checklistDone =
-    hasChecklist && task.checkDone === task.checkTotal;
+  const workflowDone =
+    hasWorkflow && task.checkDone === task.checkTotal;
 
   return (
     <div className="rounded-md border border-border bg-background p-2.5 shadow-sm">
@@ -143,11 +144,11 @@ function TaskCard({ task }: { task: MockTask }) {
             {task.dueDate}
           </span>
         )}
-        {hasChecklist && (
+        {hasWorkflow && (
           <span
-            className={`flex items-center gap-0.5 ${checklistDone ? "text-emerald-400" : ""}`}
+            className={`flex items-center gap-0.5 ${workflowDone ? "text-emerald-400" : ""}`}
           >
-            <CheckSquare className="h-3 w-3" />
+            <Workflow className="h-3 w-3" />
             {task.checkDone}/{task.checkTotal}
           </span>
         )}

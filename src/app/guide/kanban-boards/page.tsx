@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 export const metadata = {
   title: "Kanban Boards Guide",
   description:
-    "Manage tasks with drag-and-drop boards, labels, due dates, checklists, file attachments, and bulk import on VibeCodes.",
+    "Manage tasks with drag-and-drop boards, labels, due dates, workflow steps, file attachments, and bulk import on VibeCodes.",
 };
 
 export default function KanbanBoardsPage() {
@@ -66,7 +66,7 @@ export default function KanbanBoardsPage() {
               deadlines with visual overdue/upcoming indicators
             </li>
             <li>
-              <strong className="text-foreground">Checklists</strong> — break
+              <strong className="text-foreground">Workflow Steps</strong> — break
               tasks into subtasks with progress tracking
             </li>
             <li>

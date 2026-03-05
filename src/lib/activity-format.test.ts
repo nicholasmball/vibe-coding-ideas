@@ -63,22 +63,34 @@ describe("formatActivityDetails", () => {
     ).toBe('"Enhancement"');
   });
 
-  it("formats checklist_item_added with title (UI style)", () => {
+  it("formats workflow_step_added with title", () => {
     expect(
-      formatActivityDetails("checklist_item_added", { title: "Write tests" })
+      formatActivityDetails("workflow_step_added", { title: "Write tests" })
     ).toBe('"Write tests"');
   });
 
-  it("formats checklist_item_added with item_title (MCP style)", () => {
+  it("formats workflow_step_started with title", () => {
     expect(
-      formatActivityDetails("checklist_item_added", { item_title: "Deploy" })
+      formatActivityDetails("workflow_step_started", { title: "Deploy" })
     ).toBe('"Deploy"');
   });
 
-  it("formats checklist_item_completed with title", () => {
+  it("formats workflow_step_completed with title", () => {
     expect(
-      formatActivityDetails("checklist_item_completed", { title: "Write tests" })
+      formatActivityDetails("workflow_step_completed", { title: "Write tests" })
     ).toBe('"Write tests"');
+  });
+
+  it("formats workflow_step_failed with title and reason", () => {
+    expect(
+      formatActivityDetails("workflow_step_failed", { title: "Deploy", reason: "Timeout" })
+    ).toBe('"Deploy" — Timeout');
+  });
+
+  it("formats workflow_step_reset with title", () => {
+    expect(
+      formatActivityDetails("workflow_step_reset", { title: "Review" })
+    ).toBe('"Review"');
   });
 
   it("formats attachment_added with file_name", () => {

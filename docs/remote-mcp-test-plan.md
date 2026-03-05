@@ -46,7 +46,7 @@
 
 ### 2.5 Get board
 - Prompt: "Show me the VibeCodes kanban board"
-- Expected: Calls `get_board`, returns columns with tasks, labels, checklist progress
+- Expected: Calls `get_board`, returns columns with tasks, labels, workflow step progress
 
 ### 2.6 Get assigned tasks
 - Prompt: "What are my assigned tasks across all ideas?"
@@ -54,7 +54,7 @@
 
 ### 2.7 Get task details
 - Prompt: "Show me the details of task [task name]"
-- Expected: Calls `get_task`, returns full task with checklist items, comments, activity log
+- Expected: Calls `get_task`, returns full task with workflow steps, comments, activity log
 
 ### 2.8 List attachments
 - Prompt: "Show me the attachments on that task"
@@ -104,12 +104,12 @@
 - Prompt: "Create a green label called 'Testing' on the VibeCodes board"
 - Expected: Calls `manage_labels` with `create` action, label appears in board label list
 
-### 3.8 Manage checklist
-- Prompt: "Add a checklist item 'Write unit tests' to that task"
-- Expected: Calls `manage_checklist` with `add` action, checklist item appears in task detail
+### 3.8 Manage workflow steps
+- Prompt: "Add a workflow step 'Write unit tests' to that task"
+- Expected: Calls `manage_checklist` with `add` action, workflow step appears in task detail
 
-### 3.9 Toggle checklist item
-- Prompt: "Mark the 'Write unit tests' checklist item as done"
+### 3.9 Toggle workflow step
+- Prompt: "Mark the 'Write unit tests' workflow step as done"
 - Expected: Calls `manage_checklist` with `toggle` action, item shows as checked
 
 ### 3.10 Delete a task
@@ -297,11 +297,11 @@
 - Expected: Reads board, identifies the labelled task(s), reports back
 
 ### 11.2 Full task lifecycle
-- Setup: A "Claude to Code" task with description and checklist
+- Setup: A "Claude to Code" task with description and workflow steps
 - Prompt: "Pick up the 'Claude to Code' task, move it to In Progress, implement it, add a comment with what you did, then move it to Ready to Test"
 - Expected flow:
   1. `get_board` — reads the board
-  2. `get_task` — reads task details, checklist, comments
+  2. `get_task` — reads task details, workflow steps, comments
   3. `move_task` — moves to In Progress
   4. `add_task_comment` — "Starting work on this"
   5. (writes code in the codebase)
@@ -320,8 +320,8 @@
 
 ### 11.5 Task refinement
 - Setup: A vague task like "Improve the landing page"
-- Prompt: "Read the task 'Improve the landing page', break it down into subtasks using the checklist, then start working on the first item"
-- Expected: `get_task` → `manage_checklist` (adds items) → implements first checklist item → `manage_checklist` (toggles complete)
+- Prompt: "Read the task 'Improve the landing page', break it down into subtasks using workflow steps, then start working on the first item"
+- Expected: `get_task` → `manage_checklist` (adds items) → implements first workflow step → `manage_checklist` (toggles complete)
 
 ### 11.6 Cross-idea awareness
 - Prompt: "List all in-progress ideas, check their boards, and give me a status update on what's left to do"

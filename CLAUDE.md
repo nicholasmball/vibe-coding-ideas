@@ -65,10 +65,10 @@ Move to "Blocked/Requires User Input" with a comment explaining why.
 - RLS: team members + public viewers SELECT; team members INSERT own active bots; adder or idea author DELETE
 - Trigger on collaborator removal: cleans up all bots that collaborator allocated
 - Trigger on agent removal: unassigns bot from all tasks in that idea
-- Server actions in `src/actions/idea-agents.ts`: `allocateAgent`, `removeIdeaAgent`
+- Server actions in `src/actions/idea-agents.ts`: `allocateAgent`, `removeIdeaAgent`, `setOrchestrationAgent`
 - UI: `IdeaAgentsSection` component on idea detail page (between Collaborators and Description)
 - Board dropdown groups pooled agents by owner name instead of flat "My Agents"
-- MCP tools: `allocate_agent`, `remove_idea_agent`, `list_idea_agents` in `mcp-server/src/tools/idea-agents.ts`
+- MCP tools: `allocate_agent`, `remove_idea_agent`, `list_idea_agents`, `set_orchestration_agent` in `mcp-server/src/tools/idea-agents.ts`
 
 ### Agents Hub
 - `/agents` page is tabbed: "My Agents" + "Community" tabs via `AgentsHub` component
@@ -144,7 +144,7 @@ Move to "Blocked/Requires User Input" with a comment explaining why.
 
 32 tables with RLS (`supabase/migrations/`):
 - **Core**: users, ideas, comments, collaborators, votes, notifications, feedback, idea_attachments
-- **Board**: board_columns, board_tasks, board_labels, board_task_labels, board_checklist_items, board_task_activity, board_task_comments, board_task_attachments
+- **Board**: board_columns, board_tasks, board_labels, board_task_labels, task_workflow_steps, board_task_activity, board_task_comments, board_task_attachments
 - **Discussions**: idea_discussions, idea_discussion_replies, discussion_votes
 - **Agents**: bot_profiles, idea_agents, agent_votes, featured_teams, featured_team_agents
 - **AI**: ai_usage_log, ai_prompt_templates
@@ -162,7 +162,8 @@ Key columns:
 
 18 files, 94 exported functions:
 - `ideas.ts` — create, update, updateStatus, updateIdeaFields (partial inline edit), delete
-- `board.ts` — columns (init, CRUD, reorder), tasks (CRUD, move, archive), labels (CRUD, assign), checklists (CRUD, toggle), task comments (create, update, delete)
+- `board.ts` — columns (init, CRUD, reorder), tasks (CRUD, move, archive), labels (CRUD, assign), task comments (create, update, delete)
+- `workflow.ts` — createWorkflowStep, updateWorkflowStep, deleteWorkflowStep, startWorkflowStep, completeWorkflowStep, failWorkflowStep
 - `collaborators.ts` — requestCollaboration, withdrawRequest, respondToRequest, leaveCollaboration, addCollaborator, removeCollaborator
 - `ai.ts` — enhanceIdeaDescription, generateClarifyingQuestions, enhanceIdeaWithContext, applyEnhancedDescription, generateBoardTasks, enhanceTaskDescription, enhanceDiscussionBody, getAiAccess, hasApiKey (deprecated)
 - `comments.ts` — create, incorporate, delete, update
@@ -176,7 +177,7 @@ Key columns:
 - `prompt-templates.ts` — list, create, delete
 - `discussions.ts` — createDiscussion, updateDiscussion, deleteDiscussion, createDiscussionReply, updateDiscussionReply, deleteDiscussionReply, toggleDiscussionVote, markReadyToConvert, convertDiscussionToTask
 - `feedback.ts` — submitFeedback, updateFeedbackStatus, deleteFeedback
-- `idea-agents.ts` — allocateAgent, removeIdeaAgent
+- `idea-agents.ts` — allocateAgent, removeIdeaAgent, setOrchestrationAgent
 - `onboarding.ts` — completeOnboarding, enhanceOnboardingDescription, generateOnboardingClarifyingQuestions, enhanceOnboardingWithContext
 
 ## Environment Variables

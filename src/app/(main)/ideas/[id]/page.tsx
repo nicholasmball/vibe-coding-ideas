@@ -366,6 +366,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
         isAuthor={isAuthor}
         isTeamMember={isAuthor || isCollaborator}
         userBots={userBots}
+        orchestratorBotId={ideaTeam.orchestratorBotId}
       />
 
       {/* Description + GitHub URL */}

@@ -37,7 +37,7 @@ import type {
   BoardTaskWithAssignee,
   BoardColumn as BoardColumnType,
   BoardLabel,
-  BoardChecklistItem,
+  TaskWorkflowStepWithAgent,
   User,
   BotProfile,
 } from "@/types";
@@ -117,7 +117,7 @@ interface KanbanBoardProps {
   ideaDescription?: string;
   teamMembers: User[];
   boardLabels: BoardLabel[];
-  checklistItemsByTaskId: Record<string, BoardChecklistItem[]>;
+  workflowStepsByTaskId: Record<string, TaskWorkflowStepWithAgent[]>;
   currentUserId: string;
   initialTaskId?: string;
   ideaAgents?: User[];
@@ -227,7 +227,7 @@ export function KanbanBoard({
   ideaDescription = "",
   teamMembers,
   boardLabels,
-  checklistItemsByTaskId,
+  workflowStepsByTaskId,
   currentUserId,
   initialTaskId,
   ideaAgents = [],
@@ -333,8 +333,8 @@ export function KanbanBoard({
             t.id,
             t.labels.map((l) => l.id).sort(),
             t.due_date,
-            t.checklist_total,
-            t.checklist_done,
+            t.workflow_step_total,
+            t.workflow_step_completed,
             t.assignee_id,
             t.title,
             t.description,
@@ -915,7 +915,7 @@ export function KanbanBoard({
                     ideaId={ideaId}
                     teamMembers={teamMembers}
                     boardLabels={boardLabels}
-                    checklistItemsByTaskId={checklistItemsByTaskId}
+                    workflowStepsByTaskId={workflowStepsByTaskId}
                     highlightQuery={searchQuery}
                     currentUserId={currentUserId}
                     initialTaskId={autoOpenTaskId}

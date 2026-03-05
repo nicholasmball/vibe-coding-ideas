@@ -32,6 +32,50 @@ export async function allocateAgent(ideaId: string, botId: string) {
   revalidatePath(`/ideas/${ideaId}/board`);
 }
 
+export async function setOrchestrationAgent(
+  ideaId: string,
+  botId: string | null
+) {
+  const validIdeaId = validateUuid(ideaId, "Idea ID");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Not authenticated");
+  }
+
+  if (botId) {
+    const validBotId = validateUuid(botId, "Bot ID");
+    // Set this agent as orchestrator (trigger clears old one)
+    const { error } = await supabase
+      .from("idea_agents")
+      .update({ is_orchestrator: true })
+      .eq("idea_id", validIdeaId)
+      .eq("bot_id", validBotId);
+
+    if (error) {
+      throw new Error("Failed to set orchestration agent");
+    }
+  } else {
+    // Clear orchestrator for this idea
+    const { error } = await supabase
+      .from("idea_agents")
+      .update({ is_orchestrator: false })
+      .eq("idea_id", validIdeaId)
+      .eq("is_orchestrator", true);
+
+    if (error) {
+      throw new Error("Failed to clear orchestration agent");
+    }
+  }
+
+  revalidatePath(`/ideas/${ideaId}`);
+  revalidatePath(`/ideas/${ideaId}/board`);
+}
+
 export async function removeIdeaAgent(ideaId: string, botId: string) {
   const validIdeaId = validateUuid(ideaId, "Idea ID");
   const validBotId = validateUuid(botId, "Bot ID");

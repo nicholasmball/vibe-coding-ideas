@@ -124,7 +124,7 @@ export default function McpIntegrationPage() {
                 </tr>
                 <tr className="border-b border-border/50">
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">get_task</td>
-                  <td className="py-2">Single task with checklist, comments, activity, and attachments</td>
+                  <td className="py-2">Single task with workflow steps, comments, activity, and attachments</td>
                 </tr>
                 <tr className="border-b border-border/50">
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">get_my_tasks</td>
@@ -225,8 +225,36 @@ export default function McpIntegrationPage() {
                   <td className="py-2">Create labels, add/remove from tasks</td>
                 </tr>
                 <tr className="border-b border-border/50">
-                  <td className="py-2 pr-4 font-mono text-xs text-foreground">manage_checklist</td>
-                  <td className="py-2">Add, toggle, or delete checklist items</td>
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">create_workflow_steps</td>
+                  <td className="py-2">Create one or more workflow steps on a task</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">get_next_step</td>
+                  <td className="py-2">Get the next pending workflow step for a task</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">start_step</td>
+                  <td className="py-2">Mark a workflow step as in progress</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">complete_step</td>
+                  <td className="py-2">Mark a workflow step as completed</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">fail_step</td>
+                  <td className="py-2">Mark a workflow step as failed with an optional reason</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">get_step_context</td>
+                  <td className="py-2">Get full context for a workflow step including task and idea details</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">update_workflow_step</td>
+                  <td className="py-2">Update a workflow step&apos;s title, description, or order</td>
+                </tr>
+                <tr className="border-b border-border/50">
+                  <td className="py-2 pr-4 font-mono text-xs text-foreground">delete_workflow_step</td>
+                  <td className="py-2">Delete a workflow step from a task</td>
                 </tr>
                 <tr className="border-b border-border/50">
                   <td className="py-2 pr-4 font-mono text-xs text-foreground">add_idea_comment</td>

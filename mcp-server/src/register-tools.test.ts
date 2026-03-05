@@ -26,7 +26,16 @@ const EXPECTED_TOOL_NAMES = [
   "delete_column",
   "reorder_columns",
   "manage_labels",
-  "manage_checklist",
+  "create_workflow_steps",
+  "get_next_step",
+  "start_step",
+  "complete_step",
+  "fail_step",
+  "get_step_context",
+  "update_workflow_step",
+  "delete_workflow_step",
+  "add_step_comment",
+  "get_step_comments",
   "add_idea_comment",
   "add_task_comment",
   "report_bug",
@@ -37,6 +46,7 @@ const EXPECTED_TOOL_NAMES = [
   "update_discussion",
   "delete_discussion",
   "get_discussions_ready_to_convert",
+  "convert_discussion",
   "list_attachments",
   "upload_attachment",
   "delete_attachment",
@@ -57,6 +67,7 @@ const EXPECTED_TOOL_NAMES = [
   "allocate_agent",
   "remove_idea_agent",
   "list_idea_agents",
+  "set_orchestration_agent",
 ];
 
 function createMockServer() {
@@ -70,7 +81,7 @@ describe("registerTools", () => {
 
     registerTools(server, getContext);
 
-    expect(server.tool).toHaveBeenCalledTimes(54);
+    expect(server.tool).toHaveBeenCalledTimes(65);
   });
 
   it("registers all expected tool names", () => {

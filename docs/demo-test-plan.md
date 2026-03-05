@@ -87,19 +87,19 @@ This is the big one. Back in Claude Code, say:
 
 ```
 Create a full task board for my "Personal Finance Tracker" idea. Break the project down
-into well-organized columns and tasks. Add labels for priority and category, checklists
+into well-organized columns and tasks. Add labels for priority and category, workflow steps
 for subtasks, and due dates where appropriate. Make it comprehensive.
 ```
 
 **Expected:** Claude creates columns (e.g., "To Do", "In Progress", "Done", or more specific ones like "Backend", "Frontend", "Design"), then populates them with 10-20 tasks. Each task has:
 - A clear title and description
 - Colored labels (e.g., "High Priority" in red, "Frontend" in blue)
-- Checklists with specific subtasks
+- Workflow steps with specific subtasks
 - Due dates for time-sensitive items
 
 Now open the board in your browser: click on your idea, then click the board icon.
 
-> **WOW MOMENT:** A full project plan — with tasks, labels, checklists, and due dates — materialized from a 3-sentence idea. No one sat in a planning meeting. No one wrote tickets. AI read your vision and broke it down into actionable work.
+> **WOW MOMENT:** A full project plan — with tasks, labels, workflow steps, and due dates — materialized from a 3-sentence idea. No one sat in a planning meeting. No one wrote tickets. AI read your vision and broke it down into actionable work.
 
 ---
 
@@ -115,7 +115,7 @@ In Claude Code, say:
 Pick up the first task in the To Do column and start working on it.
 ```
 
-**Expected:** Claude assigns itself to the task, moves it to "In Progress", and begins working. You'll see it read the task details, check the checklists, and start executing.
+**Expected:** Claude assigns itself to the task, moves it to "In Progress", and begins working. You'll see it read the task details, check the workflow steps, and start executing.
 
 Switch to your browser and watch the board.
 
@@ -133,11 +133,11 @@ Or let it work autonomously through several tasks. After 3-5 tasks:
 
 1. **Check the board** — tasks have moved from "To Do" through "In Progress" to "Done"
 2. **Click on a completed task** — open the detail dialog and look at:
-   - The **activity timeline**: every change is logged with timestamps (assigned, moved, checklist items completed, comments added)
-   - The **checklists**: subtasks are ticked off as AI completed each one
+   - The **activity timeline**: every change is logged with timestamps (assigned, moved, workflow steps completed, comments added)
+   - The **workflow steps**: subtasks are ticked off as AI completed each one
    - The **comments**: AI left notes about decisions it made and work it completed
 
-> **WOW MOMENT:** Tasks are visibly moving across the board without you touching anything. Checklists fill up. Comments appear. The activity log captures everything. It's like watching an invisible team work.
+> **WOW MOMENT:** Tasks are visibly moving across the board without you touching anything. Workflow steps fill up. Comments appear. The activity log captures everything. It's like watching an invisible team work.
 
 ### Step 6: Check the code
 
@@ -147,7 +147,7 @@ While AI was "completing tasks", it was writing actual code in your local projec
 ls -la src/
 ```
 
-Review the files Claude created. These aren't stubs or placeholders — they're real, functional implementations based on the task descriptions and checklists.
+Review the files Claude created. These aren't stubs or placeholders — they're real, functional implementations based on the task descriptions and workflow steps.
 
 > **WOW MOMENT:** Working software emerged from a conversation. You described what you wanted, AI planned it, and then AI built it. The code is in your project, ready to run.
 
@@ -214,7 +214,7 @@ Claude will:
 2. Locate the relevant code
 3. Diagnose the root cause
 4. Implement the fix
-5. Update the task checklist
+5. Update the task workflow steps
 6. Move the task to "Done"
 7. Leave a comment explaining what was wrong and how it was fixed
 
@@ -233,7 +233,7 @@ Step back and look at what you've built.
 1. Look at the **Done column** — multiple completed tasks with green checkmarks
 2. Click on each completed task and review:
    - The activity timeline showing every action taken
-   - The checklist items, all ticked off
+   - The workflow steps, all ticked off
    - The comments AI left about its work
 3. Check the code in your project — real, reviewable, functional code
 
@@ -242,7 +242,7 @@ Step back and look at what you've built.
 In approximately 45 minutes, you went from *"I want a finance tracker"* to a project with:
 
 - A **detailed, refined idea description** that reads like a proper product spec
-- A **full kanban board** with organized columns, tasks, colored labels, checklists, and due dates
+- A **full kanban board** with organized columns, tasks, colored labels, workflow steps, and due dates
 - **Multiple tasks completed** with real, working code in your project
 - A **bug filed and fixed** from a single sentence
 - A **full activity audit trail** documenting every decision and action
@@ -257,7 +257,7 @@ With a traditional team, getting to this point typically takes 2-4 weeks: writin
 How many did you experience?
 
 - [ ] AI refined your idea description — transforming 3 sentences into a comprehensive product spec
-- [ ] A full project board appeared from a rough concept — columns, tasks, labels, checklists, due dates
+- [ ] A full project board appeared from a rough concept — columns, tasks, labels, workflow steps, due dates
 - [ ] Tasks moved across the board in real time without you touching them
 - [ ] AI wrote real, working code — not stubs, not pseudocode, actual implementations
 - [ ] AI asked YOU for decisions — you stayed in control of the vision

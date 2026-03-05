@@ -13,7 +13,7 @@ import type {
   BoardColumnWithTasks,
   BoardTaskWithAssignee,
   BoardLabel,
-  BoardChecklistItem,
+  TaskWorkflowStepWithAgent,
   User,
 } from "@/types";
 import type { Metadata } from "next";
@@ -120,7 +120,7 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
     { data: rawColumns },
     { data: rawTasks },
     { data: boardLabels },
-    { data: rawChecklistItems },
+    { data: rawWorkflowSteps },
     { data: userProfile },
     ideaTeam,
   ] = await Promise.all([
@@ -136,8 +136,8 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
       .eq("idea_id", id)
       .order("created_at", { ascending: true }),
     supabase
-      .from("board_checklist_items")
-      .select("*")
+      .from("task_workflow_steps")
+      .select("*, agent:users!task_workflow_steps_bot_id_fkey(*)")
       .eq("idea_id", id)
       .order("position", { ascending: true }),
     isTeamMember
@@ -175,14 +175,14 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
     }
   }
 
-  // Build checklistItemsByTaskId
-  const checklistItemsByTaskId: Record<string, BoardChecklistItem[]> = {};
-  if (rawChecklistItems) {
-    for (const item of rawChecklistItems) {
-      if (!checklistItemsByTaskId[item.task_id]) {
-        checklistItemsByTaskId[item.task_id] = [];
+  // Build workflowStepsByTaskId
+  const workflowStepsByTaskId: Record<string, TaskWorkflowStepWithAgent[]> = {};
+  if (rawWorkflowSteps) {
+    for (const step of rawWorkflowSteps) {
+      if (!workflowStepsByTaskId[step.task_id]) {
+        workflowStepsByTaskId[step.task_id] = [];
       }
-      checklistItemsByTaskId[item.task_id].push(item as BoardChecklistItem);
+      workflowStepsByTaskId[step.task_id].push(step as TaskWorkflowStepWithAgent);
     }
   }
 
@@ -245,7 +245,7 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
         ideaDescription={idea.description}
         teamMembers={teamMembers}
         boardLabels={(boardLabels ?? []) as BoardLabel[]}
-        checklistItemsByTaskId={checklistItemsByTaskId}
+        workflowStepsByTaskId={workflowStepsByTaskId}
         currentUserId={user.id}
         initialTaskId={initialTaskId}
         ideaAgents={ideaAgents}

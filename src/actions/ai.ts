@@ -10,6 +10,7 @@ import {
   resolveAiProvider,
 } from "@/lib/ai-helpers";
 import type { AiAccess } from "@/lib/ai-helpers";
+import { POSITION_GAP, VIBECODES_USER_ID } from "@/lib/constants";
 
 const AI_TIMEOUT_MS = 90_000; // 90s — fail gracefully before Vercel's 120s function timeout
 
@@ -371,8 +372,8 @@ export async function generateBoardTasks(
   const existingColumns = (columns ?? []).map((c) => c.title);
 
   const systemPrompt = personaPrompt
-    ? `${personaPrompt}\n\nYou are generating a structured task board for a software project on a kanban-style project management platform. If a task has subtasks or implementation steps, include them as a markdown checklist in the description (e.g. "- [ ] Step one\\n- [ ] Step two").`
-    : "You are an expert project manager generating a structured task board for a software project on a kanban-style project management platform. If a task has subtasks or implementation steps, include them as a markdown checklist in the description (e.g. \"- [ ] Step one\\n- [ ] Step two\").";
+    ? `${personaPrompt}\n\nYou are generating a structured task board for a software project on a kanban-style project management platform. If a task has subtasks or implementation steps, include them as a markdown checklist in the description (e.g. "- [ ] Step one\\n- [ ] Step two"). These will become workflow steps.`
+    : "You are an expert project manager generating a structured task board for a software project on a kanban-style project management platform. If a task has subtasks or implementation steps, include them as a markdown checklist in the description (e.g. \"- [ ] Step one\\n- [ ] Step two\"). These will become workflow steps.";
 
   const contextParts = [
     `${prompt}`,
@@ -519,4 +520,92 @@ ${discussionBody}
   if (keyType === "platform") await decrementStarterCredit(supabase, user.id);
 
   return { enhanced: text };
+}
+
+// ── Generate Workflow Steps from Discussion ──────────────────────────────
+
+const WorkflowStepsSchema = z.object({
+  steps: z.array(
+    z.object({
+      title: z.string(),
+      description: z.string().optional(),
+    })
+  ),
+});
+
+export type GenerateWorkflowStepsResult =
+  | { steps: z.infer<typeof WorkflowStepsSchema>["steps"]; skipped: false }
+  | { steps: []; skipped: true; reason: string };
+
+export async function generateWorkflowSteps(params: {
+  taskId: string;
+  ideaId: string;
+  discussionTitle: string;
+  discussionBody: string;
+  replies: { author: string; content: string }[];
+}): Promise<GenerateWorkflowStepsResult> {
+  const { supabase, user, anthropic, keyType } = await requireAiAccess();
+
+  const repliesText = params.replies.length > 0
+    ? params.replies.map((r, i) => `**Reply ${i + 1} (${r.author}):**\n${r.content}`).join("\n\n")
+    : "";
+
+  const prompt = [
+    `**Discussion Title:** ${params.discussionTitle}`,
+    `**Discussion Body:**\n${params.discussionBody}`,
+    repliesText ? `**Discussion Replies:**\n${repliesText}` : "",
+  ].filter(Boolean).join("\n\n---\n\n");
+
+  let object: z.infer<typeof WorkflowStepsSchema>;
+  let usage: { inputTokens?: number; outputTokens?: number };
+  try {
+    ({ object, usage } = await generateObject({
+      model: anthropic(AI_MODEL),
+      system: "You are an expert project manager. Analyze the discussion and break it into actionable implementation steps. Generate 3-10 concrete, sequential steps. Each step should be a clear action item. Keep titles concise (under 100 chars). Descriptions are optional — only add them when the step needs clarification.",
+      prompt,
+      schema: WorkflowStepsSchema,
+      maxOutputTokens: 2000,
+      abortSignal: AbortSignal.timeout(AI_TIMEOUT_MS),
+    }));
+  } catch (err) {
+    toPlainError(err);
+  }
+
+  await logAiUsage(supabase, {
+    userId: user.id,
+    actionType: "generate_workflow_steps",
+    inputTokens: usage.inputTokens ?? 0,
+    outputTokens: usage.outputTokens ?? 0,
+    model: AI_MODEL,
+    ideaId: params.ideaId,
+    keyType,
+  });
+  if (keyType === "platform") await decrementStarterCredit(supabase, user.id);
+
+  // Cap at 10 steps
+  const steps = object.steps.slice(0, 10);
+  if (steps.length === 0) return { steps: [], skipped: true, reason: "AI returned no steps" };
+
+  // Bulk-insert with gap-based positioning — assign to default VibeCodes bot
+  let nextPos = POSITION_GAP;
+  const rows = steps.map((step) => {
+    const row = {
+      task_id: params.taskId,
+      idea_id: params.ideaId,
+      bot_id: VIBECODES_USER_ID,
+      title: step.title.slice(0, 200),
+      description: step.description ?? null,
+      position: nextPos,
+    };
+    nextPos += POSITION_GAP;
+    return row;
+  });
+
+  const { error: insertError } = await supabase
+    .from("task_workflow_steps")
+    .insert(rows);
+
+  if (insertError) throw new Error(`Failed to insert workflow steps: ${insertError.message}`);
+
+  return { steps, skipped: false };
 }

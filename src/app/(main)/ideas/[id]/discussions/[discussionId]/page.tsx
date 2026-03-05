@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getIdeaTeam } from "@/lib/idea-team";
 import { BotRolesProvider } from "@/components/bot-roles-context";
 import { DiscussionThread } from "@/components/discussions/discussion-thread";
+import { DEFAULT_ORCHESTRATOR_BOT } from "@/lib/constants";
 import type {
   IdeaDiscussionDetail,
   IdeaDiscussionReplyWithAuthor,
@@ -126,6 +127,11 @@ export default async function DiscussionDetailPage({ params }: PageProps) {
   const hasVotedOnDiscussion = !!vote;
   const convertedTaskId = convertedTaskResult.data?.id ?? null;
 
+  // Resolve orchestrator: idea-level takes precedence, then system default
+  const resolvedOrchestratorBot: User | null = ideaTeam.orchestratorBotId
+    ? (ideaTeam.allMentionable.find((m) => m.id === ideaTeam.orchestratorBotId) ?? null)
+    : (DEFAULT_ORCHESTRATOR_BOT as unknown as User);
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
       <Link
@@ -148,6 +154,7 @@ export default async function DiscussionDetailPage({ params }: PageProps) {
           hasVoted={hasVotedOnDiscussion}
           teamMembers={ideaTeam.allMentionable}
           canUseAi={!!(currentUser as User | null)?.encrypted_anthropic_key || ((currentUser as User | null)?.ai_starter_credits ?? 0) > 0}
+          defaultOrchestratorBot={resolvedOrchestratorBot}
         />
       </BotRolesProvider>
     </div>

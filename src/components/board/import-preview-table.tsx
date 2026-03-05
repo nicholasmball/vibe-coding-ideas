@@ -84,9 +84,9 @@ export function ImportPreviewTable({
                 <td className="px-2 py-1 text-muted-foreground">{i + 1}</td>
                 <td className="max-w-[200px] truncate px-2 py-1">
                   {task.title}
-                  {task.checklistItems && task.checklistItems.length > 0 && (
+                  {task.workflowSteps && task.workflowSteps.length > 0 && (
                     <span className="ml-1 text-muted-foreground">
-                      ({task.checklistItems.length} subtasks)
+                      ({task.workflowSteps.length} steps)
                     </span>
                   )}
                 </td>

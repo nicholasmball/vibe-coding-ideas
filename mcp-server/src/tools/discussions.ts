@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { POSITION_GAP } from "../constants";
 import type { McpContext } from "../context";
 
 export const listDiscussionsSchema = z.object({
@@ -334,16 +335,16 @@ export async function getDiscussionsReadyToConvert(
     }
   }
 
-  // Batch-fetch assignee names
-  const assigneeIds = [...new Set(data.map((d) => d.target_assignee_id).filter(Boolean))] as string[];
-  const assigneeMap = new Map<string, string>();
-  if (assigneeIds.length > 0) {
+  // Batch-fetch orchestration agent names (stored as target_assignee_id on the discussion)
+  const agentIds = [...new Set(data.map((d) => d.target_assignee_id).filter(Boolean))] as string[];
+  const agentMap = new Map<string, string>();
+  if (agentIds.length > 0) {
     const { data: users } = await ctx.supabase
       .from("users")
       .select("id, full_name")
-      .in("id", assigneeIds);
+      .in("id", agentIds);
     for (const user of users ?? []) {
-      if (user.full_name) assigneeMap.set(user.id, user.full_name);
+      if (user.full_name) agentMap.set(user.id, user.full_name);
     }
   }
 
@@ -361,8 +362,8 @@ export async function getDiscussionsReadyToConvert(
       created_at: d.created_at,
       target_column_id: d.target_column_id,
       target_column_name: d.target_column_id ? (columnMap.get(d.target_column_id) ?? null) : null,
-      target_assignee_id: d.target_assignee_id,
-      target_assignee_name: d.target_assignee_id ? (assigneeMap.get(d.target_assignee_id) ?? null) : null,
+      orchestration_agent_id: d.target_assignee_id,
+      orchestration_agent_name: d.target_assignee_id ? (agentMap.get(d.target_assignee_id) ?? null) : null,
       replies: replies.map((r) => ({
         id: r.id,
         content: r.content,
@@ -377,13 +378,144 @@ export async function getDiscussionsReadyToConvert(
     discussions: enriched,
     workflow: [
       "For each discussion:",
-      "1. Read the discussion body and all replies to understand the full context",
-      "2. If target_assignee_id is set, call set_agent_identity to switch to that agent",
-      "3. Create a task using create_task with the target_column_id and target_assignee_id",
-      "   - Include discussion_id to back-link the task to the discussion",
-      "4. Update the discussion status to 'converted' using update_discussion",
-      "5. Add a discussion reply confirming the task was created",
-      "6. Call set_agent_identity (no args) to reset to default identity",
+      "1. If orchestration_agent_id is set, call set_agent_identity with that ID to act as the orchestrator",
+      "2. Call convert_discussion with the discussion_id, idea_id, and target_column_id",
+      "   - This creates the task, marks the discussion as converted, and returns the full discussion context",
+      "3. Use the returned discussion body and replies to analyze what workflow steps are needed",
+      "4. Call list_idea_agents to see which agents are available for the idea",
+      "5. Call create_workflow_steps to create sequential implementation steps, assigning each to an appropriate agent",
+      "6. Add a discussion reply confirming the task and workflow steps were created",
+      "7. Call set_agent_identity (no args) to reset to default identity",
+    ],
+  };
+}
+
+// --- convert_discussion ---
+
+export const convertDiscussionSchema = z.object({
+  discussion_id: z.string().uuid().describe("The discussion ID to convert"),
+  idea_id: z.string().uuid().describe("The idea ID"),
+  column_id: z.string().uuid().describe("The target board column ID for the new task"),
+  task_title: z
+    .string()
+    .min(1)
+    .max(200)
+    .optional()
+    .describe("Custom task title (defaults to discussion title)"),
+});
+
+export async function convertDiscussion(
+  ctx: McpContext,
+  params: z.infer<typeof convertDiscussionSchema>
+) {
+  // Fetch discussion with status guard
+  const { data: discussion, error: fetchError } = await ctx.supabase
+    .from("idea_discussions")
+    .select("id, title, body, status, target_assignee_id")
+    .eq("id", params.discussion_id)
+    .eq("idea_id", params.idea_id)
+    .single();
+
+  if (fetchError || !discussion) throw new Error(`Discussion not found: ${params.discussion_id}`);
+  if (discussion.status === "converted") {
+    throw new Error("Discussion has already been converted to a task");
+  }
+
+  const title = params.task_title || discussion.title;
+
+  // Get max position in the target column
+  const { data: tasks } = await ctx.supabase
+    .from("board_tasks")
+    .select("position")
+    .eq("column_id", params.column_id)
+    .order("position", { ascending: false })
+    .limit(1);
+
+  const maxPos = tasks && tasks.length > 0 ? tasks[0].position : -POSITION_GAP;
+
+  // Fetch all replies for context
+  const { data: replies } = await ctx.supabase
+    .from("idea_discussion_replies")
+    .select(
+      "id, content, created_at, users!idea_discussion_replies_author_id_fkey(id, full_name)"
+    )
+    .eq("discussion_id", params.discussion_id)
+    .order("created_at", { ascending: true });
+
+  // Create the board task with discussion backlink
+  const { data: task, error: taskError } = await ctx.supabase
+    .from("board_tasks")
+    .insert({
+      idea_id: params.idea_id,
+      column_id: params.column_id,
+      title,
+      description: `From discussion: ${discussion.title}\n\n${discussion.body}`,
+      discussion_id: params.discussion_id,
+      position: maxPos + POSITION_GAP,
+    })
+    .select("id, title, column_id, position")
+    .single();
+
+  if (taskError) throw new Error(`Failed to create task: ${taskError.message}`);
+
+  // Mark discussion as converted — guard against concurrent conversion
+  const { data: updated, error: updateError } = await ctx.supabase
+    .from("idea_discussions")
+    .update({ status: "converted" })
+    .eq("id", params.discussion_id)
+    .in("status", ["open", "resolved", "ready_to_convert"])
+    .select("id")
+    .maybeSingle();
+
+  if (updateError) {
+    await ctx.supabase.from("board_tasks").delete().eq("id", task.id);
+    throw new Error(`Failed to update discussion status: ${updateError.message}`);
+  }
+
+  if (!updated) {
+    await ctx.supabase.from("board_tasks").delete().eq("id", task.id);
+    throw new Error("Discussion was already converted by another user");
+  }
+
+  const formattedReplies = (replies ?? []).map((r) => ({
+    id: r.id,
+    content: r.content,
+    created_at: r.created_at,
+    author: (r as Record<string, unknown>).users,
+  }));
+
+  // Resolve orchestration agent name if set on the discussion
+  let orchestrationAgentName: string | null = null;
+  if (discussion.target_assignee_id) {
+    const { data: agentUser } = await ctx.supabase
+      .from("users")
+      .select("full_name")
+      .eq("id", discussion.target_assignee_id)
+      .maybeSingle();
+    orchestrationAgentName = agentUser?.full_name ?? null;
+  }
+
+  return {
+    success: true,
+    task,
+    discussion_context: {
+      title: discussion.title,
+      body: discussion.body,
+      replies: formattedReplies,
+    },
+    orchestration_agent: discussion.target_assignee_id
+      ? { id: discussion.target_assignee_id, name: orchestrationAgentName }
+      : null,
+    next_steps: [
+      "The task has been created and the discussion marked as converted.",
+      "Now build workflow steps for this task:",
+      "1. Analyze the discussion body and replies above to identify implementation steps",
+      "2. Call list_idea_agents to see which agents are available for this idea",
+      "3. Call create_workflow_steps with the task_id and idea_id, assigning each step to an appropriate agent based on their role",
+      ...(discussion.target_assignee_id
+        ? [`4. The orchestration agent is "${orchestrationAgentName}" (${discussion.target_assignee_id}) — use set_agent_identity to act as this agent for coordination tasks`]
+        : []),
+      `${discussion.target_assignee_id ? "5" : "4"}. Add a discussion reply confirming the task and workflow were created`,
     ],
   };
 }

@@ -348,8 +348,8 @@ export type Database = {
           assignee_id: string | null;
           position: number;
           due_date: string | null;
-          checklist_total: number;
-          checklist_done: number;
+          workflow_step_total: number;
+          workflow_step_completed: number;
           archived: boolean;
           attachment_count: number;
           comment_count: number;
@@ -367,8 +367,8 @@ export type Database = {
           assignee_id?: string | null;
           position?: number;
           due_date?: string | null;
-          checklist_total?: number;
-          checklist_done?: number;
+          workflow_step_total?: number;
+          workflow_step_completed?: number;
           archived?: boolean;
           attachment_count?: number;
           comment_count?: number;
@@ -386,8 +386,8 @@ export type Database = {
           assignee_id?: string | null;
           position?: number;
           due_date?: string | null;
-          checklist_total?: number;
-          checklist_done?: number;
+          workflow_step_total?: number;
+          workflow_step_completed?: number;
           archived?: boolean;
           attachment_count?: number;
           comment_count?: number;
@@ -530,47 +530,127 @@ export type Database = {
           },
         ];
       };
-      board_checklist_items: {
+      task_workflow_steps: {
         Row: {
           id: string;
           task_id: string;
           idea_id: string;
+          bot_id: string;
           title: string;
-          completed: boolean;
+          description: string | null;
+          status: string;
           position: number;
+          comment_count: number;
+          started_at: string | null;
+          completed_at: string | null;
           created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
           task_id: string;
           idea_id: string;
+          bot_id: string;
           title: string;
-          completed?: boolean;
+          description?: string | null;
+          status?: string;
           position?: number;
+          comment_count?: number;
+          started_at?: string | null;
+          completed_at?: string | null;
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
           id?: string;
           task_id?: string;
           idea_id?: string;
+          bot_id?: string;
           title?: string;
-          completed?: boolean;
+          description?: string | null;
+          status?: string;
           position?: number;
+          comment_count?: number;
+          started_at?: string | null;
+          completed_at?: string | null;
           created_at?: string;
+          updated_at?: string;
         };
         Relationships: [
           {
-            foreignKeyName: "board_checklist_items_task_id_fkey";
+            foreignKeyName: "task_workflow_steps_task_id_fkey";
             columns: ["task_id"];
             isOneToOne: false;
             referencedRelation: "board_tasks";
             referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "board_checklist_items_idea_id_fkey";
+            foreignKeyName: "task_workflow_steps_idea_id_fkey";
             columns: ["idea_id"];
             isOneToOne: false;
             referencedRelation: "ideas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_workflow_steps_bot_id_fkey";
+            columns: ["bot_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      workflow_step_comments: {
+        Row: {
+          id: string;
+          step_id: string;
+          idea_id: string;
+          author_id: string;
+          type: string;
+          content: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          step_id: string;
+          idea_id: string;
+          author_id: string;
+          type?: string;
+          content: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          step_id?: string;
+          idea_id?: string;
+          author_id?: string;
+          type?: string;
+          content?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "workflow_step_comments_step_id_fkey";
+            columns: ["step_id"];
+            isOneToOne: false;
+            referencedRelation: "task_workflow_steps";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "workflow_step_comments_idea_id_fkey";
+            columns: ["idea_id"];
+            isOneToOne: false;
+            referencedRelation: "ideas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "workflow_step_comments_author_id_fkey";
+            columns: ["author_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
             referencedColumns: ["id"];
           },
         ];
@@ -1244,7 +1324,7 @@ export type Database = {
         Row: {
           id: string;
           user_id: string;
-          action_type: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description" | "enhance_discussion_body";
+          action_type: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description" | "enhance_discussion_body" | "generate_workflow_steps";
           input_tokens: number;
           output_tokens: number;
           model: string;
@@ -1255,7 +1335,7 @@ export type Database = {
         Insert: {
           id?: string;
           user_id: string;
-          action_type: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description" | "enhance_discussion_body";
+          action_type: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description" | "enhance_discussion_body" | "generate_workflow_steps";
           input_tokens?: number;
           output_tokens?: number;
           model: string;
@@ -1266,7 +1346,7 @@ export type Database = {
         Update: {
           id?: string;
           user_id?: string;
-          action_type?: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description" | "enhance_discussion_body";
+          action_type?: "enhance_description" | "generate_questions" | "enhance_with_context" | "generate_board_tasks" | "enhance_task_description" | "enhance_discussion_body" | "generate_workflow_steps";
           input_tokens?: number;
           output_tokens?: number;
           model?: string;
@@ -1503,6 +1583,7 @@ export type Database = {
           idea_id: string;
           bot_id: string;
           added_by: string;
+          is_orchestrator: boolean;
           created_at: string;
         };
         Insert: {
@@ -1510,6 +1591,7 @@ export type Database = {
           idea_id: string;
           bot_id: string;
           added_by: string;
+          is_orchestrator?: boolean;
           created_at?: string;
         };
         Update: {
@@ -1517,6 +1599,7 @@ export type Database = {
           idea_id?: string;
           bot_id?: string;
           added_by?: string;
+          is_orchestrator?: boolean;
           created_at?: string;
         };
         Relationships: [

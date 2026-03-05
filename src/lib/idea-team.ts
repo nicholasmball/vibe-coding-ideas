@@ -19,6 +19,8 @@ export interface IdeaTeamResult {
   ideaAgentDetails: IdeaAgentWithDetails[];
   /** Bot user ID → role string for mention autocomplete (plain object for serialization) */
   botRoles: Record<string, string>;
+  /** Bot ID of the designated orchestration agent, if any */
+  orchestratorBotId: string | null;
 }
 
 /**
@@ -121,6 +123,12 @@ export async function getIdeaTeam(
     if (bp.role) botRoles[bp.id] = bp.role;
   }
 
+  // Find the orchestration agent (if any)
+  const orchestratorRow = (rawIdeaAgents ?? []).find(
+    (row) => row.is_orchestrator === true
+  );
+  const orchestratorBotId = orchestratorRow?.bot_id ?? null;
+
   return {
     teamMembers,
     ideaAgents,
@@ -129,5 +137,6 @@ export async function getIdeaTeam(
     botProfiles,
     ideaAgentDetails,
     botRoles,
+    orchestratorBotId,
   };
 }

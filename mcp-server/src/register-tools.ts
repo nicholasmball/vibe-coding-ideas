@@ -72,11 +72,31 @@ import {
 import {
   manageLabels,
   manageLabelsSchema,
-  manageChecklist,
-  manageChecklistSchema,
   reportBug,
   reportBugSchema,
 } from "./tools/labels";
+import {
+  createWorkflowSteps,
+  createWorkflowStepsSchema,
+  getNextStep,
+  getNextStepSchema,
+  startStep,
+  startStepSchema,
+  completeStep,
+  completeStepSchema,
+  failStep,
+  failStepSchema,
+  getStepContext,
+  getStepContextSchema,
+  updateWorkflowStep,
+  updateWorkflowStepSchema,
+  deleteWorkflowStep,
+  deleteWorkflowStepSchema,
+  addStepComment,
+  addStepCommentSchema,
+  getStepComments,
+  getStepCommentsSchema,
+} from "./tools/workflow";
 import {
   listDiscussions,
   listDiscussionsSchema,
@@ -92,6 +112,8 @@ import {
   deleteDiscussionSchema,
   getDiscussionsReadyToConvert,
   getDiscussionsReadyToConvertSchema,
+  convertDiscussion,
+  convertDiscussionSchema,
 } from "./tools/discussions";
 import {
   listAttachments,
@@ -144,6 +166,8 @@ import {
   removeIdeaAgentSchema,
   listIdeaAgents,
   listIdeaAgentsSchema,
+  setOrchestrationAgent,
+  setOrchestrationAgentSchema,
 } from "./tools/idea-agents";
 
 function jsonResult(data: unknown) {
@@ -211,7 +235,7 @@ export function registerTools(
 
   server.tool(
     "get_task",
-    "Get single task detail including checklist items, comments, and recent activity.",
+    "Get single task detail including workflow steps, comments, and recent activity.",
     getTaskSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
@@ -500,15 +524,139 @@ export function registerTools(
   );
 
   server.tool(
-    "manage_checklist",
-    "Add, toggle, or delete checklist items on a task. Actions: add, toggle, delete.",
-    manageChecklistSchema.shape,
+    "create_workflow_steps",
+    "Bulk-create sequential workflow pipeline steps for a task. Each step is assigned to a bot agent.",
+    createWorkflowStepsSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
         const ctx = await getContext(extra);
-        return jsonResult(
-          await manageChecklist(ctx, manageChecklistSchema.parse(args))
-        );
+        return jsonResult(await createWorkflowSteps(ctx, createWorkflowStepsSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "get_next_step",
+    "Get the next pending or failed workflow step for a task, with previous step outputs as context.",
+    getNextStepSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await getNextStep(ctx, getNextStepSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "start_step",
+    "Start a workflow step (moves to in_progress). Race-condition safe — fails if already claimed.",
+    startStepSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await startStep(ctx, startStepSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "complete_step",
+    "Complete a workflow step with structured markdown output.",
+    completeStepSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await completeStep(ctx, completeStepSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "fail_step",
+    "Mark a workflow step as failed with a reason, and reset the current step to pending for retry.",
+    failStepSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await failStep(ctx, failStepSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "get_step_context",
+    "Get all workflow steps with their outputs for a task — useful for querying pipeline state.",
+    getStepContextSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await getStepContext(ctx, getStepContextSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "update_workflow_step",
+    "Update a workflow step's title, description, agent assignment, or position.",
+    updateWorkflowStepSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await updateWorkflowStep(ctx, updateWorkflowStepSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "delete_workflow_step",
+    "Delete a workflow step from a task.",
+    deleteWorkflowStepSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await deleteWorkflowStep(ctx, deleteWorkflowStepSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "add_step_comment",
+    "Add a comment/question to a workflow step for inter-agent communication. Use this to ask questions, provide feedback, or share context with the agent assigned to a step.",
+    addStepCommentSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await addStepComment(ctx, addStepCommentSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "get_step_comments",
+    "Get all comments on a workflow step. Returns comments with author info for reading inter-agent communication.",
+    getStepCommentsSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await getStepComments(ctx, getStepCommentsSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
       }
@@ -655,6 +803,20 @@ export function registerTools(
       try {
         const ctx = await getContext(extra);
         return jsonResult(await getDiscussionsReadyToConvert(ctx, getDiscussionsReadyToConvertSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "convert_discussion",
+    "Convert a discussion into a board task. Creates the task, marks the discussion as converted, and returns the full discussion context with instructions for building workflow steps using available agents.",
+    convertDiscussionSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await convertDiscussion(ctx, convertDiscussionSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
       }
@@ -950,6 +1112,20 @@ export function registerTools(
       try {
         const ctx = await getContext(extra);
         return jsonResult(await listIdeaAgents(ctx, listIdeaAgentsSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "set_orchestration_agent",
+    "Set or clear the orchestration agent for an idea. The orchestrator coordinates higher-level tasks like converting discussions to board tasks with workflow steps.",
+    setOrchestrationAgentSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await setOrchestrationAgent(ctx, setOrchestrationAgentSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
       }

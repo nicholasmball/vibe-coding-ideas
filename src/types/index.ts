@@ -51,7 +51,14 @@ export type BoardTask = Database["public"]["Tables"]["board_tasks"]["Row"];
 export type BoardLabel = Database["public"]["Tables"]["board_labels"]["Row"];
 export type BoardTaskLabel = Database["public"]["Tables"]["board_task_labels"]["Row"];
 export type AiPromptTemplate = Database["public"]["Tables"]["ai_prompt_templates"]["Row"];
-export type BoardChecklistItem = Database["public"]["Tables"]["board_checklist_items"]["Row"];
+export type TaskWorkflowStep = Database["public"]["Tables"]["task_workflow_steps"]["Row"];
+export type TaskWorkflowStepWithAgent = TaskWorkflowStep & {
+  agent: User;
+};
+export type WorkflowStepComment = Database["public"]["Tables"]["workflow_step_comments"]["Row"];
+export type WorkflowStepCommentWithAuthor = WorkflowStepComment & {
+  author: User;
+};
 export type BoardTaskActivity = Database["public"]["Tables"]["board_task_activity"]["Row"];
 export type BoardTaskComment = Database["public"]["Tables"]["board_task_comments"]["Row"];
 export type BoardTaskAttachment = Database["public"]["Tables"]["board_task_attachments"]["Row"];

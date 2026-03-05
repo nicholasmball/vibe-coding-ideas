@@ -108,7 +108,7 @@
 
 ### 3.6 Widen task detail dialog
 **File:** `src/components/board/task-detail-dialog.tsx` (line 381)
-**Issue:** `sm:max-w-lg` is tight for tasks with cover images, labels, description, checklists, and 4 tabs.
+**Issue:** `sm:max-w-lg` is tight for tasks with cover images, labels, description, workflow steps, and 4 tabs.
 **Fix:** Bump to `sm:max-w-xl`. On `lg:` screens, consider a split-pane layout (task details left, comments/activity right).
 
 ### 3.7 Lower landing page stats threshold

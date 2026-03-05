@@ -22,14 +22,14 @@ import { undoableAction } from "@/lib/undo-toast";
 import type {
   BoardColumnWithTasks,
   BoardLabel,
-  BoardChecklistItem,
+  TaskWorkflowStepWithAgent,
   User,
 } from "@/types";
 
 const TaskEditDialog = dynamic(() => import("./task-edit-dialog").then((m) => m.TaskEditDialog), { ssr: false });
 const ColumnEditDialog = dynamic(() => import("./column-edit-dialog").then((m) => m.ColumnEditDialog), { ssr: false });
 
-const EMPTY_CHECKLIST: BoardChecklistItem[] = [];
+const EMPTY_WORKFLOW_STEPS: TaskWorkflowStepWithAgent[] = [];
 
 interface BoardColumnProps {
   column: BoardColumnWithTasks;
@@ -37,7 +37,7 @@ interface BoardColumnProps {
   ideaId: string;
   teamMembers: User[];
   boardLabels: BoardLabel[];
-  checklistItemsByTaskId: Record<string, BoardChecklistItem[]>;
+  workflowStepsByTaskId: Record<string, TaskWorkflowStepWithAgent[]>;
   highlightQuery?: string;
   currentUserId: string;
   initialTaskId?: string;
@@ -57,7 +57,7 @@ export const BoardColumn = memo(function BoardColumn({
   ideaId,
   teamMembers,
   boardLabels,
-  checklistItemsByTaskId,
+  workflowStepsByTaskId,
   highlightQuery,
   currentUserId,
   initialTaskId,
@@ -219,7 +219,7 @@ export const BoardColumn = memo(function BoardColumn({
                 columnId={column.id}
                 teamMembers={teamMembers}
                 boardLabels={boardLabels}
-                checklistItems={checklistItemsByTaskId[task.id] ?? EMPTY_CHECKLIST}
+                workflowSteps={workflowStepsByTaskId[task.id] ?? EMPTY_WORKFLOW_STEPS}
                 highlightQuery={highlightQuery}
                 currentUserId={currentUserId}
                 autoOpen={task.id === initialTaskId}

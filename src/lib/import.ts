@@ -11,7 +11,7 @@ export interface ImportTask {
   assigneeName?: string;
   dueDate?: string;
   labels?: string[];
-  checklistItems?: string[];
+  workflowSteps?: string[];
 }
 
 /** sourceName -> columnId | "__new__" */
@@ -246,11 +246,11 @@ export function parseTrelloJson(data: TrelloExport): ImportTask[] {
   return data.cards
     .filter((card) => !card.closed)
     .map((card) => {
-      const checklistItems: string[] = [];
+      const workflowSteps: string[] = [];
       if (card.checklists) {
         for (const cl of card.checklists) {
           for (const item of cl.checkItems) {
-            checklistItems.push(item.name);
+            workflowSteps.push(item.name);
           }
         }
       }
@@ -263,7 +263,7 @@ export function parseTrelloJson(data: TrelloExport): ImportTask[] {
         labels: card.labels
           ?.map((l) => l.name)
           .filter(Boolean),
-        checklistItems: checklistItems.length > 0 ? checklistItems : undefined,
+        workflowSteps: workflowSteps.length > 0 ? workflowSteps : undefined,
       };
     });
 }
@@ -278,7 +278,7 @@ export function parseCustomJson(data: CustomJsonExport): ImportTask[] {
       assigneeName: t.assignee,
       dueDate: t.due_date ? parseDateString(t.due_date) : undefined,
       labels: t.labels,
-      checklistItems: t.checklist,
+      workflowSteps: t.checklist,
     }));
 }
 
@@ -295,8 +295,8 @@ export function parseBulkText(text: string): ImportTask[] {
 
     if (checklistMatch) {
       if (currentTask) {
-        if (!currentTask.checklistItems) currentTask.checklistItems = [];
-        currentTask.checklistItems.push(checklistMatch[1].trim());
+        if (!currentTask.workflowSteps) currentTask.workflowSteps = [];
+        currentTask.workflowSteps.push(checklistMatch[1].trim());
       }
     } else {
       // Strip leading "- " or "* " or numbered "1. " prefixes
@@ -488,9 +488,10 @@ export async function executeBulkImport(
   // Phase 5: Batch insert tasks
   let created = 0;
   const taskLabelRows: { task_id: string; label_id: string }[] = [];
-  const checklistRows: {
+  const workflowStepRows: {
     task_id: string;
     idea_id: string;
+    bot_id: string;
     title: string;
     position: number;
   }[] = [];
@@ -561,13 +562,14 @@ export async function executeBulkImport(
         }
       }
 
-      if (t.checklistItems) {
-        for (let ci = 0; ci < t.checklistItems.length; ci++) {
-          checklistRows.push({
+      if (t.workflowSteps) {
+        for (let ci = 0; ci < t.workflowSteps.length; ci++) {
+          workflowStepRows.push({
             task_id: taskId,
             idea_id: ideaId,
-            title: t.checklistItems[ci],
-            position: ci * POSITION_GAP,
+            bot_id: currentUserId,
+            title: t.workflowSteps[ci],
+            position: (ci + 1) * POSITION_GAP,
           });
         }
       }
@@ -596,16 +598,16 @@ export async function executeBulkImport(
     }
   }
 
-  // Phase 7: Batch insert checklist items
-  if (checklistRows.length > 0) {
-    onProgress?.({ phase: "Creating checklists...", current: total, total });
-    for (let i = 0; i < checklistRows.length; i += BATCH_SIZE) {
-      const batch = checklistRows.slice(i, i + BATCH_SIZE);
+  // Phase 7: Batch insert workflow steps
+  if (workflowStepRows.length > 0) {
+    onProgress?.({ phase: "Creating workflow steps...", current: total, total });
+    for (let i = 0; i < workflowStepRows.length; i += BATCH_SIZE) {
+      const batch = workflowStepRows.slice(i, i + BATCH_SIZE);
       const { error } = await supabase
-        .from("board_checklist_items")
+        .from("task_workflow_steps")
         .insert(batch);
       if (error) {
-        errors.push(`Checklist batch failed: ${error.message}`);
+        errors.push(`Workflow step batch failed: ${error.message}`);
       }
     }
   }
@@ -923,15 +925,16 @@ export async function insertTasksSequentially(
       }
     }
 
-    // Insert checklist items for this task
-    if (t.checklistItems && t.checklistItems.length > 0) {
-      const checklistRows = t.checklistItems.map((title, ci) => ({
+    // Insert workflow steps for this task
+    if (t.workflowSteps && t.workflowSteps.length > 0) {
+      const stepRows = t.workflowSteps.map((title, ci) => ({
         task_id: taskId!,
         idea_id: ideaId,
+        bot_id: currentUserId,
         title,
-        position: ci * POSITION_GAP,
+        position: (ci + 1) * POSITION_GAP,
       }));
-      await supabase.from("board_checklist_items").insert(checklistRows);
+      await supabase.from("task_workflow_steps").insert(stepRows);
     }
 
     // Log activity (fire-and-forget)

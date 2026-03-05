@@ -52,7 +52,7 @@ Ask AI to improve your idea description. It adds structure: user stories, featur
 
 One command: *"Create a full task board for this idea."*
 
-AI generates a complete kanban board: columns (To Do, In Progress, Done), tasks with descriptions, coloured labels for categorisation, checklists for subtasks, and due dates. What takes a Product Owner a week happens in seconds.
+AI generates a complete kanban board: columns (To Do, In Progress, Done), tasks with descriptions, coloured labels for categorisation, workflow steps for subtasks, and due dates. What takes a Product Owner a week happens in seconds.
 
 ### Step 4: AI Executes
 
@@ -97,7 +97,7 @@ These cover every aspect of project management:
 
 - **Ideas** — Create, read, update, refine descriptions, manage tags and status
 - **Board** — Create columns, generate tasks, move cards, set due dates
-- **Labels & Checklists** — Categorise work, break tasks into subtasks, track completion
+- **Labels & Workflow Steps** — Categorise work, break tasks into subtasks, track completion
 - **Comments** — Discuss ideas and tasks, @mention team members
 - **Attachments** — Upload files, set cover images
 - **Bugs** — File bug reports with labels, assign and track fixes
@@ -121,7 +121,7 @@ That's it. AI can now manage your VibeCodes projects directly.
 | Traditional Role | Annual Cost | What AI Does Instead |
 |---|---|---|
 | **Product Owner** | $90-130K | Refines requirements, prioritises features, creates task boards from rough ideas |
-| **Business Analyst** | $70-110K | Breaks features into detailed tasks with acceptance criteria and checklists |
+| **Business Analyst** | $70-110K | Breaks features into detailed tasks with acceptance criteria and workflow steps |
 | **Developer** | $80-150K | Writes code, implements features, runs tests, fixes bugs |
 | **QA Tester** | $60-100K | Files bug reports, verifies fixes, tracks regression issues |
 | **DevOps Engineer** | $90-140K | Handles deployment pipelines and infrastructure |
@@ -157,7 +157,7 @@ AI doesn't replace judgment. It replaces the execution overhead. You still make 
 - **Threaded Comments** — Comments, suggestions, and questions with type badges and markdown support
 - **Kanban Boards** — Drag-and-drop columns and task cards with real-time sync
 - **Labels & Due Dates** — Colour-coded labels and deadline tracking with urgency indicators
-- **Checklists** — Subtask tracking with completion counts on every task card
+- **Workflow Steps** — Subtask tracking with completion counts on every task card
 - **File Attachments** — Upload images, documents, and files directly to tasks (10MB limit)
 - **Real-time Updates** — Every change streams live via Supabase Realtime — no refresh needed
 - **Multi-Bot Support** — Create multiple AI personas (Developer, Designer, QA) with custom system prompts
@@ -190,10 +190,10 @@ claude mcp add --transport http vibecodes https://vibe-coding-ideas.vercel.app/a
 A browser window opens for authentication. Log in with your VibeCodes credentials. Done.
 
 ### 4. Ask AI to build your task board
-Tell Claude: *"Look at my idea and create a full task board with tasks, labels, and checklists."*
+Tell Claude: *"Look at my idea and create a full task board with tasks, labels, and workflow steps."*
 
 ### 5. Watch it work
-Open the board in your browser. Watch tasks appear, cards move, and checklists get ticked off — all in real time.
+Open the board in your browser. Watch tasks appear, cards move, and workflow steps get ticked off — all in real time.
 
 ---
 

@@ -17,7 +17,8 @@ export type AiActionType =
   | "enhance_with_context"
   | "generate_board_tasks"
   | "enhance_task_description"
-  | "enhance_discussion_body";
+  | "enhance_discussion_body"
+  | "generate_workflow_steps";
 
 /** Create an Anthropic provider using the user's BYOK key. */
 export function getAnthropicProvider(encryptedKey: string | null) {

@@ -276,7 +276,7 @@ describe("parseTrelloJson", () => {
         columnName: "Backlog",
         dueDate: "2025-06-01",
         labels: undefined,
-        checklistItems: undefined,
+        workflowSteps: undefined,
       },
     ]);
   });
@@ -305,7 +305,7 @@ describe("parseTrelloJson", () => {
     expect(tasks[0].columnName).toBeUndefined();
   });
 
-  it("extracts checklists", () => {
+  it("extracts workflow steps from checklists", () => {
     const data = {
       lists: [{ id: "list1", name: "Todo" }],
       cards: [
@@ -325,7 +325,7 @@ describe("parseTrelloJson", () => {
     };
 
     const tasks = parseTrelloJson(data);
-    expect(tasks[0].checklistItems).toEqual([
+    expect(tasks[0].workflowSteps).toEqual([
       "Install deps",
       "Configure ESLint",
     ]);
@@ -361,7 +361,7 @@ describe("parseTrelloJson", () => {
     expect(tasks[0].description).toBeUndefined();
   });
 
-  it("handles multiple checklists", () => {
+  it("handles multiple checklists as workflow steps", () => {
     const data = {
       lists: [{ id: "list1", name: "Todo" }],
       cards: [
@@ -377,7 +377,7 @@ describe("parseTrelloJson", () => {
     };
 
     const tasks = parseTrelloJson(data);
-    expect(tasks[0].checklistItems).toEqual(["Item A", "Item B", "Item C"]);
+    expect(tasks[0].workflowSteps).toEqual(["Item A", "Item B", "Item C"]);
   });
 });
 
@@ -408,7 +408,7 @@ describe("parseCustomJson", () => {
         assigneeName: "Alice",
         dueDate: "2025-04-01",
         labels: ["bug", "p1"],
-        checklistItems: ["Step 1", "Step 2"],
+        workflowSteps: ["Step 1", "Step 2"],
       },
     ]);
   });
@@ -437,7 +437,7 @@ describe("parseCustomJson", () => {
       assigneeName: undefined,
       dueDate: undefined,
       labels: undefined,
-      checklistItems: undefined,
+      workflowSteps: undefined,
     });
   });
 
@@ -470,7 +470,7 @@ describe("parseBulkText", () => {
     ]);
   });
 
-  it("parses checklist items under tasks", () => {
+  it("parses workflow steps from checklist items under tasks", () => {
     const text = `Fix login
 - [ ] Check auth flow
 - [x] Update credentials
@@ -479,12 +479,12 @@ Add tests`;
     const tasks = parseBulkText(text);
     expect(tasks).toHaveLength(2);
     expect(tasks[0].title).toBe("Fix login");
-    expect(tasks[0].checklistItems).toEqual([
+    expect(tasks[0].workflowSteps).toEqual([
       "Check auth flow",
       "Update credentials",
     ]);
     expect(tasks[1].title).toBe("Add tests");
-    expect(tasks[1].checklistItems).toBeUndefined();
+    expect(tasks[1].workflowSteps).toBeUndefined();
   });
 
   it("ignores blank lines", () => {

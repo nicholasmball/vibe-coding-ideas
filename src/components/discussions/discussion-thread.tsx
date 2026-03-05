@@ -105,6 +105,7 @@ interface DiscussionThreadProps {
   hasVoted?: boolean;
   teamMembers?: User[];
   canUseAi?: boolean;
+  defaultOrchestratorBot?: User | null;
 }
 
 export function DiscussionThread({
@@ -118,6 +119,7 @@ export function DiscussionThread({
   hasVoted = false,
   teamMembers = [],
   canUseAi = false,
+  defaultOrchestratorBot = null,
 }: DiscussionThreadProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
@@ -353,6 +355,7 @@ export function DiscussionThread({
                     ideaId={ideaId}
                     columns={columns}
                     teamMembers={teamMembers}
+                    defaultOrchestratorBot={defaultOrchestratorBot}
                   />
                 </>
               ) : discussion.status === "resolved" ? (
@@ -371,6 +374,7 @@ export function DiscussionThread({
                     ideaId={ideaId}
                     columns={columns}
                     teamMembers={teamMembers}
+                    defaultOrchestratorBot={defaultOrchestratorBot}
                   />
                 </>
               ) : discussion.status === "ready_to_convert" ? (

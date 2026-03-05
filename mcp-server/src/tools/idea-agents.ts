@@ -59,7 +59,7 @@ export async function listIdeaAgents(
 ) {
   const { data, error } = await ctx.supabase
     .from("idea_agents")
-    .select("bot_id, added_by, created_at, bot:bot_profiles!idea_agents_bot_id_fkey(id, name, role, avatar_url, is_active, owner_id), adder:users!idea_agents_added_by_fkey(id, full_name)")
+    .select("bot_id, added_by, is_orchestrator, created_at, bot:bot_profiles!idea_agents_bot_id_fkey(id, name, role, avatar_url, is_active, owner_id), adder:users!idea_agents_added_by_fkey(id, full_name)")
     .eq("idea_id", params.idea_id)
     .order("created_at", { ascending: true });
 
@@ -74,10 +74,53 @@ export async function listIdeaAgents(
       bot_role: bot?.role ?? null,
       bot_avatar_url: bot?.avatar_url ?? null,
       is_active: bot?.is_active ?? false,
+      is_orchestrator: row.is_orchestrator,
       owner_id: bot?.owner_id ?? null,
       added_by: row.added_by,
       added_by_name: adder?.full_name ?? null,
       allocated_at: row.created_at,
     };
   });
+}
+
+// --- Set Orchestration Agent ---
+
+export const setOrchestrationAgentSchema = z.object({
+  idea_id: z.string().uuid().describe("The idea ID"),
+  bot_id: z
+    .string()
+    .uuid()
+    .nullable()
+    .describe("The bot profile ID to set as orchestrator, or null to clear"),
+});
+
+export async function setOrchestrationAgent(
+  ctx: McpContext,
+  params: z.infer<typeof setOrchestrationAgentSchema>
+) {
+  if (params.bot_id) {
+    const { error } = await ctx.supabase
+      .from("idea_agents")
+      .update({ is_orchestrator: true })
+      .eq("idea_id", params.idea_id)
+      .eq("bot_id", params.bot_id);
+
+    if (error)
+      throw new Error(`Failed to set orchestration agent: ${error.message}`);
+  } else {
+    const { error } = await ctx.supabase
+      .from("idea_agents")
+      .update({ is_orchestrator: false })
+      .eq("idea_id", params.idea_id)
+      .eq("is_orchestrator", true);
+
+    if (error)
+      throw new Error(`Failed to clear orchestration agent: ${error.message}`);
+  }
+
+  return {
+    success: true,
+    idea_id: params.idea_id,
+    orchestrator_bot_id: params.bot_id,
+  };
 }

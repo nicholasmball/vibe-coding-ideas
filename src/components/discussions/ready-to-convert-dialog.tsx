@@ -30,6 +30,7 @@ interface ReadyToConvertDialogProps {
   ideaId: string;
   columns: BoardColumn[];
   teamMembers: User[];
+  defaultOrchestratorBot?: User | null;
 }
 
 export function ReadyToConvertDialog({
@@ -37,19 +38,22 @@ export function ReadyToConvertDialog({
   ideaId,
   columns,
   teamMembers,
+  defaultOrchestratorBot = null,
 }: ReadyToConvertDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [columnId, setColumnId] = useState(columns[0]?.id ?? "");
-  const [assigneeId, setAssigneeId] = useState<string>("unassigned");
+  const [agentId, setAgentId] = useState<string>(defaultOrchestratorBot?.id ?? "none");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const bots = teamMembers.filter((m) => m.is_bot);
-  const humans = teamMembers.filter((m) => !m.is_bot);
+  const teamBots = teamMembers.filter((m) => m.is_bot);
+  const bots = defaultOrchestratorBot && !teamBots.some((b) => b.id === defaultOrchestratorBot.id)
+    ? [defaultOrchestratorBot, ...teamBots]
+    : teamBots;
   const selectedColumn = columns.find((c) => c.id === columnId);
-  const selectedAssignee =
-    assigneeId !== "unassigned"
-      ? teamMembers.find((m) => m.id === assigneeId)
+  const selectedAgent =
+    agentId !== "none"
+      ? bots.find((m) => m.id === agentId)
       : null;
 
   async function handleSubmit() {
@@ -64,7 +68,7 @@ export function ReadyToConvertDialog({
         discussion.id,
         ideaId,
         columnId,
-        assigneeId === "unassigned" ? null : assigneeId
+        agentId === "none" ? null : agentId
       );
       toast.success("Discussion queued for conversion");
       setOpen(false);
@@ -117,33 +121,21 @@ export function ReadyToConvertDialog({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="assignee">Assignee (optional)</Label>
-            <Select value={assigneeId} onValueChange={setAssigneeId}>
+            <Label htmlFor="orchestrationAgent">Orchestration Agent (optional)</Label>
+            <Select value={agentId} onValueChange={setAgentId}>
               <SelectTrigger>
-                <SelectValue placeholder="Unassigned" />
+                <SelectValue placeholder="None" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
-                {humans.map((member) => (
-                  <SelectItem key={member.id} value={member.id}>
-                    {member.full_name ?? member.email}
+                <SelectItem value="none">None</SelectItem>
+                {bots.map((bot) => (
+                  <SelectItem key={bot.id} value={bot.id}>
+                    <span className="inline-flex items-center gap-1">
+                      <Bot className="h-3 w-3" />
+                      {bot.full_name ?? bot.email}
+                    </span>
                   </SelectItem>
                 ))}
-                {bots.length > 0 && (
-                  <>
-                    <div className="px-2 py-1.5 text-[10px] font-medium text-muted-foreground">
-                      Agents
-                    </div>
-                    {bots.map((bot) => (
-                      <SelectItem key={bot.id} value={bot.id}>
-                        <span className="inline-flex items-center gap-1">
-                          <Bot className="h-3 w-3" />
-                          {bot.full_name ?? bot.email}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </>
-                )}
               </SelectContent>
             </Select>
           </div>
@@ -165,12 +157,10 @@ export function ReadyToConvertDialog({
                   </span>
                 )}
               </div>
-              {selectedAssignee && (
+              {selectedAgent && (
                 <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                  {selectedAssignee.is_bot ? (
-                    <Bot className="h-3 w-3" />
-                  ) : null}
-                  <span>{selectedAssignee.full_name ?? selectedAssignee.email}</span>
+                  <Bot className="h-3 w-3" />
+                  <span>{selectedAgent.full_name ?? selectedAgent.email}</span>
                 </div>
               )}
               <div className="mt-2 flex items-center gap-2 rounded bg-blue-500/[0.06] px-3 py-2 text-xs text-muted-foreground">

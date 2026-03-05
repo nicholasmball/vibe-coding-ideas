@@ -1,14 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Bot, Plus, X } from "lucide-react";
+import { Bot, Crown, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { AgentProfileDialog } from "@/components/agents/agent-profile-dialog";
 import { getRoleColor } from "@/lib/agent-colors";
-import { allocateAgent, removeIdeaAgent } from "@/actions/idea-agents";
+import { allocateAgent, removeIdeaAgent, setOrchestrationAgent } from "@/actions/idea-agents";
 import type { IdeaAgentWithDetails, BotProfile } from "@/types";
 
 interface IdeaAgentsSectionProps {
@@ -18,6 +18,7 @@ interface IdeaAgentsSectionProps {
   isAuthor: boolean;
   isTeamMember: boolean;
   userBots: BotProfile[];
+  orchestratorBotId: string | null;
 }
 
 export function IdeaAgentsSection({
@@ -27,6 +28,7 @@ export function IdeaAgentsSection({
   isAuthor,
   isTeamMember,
   userBots,
+  orchestratorBotId,
 }: IdeaAgentsSectionProps) {
   const [addOpen, setAddOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -55,6 +57,20 @@ export function IdeaAgentsSection({
         toast.success("Agent removed from pool");
       } catch {
         toast.error("Failed to remove agent");
+      }
+    });
+  }
+
+  function handleToggleOrchestrator(botId: string) {
+    startTransition(async () => {
+      try {
+        const newBotId = botId === orchestratorBotId ? null : botId;
+        await setOrchestrationAgent(ideaId, newBotId);
+        toast.success(
+          newBotId ? "Orchestration agent set" : "Orchestration agent cleared"
+        );
+      } catch {
+        toast.error("Failed to update orchestration agent");
       }
     });
   }
@@ -114,11 +130,12 @@ export function IdeaAgentsSection({
         <div className="flex flex-wrap gap-2">
           {ideaAgents.map((agent) => {
             const canRemove = isAuthor || agent.added_by === currentUserId;
+            const isOrchestrator = agent.bot_id === orchestratorBotId;
             const colors = getRoleColor(agent.bot.role);
             return (
               <div
                 key={agent.id}
-                className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:border-primary"
+                className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:border-primary ${isOrchestrator ? "border-amber-500/40" : "border-border"}`}
               >
                 <button
                   type="button"
@@ -141,6 +158,16 @@ export function IdeaAgentsSection({
                     )}
                   </div>
                 </button>
+                {isTeamMember && (
+                  <button
+                    onClick={() => handleToggleOrchestrator(agent.bot_id)}
+                    disabled={pending}
+                    title={isOrchestrator ? "Remove as orchestrator" : "Set as orchestrator"}
+                    className={`ml-0.5 rounded-full p-0.5 transition-colors disabled:opacity-50 ${isOrchestrator ? "text-amber-500" : "text-muted-foreground/40 hover:text-amber-500/70"}`}
+                  >
+                    <Crown className="h-3 w-3" fill={isOrchestrator ? "currentColor" : "none"} />
+                  </button>
+                )}
                 {canRemove && (
                   <button
                     onClick={() => handleRemove(agent.bot_id)}
