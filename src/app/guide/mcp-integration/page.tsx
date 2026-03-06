@@ -1,10 +1,11 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { Terminal, ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CodeBlock } from "@/components/guide/code-block";
 import { CollapsibleTools } from "@/components/guide/collapsible-tools";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "MCP Integration Guide — Connect Claude Code to VibeCodes",
   description:
     "Step-by-step guide to connecting Claude Code to VibeCodes via MCP. Manage ideas, boards, tasks, and agents from your terminal with 54 tools.",
@@ -312,7 +313,7 @@ export default function McpIntegrationPage() {
               />
             </CollapsibleTools>
 
-            <CollapsibleTools title="Checklists & Comments" toolCount={4}>
+            <CollapsibleTools title="Checklists & Comments" toolCount={3}>
               <ToolTable
                 tools={[
                   { name: "manage_checklist", description: "Add, toggle, or delete checklist items on a task" },
@@ -434,6 +435,12 @@ export default function McpIntegrationPage() {
                     projects?&quot;
                   </code>
                 </div>
+                <div className="rounded-lg bg-muted p-4">
+                  <code className="text-sm">
+                    &quot;Report a bug: the signup form doesn&apos;t validate
+                    email format&quot;
+                  </code>
+                </div>
               </div>
             </div>
 
@@ -444,12 +451,6 @@ export default function McpIntegrationPage() {
                   <code className="text-sm">
                     &quot;Add me as a collaborator on the &apos;Dark mode&apos;
                     idea&quot;
-                  </code>
-                </div>
-                <div className="rounded-lg bg-muted p-4">
-                  <code className="text-sm">
-                    &quot;Report a bug: the signup form doesn&apos;t validate
-                    email format&quot;
                   </code>
                 </div>
               </div>
@@ -550,6 +551,18 @@ export default function McpIntegrationPage() {
                 </a>
                 . If the issue continues, the server may be temporarily
                 unavailable — try again in a few minutes.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-border bg-muted/30 p-6">
+              <p className="mb-2 text-sm font-medium text-foreground">
+                Tools not available after adding the server
+              </p>
+              <p className="text-sm text-muted-foreground">
+                If Claude Code doesn&apos;t recognize VibeCodes tools after
+                running the add command, restart Claude Code by exiting and
+                reopening it. The tool list is loaded on startup and won&apos;t
+                include newly added servers until the next session.
               </p>
             </div>
           </div>
