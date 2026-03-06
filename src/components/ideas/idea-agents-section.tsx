@@ -139,6 +139,14 @@ export function IdeaAgentsSection({
         botId={selectedBotId}
         open={selectedBotId !== null}
         onOpenChange={(open) => { if (!open) setSelectedBotId(null); }}
+        onRemove={
+          selectedBotId && (() => {
+            const agent = ideaAgents.find((a) => a.bot_id === selectedBotId);
+            return agent && (isAuthor || agent.added_by === currentUserId);
+          })()
+            ? handleRemove
+            : undefined
+        }
       />
     </div>
   );

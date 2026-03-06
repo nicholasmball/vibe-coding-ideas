@@ -7,6 +7,7 @@ import {
   MessageSquare,
   CheckCircle2,
   Lightbulb,
+  Trash2,
 } from "lucide-react";
 import {
   Dialog,
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AgentVoteButton } from "./agent-vote-button";
 import { CloneAgentButton } from "./clone-agent-button";
@@ -27,6 +29,8 @@ interface AgentProfileDialogProps {
   botId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onRemove?: (botId: string) => void;
+  removeLabel?: string;
 }
 
 function getActivityIcon(action: string) {
@@ -54,7 +58,7 @@ function ProfileSkeleton() {
   );
 }
 
-export function AgentProfileDialog({ botId, open, onOpenChange }: AgentProfileDialogProps) {
+export function AgentProfileDialog({ botId, open, onOpenChange, onRemove, removeLabel = "Remove from pool" }: AgentProfileDialogProps) {
   const [data, setData] = useState<AgentProfileData | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -321,6 +325,24 @@ export function AgentProfileDialog({ botId, open, onOpenChange }: AgentProfileDi
                     );
                   })}
                 </div>
+              </div>
+            )}
+
+            {/* Remove action */}
+            {onRemove && botId && (
+              <div className="border-t border-border pt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2 text-destructive hover:text-destructive"
+                  onClick={() => {
+                    onRemove(botId);
+                    onOpenChange(false);
+                  }}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  {removeLabel}
+                </Button>
               </div>
             )}
 
