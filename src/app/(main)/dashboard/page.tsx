@@ -166,7 +166,7 @@ export default async function DashboardPage() {
     github_username: string | null;
   } | null;
   const onboardingCompleted = !!userProfile?.onboarding_completed_at;
-  const isNewUser = !onboardingCompleted && ideasCount === 0 && collaborationsCount === 0;
+  const isNewUser = !onboardingCompleted;
   const featuredTeams = (featuredTeamsResult.data ?? []) as unknown as FeaturedTeamWithAgents[];
 
   // All idea IDs the user owns or collaborates on (for board queries)
@@ -566,7 +566,7 @@ export default async function DashboardPage() {
           userGithubUsername={userProfile?.github_username ?? null}
           featuredTeams={featuredTeams}
         />
-      ) : !onboardingCompleted && ideasCount === 0 && collaborationsCount === 0 ? (
+      ) : onboardingCompleted && ideasCount === 0 && collaborationsCount === 0 ? (
         <WelcomeExperience />
       ) : null}
 

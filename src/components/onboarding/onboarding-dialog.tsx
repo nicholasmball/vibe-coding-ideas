@@ -27,6 +27,7 @@ import { cn } from "@/lib/utils";
 import {
   completeOnboarding,
   createIdeaFromOnboarding,
+  createSampleIdea,
   updateProfileFromOnboarding,
   enhanceOnboardingDescription,
 } from "@/actions/onboarding";
@@ -101,6 +102,20 @@ export function OnboardingDialog({
   }, []);
 
   const handleSkip = async () => {
+    try {
+      const result = await createSampleIdea();
+      if (result) {
+        setCreatedIdeaId(result.ideaId);
+        toast("We created a sample project so you can explore", {
+          action: {
+            label: "View project",
+            onClick: () => { window.location.href = `/ideas/${result.ideaId}/board`; },
+          },
+        });
+      }
+    } catch (err) {
+      console.error("[handleSkip] createSampleIdea failed:", err);
+    }
     try {
       await completeOnboarding();
     } catch {
@@ -205,6 +220,20 @@ export function OnboardingDialog({
   };
 
   const handleSkipIdea = async () => {
+    try {
+      const result = await createSampleIdea();
+      if (result) {
+        setCreatedIdeaId(result.ideaId);
+        toast("We created a sample project so you can explore", {
+          action: {
+            label: "View project",
+            onClick: () => { window.location.href = `/ideas/${result.ideaId}/board`; },
+          },
+        });
+      }
+    } catch {
+      // Non-critical
+    }
     try {
       await completeOnboarding();
     } catch {

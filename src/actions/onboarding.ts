@@ -18,6 +18,11 @@ import {
   MAX_TAG_LENGTH,
   ValidationError,
 } from "@/lib/validation";
+import {
+  DEFAULT_BOARD_COLUMNS,
+  POSITION_GAP,
+  SAMPLE_IDEA_CONTENT,
+} from "@/lib/constants";
 
 export async function completeOnboarding() {
   const supabase = await createClient();
@@ -85,6 +90,78 @@ export async function createIdeaFromOnboarding(data: {
   if (error) {
     throw new Error(error.message);
   }
+
+  return { ideaId: idea.id };
+}
+
+export async function createSampleIdea(): Promise<{ ideaId: string } | null> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  // Idempotency: don't create if user already has ideas
+  const { count } = await supabase
+    .from("ideas")
+    .select("*", { head: true, count: "exact" })
+    .eq("author_id", user.id);
+
+  if ((count ?? 0) > 0) return null;
+
+  // Insert the sample idea
+  const { data: idea, error: ideaError } = await supabase
+    .from("ideas")
+    .insert({
+      title: SAMPLE_IDEA_CONTENT.title,
+      description: SAMPLE_IDEA_CONTENT.description,
+      author_id: user.id,
+      tags: [...SAMPLE_IDEA_CONTENT.tags],
+      visibility: "private" as const,
+      is_sample: true,
+    })
+    .select("id")
+    .single();
+
+  if (ideaError || !idea) {
+    throw new Error(ideaError?.message ?? "Failed to create sample idea");
+  }
+
+  // Eagerly create board columns
+  const columnInserts = DEFAULT_BOARD_COLUMNS.map((col) => ({
+    idea_id: idea.id,
+    title: col.title,
+    position: col.position,
+    is_done_column: col.is_done_column,
+  }));
+
+  const { data: columns, error: colError } = await supabase
+    .from("board_columns")
+    .insert(columnInserts)
+    .select("id, position")
+    .order("position", { ascending: true });
+
+  if (colError || !columns) {
+    // Idea created but columns failed — still return the idea
+    return { ideaId: idea.id };
+  }
+
+  // Sort columns by position to map columnIndex reliably
+  const sortedColumns = [...columns].sort((a, b) => a.position - b.position);
+
+  // Insert sample tasks
+  const taskInserts = SAMPLE_IDEA_CONTENT.tasks.map((task, i) => ({
+    idea_id: idea.id,
+    column_id: sortedColumns[task.columnIndex].id,
+    title: task.title,
+    description: task.description,
+    position: (i + 1) * POSITION_GAP,
+  }));
+
+  await supabase.from("board_tasks").insert(taskInserts);
 
   return { ideaId: idea.id };
 }

@@ -115,6 +115,7 @@ export type Database = {
           visibility: "public" | "private";
           tags: string[];
           github_url: string | null;
+          is_sample: boolean;
           upvotes: number;
           comment_count: number;
           collaborator_count: number;
@@ -132,6 +133,7 @@ export type Database = {
           visibility?: "public" | "private";
           tags?: string[];
           github_url?: string | null;
+          is_sample?: boolean;
           upvotes?: number;
           comment_count?: number;
           collaborator_count?: number;
@@ -149,6 +151,7 @@ export type Database = {
           visibility?: "public" | "private";
           tags?: string[];
           github_url?: string | null;
+          is_sample?: boolean;
           upvotes?: number;
           comment_count?: number;
           collaborator_count?: number;

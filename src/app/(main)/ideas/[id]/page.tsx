@@ -28,6 +28,7 @@ import { InlineIdeaTags } from "@/components/ideas/inline-idea-tags";
 import { IdeaAttachmentsSection } from "@/components/ideas/idea-attachments-section";
 import { IdeaAgentsSection } from "@/components/ideas/idea-agents-section";
 import { formatRelativeTime, getInitials, stripMarkdownForMeta } from "@/lib/utils";
+import { SampleIdeaBanner } from "@/components/ideas/sample-idea-banner";
 import { BotRolesProvider } from "@/components/bot-roles-context";
 import { PendingRequests } from "@/components/ideas/pending-requests";
 import type { CommentWithAuthor, CollaboratorWithUser, CollaborationRequestWithRequester, BotProfile } from "@/types";
@@ -235,6 +236,7 @@ export default async function IdeaDetailPage({ params }: PageProps) {
 
   return (
     <div className="mx-auto max-w-3xl px-4 pt-6 pb-4">
+      {idea.is_sample && <SampleIdeaBanner />}
       {jsonLd && (
         <script
           type="application/ld+json"

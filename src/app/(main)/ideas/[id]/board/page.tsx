@@ -8,6 +8,7 @@ import { getIdeaTeam } from "@/lib/idea-team";
 import { KanbanBoard } from "@/components/board/kanban-board";
 import { BoardRealtime } from "@/components/board/board-realtime";
 import { GuestBoardBanner } from "@/components/board/guest-board-banner";
+import { SampleIdeaBanner } from "@/components/ideas/sample-idea-banner";
 import { Button } from "@/components/ui/button";
 import type {
   BoardColumnWithTasks,
@@ -74,7 +75,7 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
   // Fetch idea (include visibility for access control)
   const { data: idea } = await supabase
     .from("ideas")
-    .select("id, title, description, author_id, visibility")
+    .select("id, title, description, author_id, visibility, is_sample")
     .eq("id", id)
     .single();
 
@@ -231,6 +232,13 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
   return (
     <div className="flex h-full flex-col overflow-hidden px-4 sm:px-6 lg:px-8">
       <BoardRealtime ideaId={id} />
+
+      {/* Sample idea banner */}
+      {idea.is_sample && (
+        <div className="shrink-0 pt-4">
+          <SampleIdeaBanner />
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex shrink-0 items-center gap-4 py-4">

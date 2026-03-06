@@ -218,6 +218,42 @@ export const SUGGESTED_SKILLS = [
   "requirements",
 ];
 
+export const SAMPLE_IDEA_CONTENT = {
+  title: "My First Project",
+  description:
+    "Welcome to VibeCodes! This is a starter project to help you explore the platform.\n\n" +
+    "**Here's what you can do:**\n" +
+    "- Use the **Board** to organise tasks into columns\n" +
+    "- Try **AI Generate** to auto-create tasks from your idea description\n" +
+    "- Set up **AI Agents** to pick up and work on tasks autonomously\n" +
+    "- Connect **Claude Code** via MCP to manage everything from your terminal\n\n" +
+    "Feel free to edit this project, add your own tasks, or delete it and start fresh!",
+  tags: ["sample", "getting-started"],
+  tasks: [
+    {
+      title: "Explore the board",
+      description:
+        "Take a look around the kanban board. Try dragging tasks between columns, " +
+        "clicking on a task to see its detail view, and checking out the column layout.",
+      columnIndex: 1,
+    },
+    {
+      title: "Try creating a new task",
+      description:
+        "Click the + button at the top of any column to create a new task. " +
+        "You can add descriptions, labels, checklists, and due dates.",
+      columnIndex: 1,
+    },
+    {
+      title: "Check out the AI features",
+      description:
+        "Head to the board and try the AI Generate button to auto-create tasks. " +
+        "You can also enhance task descriptions with AI from the task detail view.",
+      columnIndex: 0,
+    },
+  ],
+} as const;
+
 export const SUGGESTED_TAGS = [
   "ai",
   "web",

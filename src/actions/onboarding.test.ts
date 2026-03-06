@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // individual tests override terminal methods (single, gte) as needed.
 const mockSingle = vi.fn();
 const mockGte = vi.fn();
+const mockOrder = vi.fn();
 const chain: Record<string, unknown> = {};
 const mockUpdate = vi.fn(() => chain);
 const mockEq = vi.fn(() => chain);
@@ -16,6 +17,7 @@ Object.assign(chain, {
   eq: mockEq,
   single: mockSingle,
   gte: mockGte,
+  order: mockOrder,
 });
 const mockFrom = vi.fn(() => chain);
 const mockGetUser = vi.fn();
@@ -60,6 +62,7 @@ describe("onboarding actions", () => {
     mockInsert.mockImplementation(() => chain);
     mockSelect.mockImplementation(() => chain);
     mockFrom.mockImplementation(() => chain);
+    mockOrder.mockImplementation(() => chain);
     mockGetUser.mockResolvedValue({
       data: { user: { id: "user-1" } },
     });
@@ -212,6 +215,108 @@ describe("onboarding actions", () => {
         bio: null,
         github_username: null,
       });
+    });
+  });
+
+  describe("createSampleIdea", () => {
+    it("creates sample idea with board and tasks when user has no ideas", async () => {
+      const { createSampleIdea } = await import("./onboarding");
+
+      // Mock count query: from("ideas").select("*", { head: true, count: "exact" }).eq(...)
+      // Returns 0 ideas
+      const countChain: Record<string, unknown> = {};
+      const countEq = vi.fn().mockResolvedValue({ count: 0, error: null });
+      const countSelect = vi.fn(() => countChain);
+      Object.assign(countChain, { eq: countEq, select: countSelect });
+
+      // Mock idea insert: from("ideas").insert(...).select("id").single()
+      const insertSelectSingle = vi.fn().mockResolvedValue({
+        data: { id: "sample-idea-id" },
+        error: null,
+      });
+      const insertSelect = vi.fn(() => ({ single: insertSelectSingle }));
+      const insertFn = vi.fn(() => ({ select: insertSelect }));
+
+      // Mock columns insert: from("board_columns").insert(...).select("id, position").order(...)
+      const colOrderFn = vi.fn().mockResolvedValue({
+        data: [
+          { id: "col-0", position: 0 },
+          { id: "col-1", position: 1000 },
+          { id: "col-2", position: 2000 },
+          { id: "col-3", position: 3000 },
+          { id: "col-4", position: 4000 },
+          { id: "col-5", position: 5000 },
+        ],
+        error: null,
+      });
+      const colSelect = vi.fn(() => ({ order: colOrderFn }));
+      const colInsert = vi.fn(() => ({ select: colSelect }));
+
+      // Mock tasks insert: from("board_tasks").insert(...)
+      const taskInsert = vi.fn().mockResolvedValue({ error: null });
+
+      let fromCallCount = 0;
+      mockFrom.mockImplementation((table: string) => {
+        if (table === "ideas") {
+          fromCallCount++;
+          if (fromCallCount === 1) {
+            // Count query
+            return { select: countSelect };
+          }
+          // Insert query
+          return { insert: insertFn };
+        }
+        if (table === "board_columns") {
+          return { insert: colInsert };
+        }
+        if (table === "board_tasks") {
+          return { insert: taskInsert };
+        }
+        return chain;
+      });
+
+      const result = await createSampleIdea();
+
+      expect(result).toEqual({ ideaId: "sample-idea-id" });
+      expect(insertFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          visibility: "private",
+          is_sample: true,
+          title: "My First Project",
+        })
+      );
+      expect(taskInsert).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({ title: "Explore the board", column_id: "col-1" }),
+          expect.objectContaining({ title: "Try creating a new task", column_id: "col-1" }),
+          expect.objectContaining({ title: "Check out the AI features", column_id: "col-0" }),
+        ])
+      );
+    });
+
+    it("returns null when user already has ideas (idempotency)", async () => {
+      const { createSampleIdea } = await import("./onboarding");
+
+      // Mock count query returning 1
+      const countEq = vi.fn().mockResolvedValue({ count: 1, error: null });
+      const countSelect = vi.fn(() => ({ eq: countEq }));
+
+      mockFrom.mockImplementation((table: string) => {
+        if (table === "ideas") {
+          return { select: countSelect };
+        }
+        return chain;
+      });
+
+      const result = await createSampleIdea();
+      expect(result).toBeNull();
+    });
+
+    it("redirects unauthenticated users to login", async () => {
+      mockGetUser.mockResolvedValue({ data: { user: null } });
+      const { createSampleIdea } = await import("./onboarding");
+
+      await expect(createSampleIdea()).rejects.toThrow("REDIRECT: /login");
     });
   });
 
