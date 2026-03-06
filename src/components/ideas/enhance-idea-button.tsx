@@ -95,13 +95,13 @@ export function EnhanceIdeaButton({
               <Button
                 variant="outline"
                 size="sm"
-                className={`gap-2 ${disabled ? "pointer-events-none opacity-50" : ""}`}
+                className={`gap-2 border-violet-500/20 bg-violet-500/10 text-violet-400 hover:bg-violet-500/15 hover:border-violet-500/30 ${disabled ? "pointer-events-none opacity-50" : ""}`}
                 onClick={() => !disabled && setOpen(true)}
               >
                 <Sparkles className="h-4 w-4" />
                 Enhance with AI
                 {!hasByokKey && creditsRemaining > 0 && (
-                  <span className="rounded-full bg-primary px-1.5 text-[10px] leading-none text-primary-foreground">
+                  <span className="rounded-full bg-violet-500/20 border border-violet-500/30 px-1.5 text-[10px] leading-none text-violet-300">
                     {creditsRemaining}
                   </span>
                 )}
