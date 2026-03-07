@@ -16,9 +16,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BOT_ROLE_TEMPLATES } from "@/lib/constants";
 import { createBot } from "@/actions/bots";
 import { PromptBuilder } from "@/components/profile/prompt-builder";
+import { WorkflowTemplateEditor } from "./workflow-template-editor";
 import { createClient } from "@/lib/supabase/client";
 import { cn, getInitials } from "@/lib/utils";
 import type { StructuredPromptFields } from "@/lib/prompt-builder";
+import type { WorkflowTemplate } from "@/types";
 
 const TEMPLATE_CHIPS: { role: string; icon: string }[] = [
   { role: "Developer", icon: "\u{1F4BB}" },
@@ -41,6 +43,7 @@ export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps
   const [bio, setBio] = useState("");
   const [skillsInput, setSkillsInput] = useState("");
   const [deliverablesInput, setDeliverablesInput] = useState("");
+  const [workflowTemplates, setWorkflowTemplates] = useState<WorkflowTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [templateStructured, setTemplateStructured] =
@@ -72,6 +75,7 @@ export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps
     setBio("");
     setSkillsInput("");
     setDeliverablesInput("");
+    setWorkflowTemplates([]);
     setSelectedTemplate(null);
     setTemplateStructured(null);
     setPromptKey((k) => k + 1);
@@ -136,7 +140,8 @@ export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps
         null,
         bio.trim() || null,
         skills,
-        deliverables
+        deliverables,
+        workflowTemplates
       );
 
       // Upload avatar if selected
@@ -303,6 +308,12 @@ export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps
               What this agent produces when completing workflow steps. Guides the agent on what to deliver.
             </p>
           </div>
+
+          {/* Workflow Templates */}
+          <WorkflowTemplateEditor
+            value={workflowTemplates}
+            onChange={setWorkflowTemplates}
+          />
 
           {/* Prompt Builder */}
           <PromptBuilder

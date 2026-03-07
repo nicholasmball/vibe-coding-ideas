@@ -16,9 +16,10 @@ import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { updateBot, deleteBot } from "@/actions/bots";
 import { PromptBuilder } from "@/components/profile/prompt-builder";
+import { WorkflowTemplateEditor } from "./workflow-template-editor";
 import { createClient } from "@/lib/supabase/client";
 import { getInitials } from "@/lib/utils";
-import type { BotProfile } from "@/types";
+import type { BotProfile, WorkflowTemplate } from "@/types";
 
 interface EditAgentDialogProps {
   bot: BotProfile;
@@ -33,6 +34,9 @@ export function EditAgentDialog({ bot, open, onOpenChange }: EditAgentDialogProp
   const [bio, setBio] = useState(bot.bio ?? "");
   const [skillsInput, setSkillsInput] = useState((bot.skills ?? []).join(", "));
   const [deliverablesInput, setDeliverablesInput] = useState((bot.deliverables ?? []).join(", "));
+  const [workflowTemplates, setWorkflowTemplates] = useState<WorkflowTemplate[]>(
+    (bot.workflow_templates ?? []) as WorkflowTemplate[]
+  );
   const [isPublished, setIsPublished] = useState(bot.is_published);
   const [submitting, setSubmitting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -110,6 +114,7 @@ export function EditAgentDialog({ bot, open, onOpenChange }: EditAgentDialogProp
         bio: bio.trim() || null,
         skills: parseSkills(),
         deliverables: parseDeliverables(),
+        workflow_templates: workflowTemplates,
         is_published: isPublished,
         ...(avatarUrl !== undefined && { avatar_url: avatarUrl }),
       });
@@ -251,6 +256,12 @@ export function EditAgentDialog({ bot, open, onOpenChange }: EditAgentDialogProp
               What this agent produces when completing workflow steps.
             </p>
           </div>
+
+          {/* Workflow Templates */}
+          <WorkflowTemplateEditor
+            value={workflowTemplates}
+            onChange={setWorkflowTemplates}
+          />
 
           {/* Prompt Builder */}
           <PromptBuilder

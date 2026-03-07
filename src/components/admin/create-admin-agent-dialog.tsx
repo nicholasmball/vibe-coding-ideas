@@ -16,9 +16,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { BOT_ROLE_TEMPLATES } from "@/lib/constants";
 import { createAdminAgent, updateAdminAgent } from "@/actions/admin-agents";
 import { PromptBuilder } from "@/components/profile/prompt-builder";
+import { WorkflowTemplateEditor } from "@/components/agents/workflow-template-editor";
 import { createClient } from "@/lib/supabase/client";
 import { cn, getInitials } from "@/lib/utils";
-import type { BotProfile } from "@/types";
+import type { BotProfile, WorkflowTemplate } from "@/types";
 import type { StructuredPromptFields } from "@/lib/prompt-builder";
 
 const TEMPLATE_CHIPS: { role: string; icon: string }[] = [
@@ -51,6 +52,7 @@ export function CreateAdminAgentDialog({
   const [bio, setBio] = useState("");
   const [skillsInput, setSkillsInput] = useState("");
   const [deliverablesInput, setDeliverablesInput] = useState("");
+  const [workflowTemplates, setWorkflowTemplates] = useState<WorkflowTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [templateStructured, setTemplateStructured] =
@@ -71,6 +73,7 @@ export function CreateAdminAgentDialog({
       setBio(editAgent.bio ?? "");
       setSkillsInput((editAgent.skills ?? []).join(", "));
       setDeliverablesInput((editAgent.deliverables ?? []).join(", "));
+      setWorkflowTemplates((editAgent.workflow_templates ?? []) as WorkflowTemplate[]);
       setSelectedTemplate(null);
       setTemplateStructured(null);
       setPromptKey((k) => k + 1);
@@ -99,6 +102,7 @@ export function CreateAdminAgentDialog({
     setBio("");
     setSkillsInput("");
     setDeliverablesInput("");
+    setWorkflowTemplates([]);
     setSelectedTemplate(null);
     setTemplateStructured(null);
     setPromptKey((k) => k + 1);
@@ -186,6 +190,7 @@ export function CreateAdminAgentDialog({
           bio: bio.trim() || null,
           skills,
           deliverables,
+          workflow_templates: workflowTemplates,
           ...(avatarUrl !== undefined && { avatar_url: avatarUrl }),
         });
         toast.success("Agent updated");
@@ -198,7 +203,8 @@ export function CreateAdminAgentDialog({
           null,
           bio.trim() || null,
           skills,
-          deliverables
+          deliverables,
+          workflowTemplates
         );
 
         // Upload avatar if selected
@@ -380,6 +386,12 @@ export function CreateAdminAgentDialog({
               What this agent produces when completing workflow steps.
             </p>
           </div>
+
+          {/* Workflow Templates */}
+          <WorkflowTemplateEditor
+            value={workflowTemplates}
+            onChange={setWorkflowTemplates}
+          />
 
           {/* Prompt Builder */}
           <PromptBuilder

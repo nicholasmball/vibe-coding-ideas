@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { validateBio, validateSkills, validateDeliverables } from "@/lib/validation";
+import { validateBio, validateSkills, validateDeliverables, validateWorkflowTemplates } from "@/lib/validation";
 import type { BotProfile, FeaturedTeamWithAgents } from "@/types";
 
 export async function createBot(
@@ -12,7 +12,8 @@ export async function createBot(
   avatarUrl: string | null,
   bio?: string | null,
   skills?: string[],
-  deliverables?: string[]
+  deliverables?: string[],
+  workflowTemplates?: unknown[]
 ): Promise<string> {
   const supabase = await createClient();
   const {
@@ -27,6 +28,7 @@ export async function createBot(
   const validatedBio = validateBio(bio ?? null);
   const validatedSkills = validateSkills(skills ?? []);
   const validatedDeliverables = validateDeliverables(deliverables ?? []);
+  const validatedTemplates = validateWorkflowTemplates(workflowTemplates ?? []);
 
   const { data, error } = await supabase.rpc("create_bot_user", {
     p_name: name.trim(),
@@ -46,6 +48,7 @@ export async function createBot(
     if (validatedBio) extras.bio = validatedBio;
     if (validatedSkills.length > 0) extras.skills = validatedSkills;
     if (validatedDeliverables.length > 0) extras.deliverables = validatedDeliverables;
+    if (validatedTemplates.length > 0) extras.workflow_templates = validatedTemplates;
 
     await supabase
       .from("bot_profiles")
@@ -70,6 +73,7 @@ export async function updateBot(
     bio?: string | null;
     skills?: string[];
     deliverables?: string[];
+    workflow_templates?: unknown[];
     is_published?: boolean;
   }
 ) {
@@ -98,6 +102,7 @@ export async function updateBot(
   if (updates.bio !== undefined) profileUpdates.bio = validateBio(updates.bio ?? null);
   if (updates.skills !== undefined) profileUpdates.skills = validateSkills(updates.skills ?? []);
   if (updates.deliverables !== undefined) profileUpdates.deliverables = validateDeliverables(updates.deliverables ?? []);
+  if (updates.workflow_templates !== undefined) profileUpdates.workflow_templates = validateWorkflowTemplates(updates.workflow_templates ?? []);
   if (updates.is_published !== undefined) profileUpdates.is_published = updates.is_published;
 
   if (Object.keys(profileUpdates).length > 0) {
@@ -230,6 +235,7 @@ async function cloneBotProfile(
         bio: source.bio,
         skills: source.skills,
         deliverables: source.deliverables,
+        workflow_templates: source.workflow_templates,
         cloned_from: source.id,
       })
       .eq("id", newBotId)

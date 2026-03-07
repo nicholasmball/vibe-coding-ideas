@@ -241,3 +241,51 @@ export function validateDeliverables(deliverables: string[]): string[] {
   }
   return unique;
 }
+
+export const MAX_WORKFLOW_TEMPLATES = 10;
+export const MAX_WORKFLOW_TEMPLATE_STEPS = 20;
+
+export function validateWorkflowTemplates(
+  templates: unknown[]
+): { name: string; steps: { agent_role: string; title?: string; description?: string; human_check_required?: boolean }[] }[] {
+  if (!templates || templates.length === 0) return [];
+  if (templates.length > MAX_WORKFLOW_TEMPLATES) {
+    throw new ValidationError(`Maximum ${MAX_WORKFLOW_TEMPLATES} workflow templates allowed`);
+  }
+
+  return templates.map((t, i) => {
+    const tmpl = t as Record<string, unknown>;
+    if (!tmpl.name || typeof tmpl.name !== "string" || !tmpl.name.trim()) {
+      throw new ValidationError(`Workflow template ${i + 1} must have a name`);
+    }
+    if (tmpl.name.length > 100) {
+      throw new ValidationError(`Workflow template name "${tmpl.name}" exceeds 100 characters`);
+    }
+    const steps = tmpl.steps;
+    if (!Array.isArray(steps) || steps.length === 0) {
+      throw new ValidationError(`Workflow template "${tmpl.name}" must have at least one step`);
+    }
+    if (steps.length > MAX_WORKFLOW_TEMPLATE_STEPS) {
+      throw new ValidationError(`Workflow template "${tmpl.name}" exceeds ${MAX_WORKFLOW_TEMPLATE_STEPS} steps`);
+    }
+
+    const validatedSteps = steps.map((s, j) => {
+      const step = s as Record<string, unknown>;
+      if (!step.agent_role || typeof step.agent_role !== "string" || !step.agent_role.trim()) {
+        throw new ValidationError(`Step ${j + 1} in "${tmpl.name}" must have an agent_role`);
+      }
+      if (step.agent_role.length > 50) {
+        throw new ValidationError(`Agent role "${step.agent_role}" exceeds 50 characters`);
+      }
+      const result: { agent_role: string; title?: string; description?: string; human_check_required?: boolean } = {
+        agent_role: (step.agent_role as string).trim(),
+      };
+      if (step.title && typeof step.title === "string") result.title = step.title.trim().slice(0, 200);
+      if (step.description && typeof step.description === "string") result.description = step.description.trim().slice(0, 1000);
+      if (typeof step.human_check_required === "boolean") result.human_check_required = step.human_check_required;
+      return result;
+    });
+
+    return { name: tmpl.name.trim(), steps: validatedSteps };
+  });
+}

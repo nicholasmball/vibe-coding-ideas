@@ -1,5 +1,17 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
+export interface WorkflowTemplateStep {
+  agent_role: string;
+  title?: string;
+  description?: string;
+  human_check_required?: boolean;
+}
+
+export interface WorkflowTemplate {
+  name: string;
+  steps: WorkflowTemplateStep[];
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -1097,6 +1109,7 @@ export type Database = {
           bio: string | null;
           skills: string[];
           deliverables: string[];
+          workflow_templates: WorkflowTemplate[];
           is_published: boolean;
           community_upvotes: number;
           times_cloned: number;
@@ -1115,6 +1128,7 @@ export type Database = {
           bio?: string | null;
           skills?: string[];
           deliverables?: string[];
+          workflow_templates?: WorkflowTemplate[];
           is_published?: boolean;
           community_upvotes?: number;
           times_cloned?: number;
@@ -1133,6 +1147,7 @@ export type Database = {
           bio?: string | null;
           skills?: string[];
           deliverables?: string[];
+          workflow_templates?: WorkflowTemplate[];
           is_published?: boolean;
           community_upvotes?: number;
           times_cloned?: number;

@@ -51,6 +51,26 @@ export const createBotSchema = z.object({
     .max(10)
     .optional()
     .describe("What this agent produces when completing workflow steps (e.g. 'design document', 'test plan', 'implementation code'). Max 10, 100 chars each."),
+  workflow_templates: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(100).describe("Template name (e.g. 'Dev Workflow', 'Content Pipeline')"),
+        steps: z
+          .array(
+            z.object({
+              agent_role: z.string().min(1).max(50).describe("Agent role to match (e.g. 'UX Designer', 'Developer')"),
+              title: z.string().max(200).optional().describe("Custom step title. Defaults to agent_role if omitted."),
+              description: z.string().max(1000).optional().describe("Step description"),
+              human_check_required: z.boolean().optional().describe("Require human approval before completing"),
+            })
+          )
+          .min(1)
+          .max(20),
+      })
+    )
+    .max(10)
+    .optional()
+    .describe("Reusable workflow templates for orchestration agents. Each template defines a named sequence of steps referencing agent roles."),
 });
 
 export const toggleAgentVoteSchema = z.object({
@@ -110,6 +130,7 @@ export async function listBots(
     bio: bot.bio,
     skills: bot.skills,
     deliverables: bot.deliverables,
+    workflow_templates: bot.workflow_templates,
     is_published: bot.is_published,
     community_upvotes: bot.community_upvotes,
     times_cloned: bot.times_cloned,
@@ -248,6 +269,9 @@ export async function createBot(
   if (args.deliverables && args.deliverables.length > 0) {
     extras.deliverables = args.deliverables.map((d) => d.trim());
   }
+  if (args.workflow_templates && args.workflow_templates.length > 0) {
+    extras.workflow_templates = args.workflow_templates;
+  }
   if (Object.keys(extras).length > 0) {
     await ctx.supabase
       .from("bot_profiles")
@@ -259,7 +283,7 @@ export async function createBot(
   // Fetch the created profile
   const { data: profile } = await ctx.supabase
     .from("bot_profiles")
-    .select("id, name, role, system_prompt, is_active, avatar_url, bio, skills, deliverables, is_published")
+    .select("id, name, role, system_prompt, is_active, avatar_url, bio, skills, deliverables, workflow_templates, is_published")
     .eq("id", data)
     .single();
 
@@ -333,6 +357,7 @@ export async function cloneAgent(
         bio: source.bio,
         skills: source.skills,
         deliverables: source.deliverables,
+        workflow_templates: source.workflow_templates,
         cloned_from: args.bot_id,
       })
       .eq("id", newId)

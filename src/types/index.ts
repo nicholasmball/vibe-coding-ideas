@@ -1,4 +1,5 @@
 import type { Database } from "./database";
+export type { WorkflowTemplate, WorkflowTemplateStep } from "./database";
 
 // Base row types
 export type User = Database["public"]["Tables"]["users"]["Row"];

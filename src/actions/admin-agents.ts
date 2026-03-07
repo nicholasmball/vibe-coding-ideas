@@ -7,6 +7,7 @@ import {
   validateBio,
   validateSkills,
   validateDeliverables,
+  validateWorkflowTemplates,
   validateTeamName,
   validateTeamDescription,
 } from "@/lib/validation";
@@ -35,7 +36,8 @@ export async function createAdminAgent(
   avatarUrl: string | null,
   bio?: string | null,
   skills?: string[],
-  deliverables?: string[]
+  deliverables?: string[],
+  workflowTemplates?: unknown[]
 ): Promise<string> {
   const { supabase } = await requireAdmin();
 
@@ -45,6 +47,7 @@ export async function createAdminAgent(
   const validatedBio = validateBio(bio ?? null);
   const validatedSkills = validateSkills(skills ?? []);
   const validatedDeliverables = validateDeliverables(deliverables ?? []);
+  const validatedTemplates = validateWorkflowTemplates(workflowTemplates ?? []);
 
   const { data, error } = await supabase.rpc("create_bot_user", {
     p_name: name.trim(),
@@ -65,6 +68,7 @@ export async function createAdminAgent(
   if (validatedBio) extras.bio = validatedBio;
   if (validatedSkills.length > 0) extras.skills = validatedSkills;
   if (validatedDeliverables.length > 0) extras.deliverables = validatedDeliverables;
+  if (validatedTemplates.length > 0) extras.workflow_templates = validatedTemplates;
 
   await supabase
     .from("bot_profiles")
@@ -87,6 +91,7 @@ export async function updateAdminAgent(
     bio?: string | null;
     skills?: string[];
     deliverables?: string[];
+    workflow_templates?: unknown[];
   }
 ) {
   const { supabase } = await requireAdmin();
@@ -107,6 +112,7 @@ export async function updateAdminAgent(
   if (updates.bio !== undefined) profileUpdates.bio = validateBio(updates.bio ?? null);
   if (updates.skills !== undefined) profileUpdates.skills = validateSkills(updates.skills ?? []);
   if (updates.deliverables !== undefined) profileUpdates.deliverables = validateDeliverables(updates.deliverables ?? []);
+  if (updates.workflow_templates !== undefined) profileUpdates.workflow_templates = validateWorkflowTemplates(updates.workflow_templates ?? []);
 
   if (Object.keys(profileUpdates).length > 0) {
     const { error } = await supabase
