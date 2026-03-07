@@ -144,7 +144,6 @@ export type Database = {
           visibility?: "public" | "private";
           tags?: string[];
           github_url?: string | null;
-          autonomy_level?: number;
           upvotes?: number;
           comment_count?: number;
           collaborator_count?: number;
@@ -162,7 +161,6 @@ export type Database = {
           visibility?: "public" | "private";
           tags?: string[];
           github_url?: string | null;
-          autonomy_level?: number;
           upvotes?: number;
           comment_count?: number;
           collaborator_count?: number;
@@ -553,7 +551,7 @@ export type Database = {
           human_check_required: boolean;
           title: string;
           description: string | null;
-          status: string;
+          status: "pending" | "in_progress" | "completed" | "failed" | "awaiting_approval";
           position: number;
           comment_count: number;
           started_at: string | null;
@@ -569,7 +567,7 @@ export type Database = {
           human_check_required?: boolean;
           title: string;
           description?: string | null;
-          status?: string;
+          status?: "pending" | "in_progress" | "completed" | "failed" | "awaiting_approval";
           position?: number;
           comment_count?: number;
           started_at?: string | null;
@@ -585,7 +583,7 @@ export type Database = {
           human_check_required?: boolean;
           title?: string;
           description?: string | null;
-          status?: string;
+          status?: "pending" | "in_progress" | "completed" | "failed" | "awaiting_approval";
           position?: number;
           comment_count?: number;
           started_at?: string | null;
@@ -623,7 +621,7 @@ export type Database = {
           step_id: string;
           idea_id: string;
           author_id: string;
-          type: string;
+          type: "comment" | "output" | "approval" | "failure" | "changes_requested";
           content: string;
           created_at: string;
           updated_at: string;
@@ -633,7 +631,7 @@ export type Database = {
           step_id: string;
           idea_id: string;
           author_id: string;
-          type?: string;
+          type?: "comment" | "output" | "approval" | "failure" | "changes_requested";
           content: string;
           created_at?: string;
           updated_at?: string;
@@ -643,7 +641,7 @@ export type Database = {
           step_id?: string;
           idea_id?: string;
           author_id?: string;
-          type?: string;
+          type?: "comment" | "output" | "approval" | "failure" | "changes_requested";
           content?: string;
           created_at?: string;
           updated_at?: string;

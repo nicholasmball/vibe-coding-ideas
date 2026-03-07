@@ -142,9 +142,9 @@ Move to "Blocked/Requires User Input" with a comment explaining why.
 
 ## Database
 
-32 tables with RLS (`supabase/migrations/`):
+30 tables with RLS (`supabase/migrations/`):
 - **Core**: users, ideas, comments, collaborators, votes, notifications, feedback, idea_attachments
-- **Board**: board_columns, board_tasks, board_labels, board_task_labels, task_workflow_steps, board_task_activity, board_task_comments, board_task_attachments
+- **Board**: board_columns, board_tasks, board_labels, board_task_labels, task_workflow_steps, workflow_step_comments, board_task_activity, board_task_comments, board_task_attachments
 - **Discussions**: idea_discussions, idea_discussion_replies, discussion_votes
 - **Agents**: bot_profiles, idea_agents, agent_votes, featured_teams, featured_team_agents
 - **AI**: ai_usage_log, ai_prompt_templates
@@ -160,10 +160,10 @@ Key columns:
 
 ## Server Actions (src/actions/)
 
-18 files, 94 exported functions:
+18 files, 102 exported functions:
 - `ideas.ts` — create, update, updateStatus, updateIdeaFields (partial inline edit), delete
 - `board.ts` — columns (init, CRUD, reorder), tasks (CRUD, move, archive), labels (CRUD, assign), task comments (create, update, delete)
-- `workflow.ts` — createWorkflowStep, updateWorkflowStep, deleteWorkflowStep, startWorkflowStep, completeWorkflowStep, failWorkflowStep
+- `workflow.ts` — createWorkflowStep, updateWorkflowStep, deleteWorkflowStep, startWorkflowStep, completeWorkflowStep, failWorkflowStep, approveWorkflowStep, retryWorkflowStep, addStepComment, deleteStepComment
 - `collaborators.ts` — requestCollaboration, withdrawRequest, respondToRequest, leaveCollaboration, addCollaborator, removeCollaborator
 - `ai.ts` — enhanceIdeaDescription, generateClarifyingQuestions, enhanceIdeaWithContext, applyEnhancedDescription, generateBoardTasks, enhanceTaskDescription, enhanceDiscussionBody, getAiAccess, hasApiKey (deprecated)
 - `comments.ts` — create, incorporate, delete, update
@@ -232,7 +232,7 @@ See `docs/release-process.md` for full details.
 
 ## MCP Server
 
-Two modes sharing 55 tools via `mcp-server/src/register-tools.ts` + `McpContext` DI:
+Two modes sharing 66 tools via `mcp-server/src/register-tools.ts` + `McpContext` DI:
 - **Local (stdio)**: `mcp-server/src/index.ts` — service-role client, bypasses RLS
 - **Remote (HTTP)**: `src/app/api/mcp/[[...transport]]/route.ts` — OAuth 2.1 + PKCE, per-user RLS
 

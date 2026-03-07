@@ -51,11 +51,13 @@ export function StatusSelect({ ideaId, currentStatus }: StatusSelectProps) {
           <ChevronDown className={`h-3.5 w-3.5 ${config.color}`} />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-[140px] p-1" align="start">
+      <PopoverContent className="w-[140px] p-1" align="start" role="listbox" aria-label="Status options">
         {(Object.entries(STATUS_CONFIG) as [IdeaStatus, typeof STATUS_CONFIG[IdeaStatus]][]).map(
           ([value, cfg]) => (
             <button
               key={value}
+              role="option"
+              aria-selected={value === optimisticStatus}
               onClick={() => handleSelect(value as IdeaStatus)}
               className={`flex w-full items-center rounded-sm px-2 py-1.5 text-sm hover:bg-accent transition-colors ${value === optimisticStatus ? "bg-accent" : ""}`}
             >

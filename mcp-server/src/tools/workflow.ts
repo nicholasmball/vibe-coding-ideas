@@ -364,12 +364,15 @@ export async function failStep(
   if (!targetStepData) throw new Error("Target step not found");
 
   // Mark step as failed, post failure comment, and cascade-reset subsequent steps in parallel
-  const [{ error: failError }, { error: commentError }, { error: cascadeError }] = await Promise.all([
+  const [{ data: failedStep, error: failError }, { error: commentError }, { error: cascadeError }] = await Promise.all([
     ctx.supabase
       .from("task_workflow_steps")
       .update({ status: "failed" })
       .eq("id", params.target_step_id)
-      .eq("idea_id", params.idea_id),
+      .eq("idea_id", params.idea_id)
+      .in("status", ["in_progress", "completed", "awaiting_approval"])
+      .select("id")
+      .maybeSingle(),
     ctx.supabase
       .from("workflow_step_comments")
       .insert({
@@ -389,6 +392,7 @@ export async function failStep(
   ]);
 
   if (failError) throw new Error(`Failed to mark step as failed: ${failError.message}`);
+  if (!failedStep) throw new Error("Step cannot be failed from its current status");
   if (commentError) throw new Error(`Failed to save failure reason: ${commentError.message}`);
   if (cascadeError) throw new Error(`Failed to cascade reset: ${cascadeError.message}`);
 
@@ -509,7 +513,7 @@ export async function addStepComment(
       content: params.content,
     })
     .select("id, content, created_at")
-    .single();
+    .maybeSingle();
 
   if (error) throw new Error(`Failed to add step comment: ${error.message}`);
 

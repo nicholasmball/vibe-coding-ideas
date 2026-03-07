@@ -418,9 +418,10 @@ export async function convertDiscussion(
     .select("id, title, body, status, target_assignee_id, autonomy_level")
     .eq("id", params.discussion_id)
     .eq("idea_id", params.idea_id)
-    .single();
+    .maybeSingle();
 
-  if (fetchError || !discussion) throw new Error(`Discussion not found: ${params.discussion_id}`);
+  if (fetchError) throw new Error(`Failed to fetch discussion: ${fetchError.message}`);
+  if (!discussion) throw new Error(`Discussion not found: ${params.discussion_id}`);
   if (discussion.status === "converted") {
     throw new Error("Discussion has already been converted to a task");
   }

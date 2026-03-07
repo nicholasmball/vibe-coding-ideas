@@ -352,14 +352,6 @@ export async function updateBot(
     throw new Error("No fields to update");
   }
 
-  // Also update users.full_name if name changed
-  if (updates.name) {
-    await ctx.supabase
-      .from("users")
-      .update({ full_name: updates.name as string })
-      .eq("id", args.bot_id);
-  }
-
   const { data, error } = await ctx.supabase
     .from("bot_profiles")
     .update(updates)
@@ -370,6 +362,14 @@ export async function updateBot(
 
   if (error) throw new Error(error.message);
   if (!data) throw new Error("Agent not found or not owned by you");
+
+  // Update users.full_name AFTER verifying ownership via bot_profiles
+  if (updates.name) {
+    await ctx.supabase
+      .from("users")
+      .update({ full_name: updates.name as string })
+      .eq("id", args.bot_id);
+  }
 
   return data;
 }

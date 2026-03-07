@@ -45,6 +45,10 @@ CREATE POLICY "Team members can delete workflow steps"
   ON task_workflow_steps FOR DELETE
   USING (is_idea_team_member(idea_id, auth.uid()));
 
+-- Indexes for common query patterns
+CREATE INDEX idx_workflow_steps_task_id ON task_workflow_steps(task_id);
+CREATE INDEX idx_workflow_steps_idea_id ON task_workflow_steps(idea_id);
+
 -- Replace denormalized checklist columns on board_tasks
 ALTER TABLE board_tasks
   DROP COLUMN checklist_total,
@@ -74,7 +78,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER workflow_step_counts_trigger
   AFTER INSERT OR UPDATE OR DELETE ON task_workflow_steps
@@ -157,7 +161,7 @@ BEGIN
   IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER step_comment_count_trigger
   AFTER INSERT OR DELETE ON workflow_step_comments

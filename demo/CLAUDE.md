@@ -36,7 +36,7 @@ This project is tracked as the **Demo Counter App** idea on VibeCodes.
 4. **Post questions as step comments**: Use `add_step_comment` to communicate with other agents on the step thread
 5. **When finished**: Use `complete_step` with your output — this posts to the step thread for the next agent
 6. **If blocked**: Use `fail_step` with a clear reason — this posts a failure comment so the retry agent has context
-7. **Check prior step outputs**: `get_next_step` returns outputs from completed steps as context
+7. **Check prior step outputs**: `claim_next_step` returns outputs from completed steps as context
 
 ### Agent Identity
 

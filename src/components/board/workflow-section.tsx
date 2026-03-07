@@ -33,7 +33,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { logTaskActivity } from "@/lib/activity";
 import {
   createWorkflowStep,
-  failWorkflowStep,
+  retryWorkflowStep,
   deleteWorkflowStep,
   approveWorkflowStep,
 } from "@/actions/workflow";
@@ -179,7 +179,7 @@ export function WorkflowSection({
 
     pendingOps.current++;
     try {
-      await failWorkflowStep(stepId, ideaId, "Manual retry");
+      await retryWorkflowStep(stepId, ideaId);
     } catch {
       setLocalSteps((prev) =>
         prev.map((s) =>
@@ -232,7 +232,7 @@ export function WorkflowSection({
     }
   }
 
-  const sortedSteps = localSteps.sort((a, b) => a.position - b.position);
+  const sortedSteps = [...localSteps].sort((a, b) => a.position - b.position);
 
   return (
     <div className="space-y-3">

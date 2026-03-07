@@ -123,16 +123,20 @@ export async function startWorkflowStep(stepId: string, ideaId: string) {
     throw new Error("Step is not pending or failed");
   }
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("task_workflow_steps")
     .update({
       status: "in_progress",
       started_at: new Date().toISOString(),
     })
     .eq("id", stepId)
-    .eq("idea_id", ideaId);
+    .eq("idea_id", ideaId)
+    .in("status", ["pending", "failed"])
+    .select("id")
+    .maybeSingle();
 
   if (error) throw new Error(error.message);
+  if (!updated) throw new Error("Step was modified concurrently");
 
   // Update task assignee to this step's bot
   if (step.bot_id) {
@@ -170,16 +174,20 @@ export async function completeWorkflowStep(
 
   const nextStatus = stepInfo.human_check_required ? "awaiting_approval" : "completed";
 
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("task_workflow_steps")
     .update({
       status: nextStatus,
       ...(nextStatus === "completed" ? { completed_at: new Date().toISOString() } : {}),
     })
     .eq("id", stepId)
-    .eq("idea_id", ideaId);
+    .eq("idea_id", ideaId)
+    .eq("status", "in_progress")
+    .select("id")
+    .maybeSingle();
 
   if (error) throw new Error(error.message);
+  if (!updated) throw new Error("Step was modified concurrently");
 
   // Post output as a comment on the step thread
   await supabase.from("workflow_step_comments").insert({
@@ -250,18 +258,22 @@ export async function failWorkflowStep(
     .select("position, task_id")
     .eq("id", targetStepId)
     .eq("idea_id", ideaId)
-    .single();
+    .maybeSingle();
 
   if (!targetStep) throw new Error("Target step not found");
 
-  // Set target step to failed
-  const { error: failError } = await supabase
+  // Set target step to failed (status guard prevents double-fail)
+  const { data: failed, error: failError } = await supabase
     .from("task_workflow_steps")
     .update({ status: "failed" })
     .eq("id", targetStepId)
-    .eq("idea_id", ideaId);
+    .eq("idea_id", ideaId)
+    .in("status", ["in_progress", "completed", "awaiting_approval"])
+    .select("id")
+    .maybeSingle();
 
   if (failError) throw new Error(failError.message);
+  if (!failed) throw new Error("Step cannot be failed from its current status");
 
   // Post failure reason as a comment on the step thread
   await supabase.from("workflow_step_comments").insert({
@@ -280,6 +292,29 @@ export async function failWorkflowStep(
     .eq("idea_id", ideaId)
     .gt("position", targetStep.position)
     .neq("status", "pending");
+
+  revalidatePath(`/ideas/${ideaId}/board`);
+}
+
+export async function retryWorkflowStep(stepId: string, ideaId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+
+  const { data: updated, error } = await supabase
+    .from("task_workflow_steps")
+    .update({ status: "pending", started_at: null, completed_at: null })
+    .eq("id", stepId)
+    .eq("idea_id", ideaId)
+    .eq("status", "failed")
+    .select("id")
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!updated) throw new Error("Step is not in failed status");
 
   revalidatePath(`/ideas/${ideaId}/board`);
 }
