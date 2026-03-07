@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Bot, Crown, Plus, X } from "lucide-react";
+import { Bot, Crown, Plus, Wrench, X } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -30,20 +30,31 @@ export function IdeaAgentsSection({
   userBots,
   orchestratorBotId,
 }: IdeaAgentsSectionProps) {
-  const [addOpen, setAddOpen] = useState(false);
+  const [orchestratorAddOpen, setOrchestratorAddOpen] = useState(false);
+  const [workerAddOpen, setWorkerAddOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [selectedBotId, setSelectedBotId] = useState<string | null>(null);
 
-  // Bots the current user owns that are NOT already in the pool
+  // Split allocated agents by type
+  const orchestratorAgents = ideaAgents.filter((a) => a.bot.agent_type === "orchestrator");
+  const workerAgents = ideaAgents.filter((a) => a.bot.agent_type !== "orchestrator");
+
+  // Split unallocated user bots by type
   const allocatedBotIds = new Set(ideaAgents.map((a) => a.bot_id));
-  const unallocatedBots = userBots.filter((b) => !allocatedBotIds.has(b.id));
+  const unallocatedOrchestrators = userBots.filter(
+    (b) => !allocatedBotIds.has(b.id) && b.agent_type === "orchestrator"
+  );
+  const unallocatedWorkers = userBots.filter(
+    (b) => !allocatedBotIds.has(b.id) && b.agent_type !== "orchestrator"
+  );
 
   function handleAllocate(botId: string) {
     startTransition(async () => {
       try {
         await allocateAgent(ideaId, botId);
         toast.success("Agent added to pool");
-        setAddOpen(false);
+        setOrchestratorAddOpen(false);
+        setWorkerAddOpen(false);
       } catch {
         toast.error("Failed to add agent");
       }
@@ -61,16 +72,16 @@ export function IdeaAgentsSection({
     });
   }
 
-  function handleToggleOrchestrator(botId: string) {
+  function handleSetDefault(botId: string) {
     startTransition(async () => {
       try {
         const newBotId = botId === orchestratorBotId ? null : botId;
         await setOrchestrationAgent(ideaId, newBotId);
         toast.success(
-          newBotId ? "Orchestration agent set" : "Orchestration agent cleared"
+          newBotId ? "Default orchestrator set" : "Default orchestrator cleared"
         );
       } catch {
-        toast.error("Failed to update orchestration agent");
+        toast.error("Failed to update default orchestrator");
       }
     });
   }
@@ -79,114 +90,214 @@ export function IdeaAgentsSection({
   if (!isTeamMember && ideaAgents.length === 0) return null;
 
   return (
-    <div className="mt-6">
-      <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
-        <Bot className="h-4 w-4" />
-        Agent Pool ({ideaAgents.length})
-        {isTeamMember && unallocatedBots.length > 0 && (
-          <Popover open={addOpen} onOpenChange={setAddOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="icon" className="h-5 w-5 rounded-full">
-                <Plus className="h-3 w-3" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-56 p-2" align="start">
-              <p className="mb-2 text-xs font-medium text-muted-foreground">Add your agent</p>
-              <div className="space-y-1">
-                {unallocatedBots.map((bot) => {
-                  const colors = getRoleColor(bot.role);
-                  return (
+    <div className="mt-6 space-y-4">
+      {/* Orchestrator Pool */}
+      <div>
+        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+          <Crown className="h-4 w-4 text-amber-500" />
+          Orchestrator Pool ({orchestratorAgents.length})
+          {isTeamMember && unallocatedOrchestrators.length > 0 && (
+            <AddAgentPopover
+              open={orchestratorAddOpen}
+              onOpenChange={setOrchestratorAddOpen}
+              bots={unallocatedOrchestrators}
+              onAllocate={handleAllocate}
+              pending={pending}
+              label="Add orchestrator"
+            />
+          )}
+        </h3>
+        {orchestratorAgents.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            No orchestrators allocated. Add an orchestrator agent to manage workflows.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {orchestratorAgents.map((agent) => {
+              const canRemove = isAuthor || agent.added_by === currentUserId;
+              const isDefault = agent.bot_id === orchestratorBotId;
+              const colors = getRoleColor(agent.bot.role);
+              return (
+                <div
+                  key={agent.id}
+                  className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:border-primary ${isDefault ? "border-amber-500/40" : "border-amber-500/20"}`}
+                >
                   <button
-                    key={bot.id}
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent disabled:opacity-50"
-                    onClick={() => handleAllocate(bot.id)}
-                    disabled={pending}
+                    type="button"
+                    onClick={() => setSelectedBotId(agent.bot_id)}
+                    className="flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Avatar className="h-5 w-5">
-                      <AvatarImage src={bot.avatar_url ?? undefined} />
-                      <AvatarFallback className={`text-[10px] ${colors.avatarBg} ${colors.avatarText}`}>
-                        {bot.name?.[0]?.toUpperCase() ?? "?"}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="relative">
+                      <Avatar className="h-5 w-5">
+                        <AvatarImage src={agent.bot.avatar_url ?? undefined} />
+                        <AvatarFallback className={`text-[10px] ${colors.avatarBg} ${colors.avatarText}`}>
+                          {agent.bot.name?.[0]?.toUpperCase() ?? "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <Bot className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 text-primary" />
+                    </div>
                     <div className="flex flex-col leading-tight text-left">
-                      <span>{bot.name}</span>
-                      {bot.role && (
-                        <span className="text-[11px] text-muted-foreground">{bot.role}</span>
+                      <span>{agent.bot.name}</span>
+                      {agent.bot.role && (
+                        <span className="text-[11px] text-muted-foreground">{agent.bot.role}</span>
                       )}
                     </div>
                   </button>
-                  );
-                })}
-              </div>
-            </PopoverContent>
-          </Popover>
+                  {isTeamMember && (
+                    <button
+                      onClick={() => handleSetDefault(agent.bot_id)}
+                      disabled={pending}
+                      title={isDefault ? "Remove as default" : "Set as default orchestrator"}
+                      className={`ml-0.5 rounded-full p-0.5 transition-colors disabled:opacity-50 ${isDefault ? "text-amber-500" : "text-muted-foreground/40 hover:text-amber-500/70"}`}
+                    >
+                      <Crown className="h-3 w-3" fill={isDefault ? "currentColor" : "none"} />
+                    </button>
+                  )}
+                  {canRemove && (
+                    <button
+                      onClick={() => handleRemove(agent.bot_id)}
+                      disabled={pending}
+                      className="ml-0.5 rounded-full p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         )}
-      </h3>
-      {ideaAgents.length === 0 ? (
-        <p className="text-xs text-muted-foreground">
-          No agents allocated yet. Team members can add their agents to the shared pool.
-        </p>
-      ) : (
-        <div className="flex flex-wrap gap-2">
-          {ideaAgents.map((agent) => {
-            const canRemove = isAuthor || agent.added_by === currentUserId;
-            const isOrchestrator = agent.bot_id === orchestratorBotId;
-            const colors = getRoleColor(agent.bot.role);
-            return (
-              <div
-                key={agent.id}
-                className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors hover:border-primary ${isOrchestrator ? "border-amber-500/40" : "border-border"}`}
-              >
-                <button
-                  type="button"
-                  onClick={() => setSelectedBotId(agent.bot_id)}
-                  className="flex items-center gap-1.5 cursor-pointer"
+      </div>
+
+      {/* Worker Pool */}
+      <div>
+        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
+          <Wrench className="h-4 w-4 text-blue-500" />
+          Worker Pool ({workerAgents.length})
+          {isTeamMember && unallocatedWorkers.length > 0 && (
+            <AddAgentPopover
+              open={workerAddOpen}
+              onOpenChange={setWorkerAddOpen}
+              bots={unallocatedWorkers}
+              onAllocate={handleAllocate}
+              pending={pending}
+              label="Add worker"
+            />
+          )}
+        </h3>
+        {workerAgents.length === 0 ? (
+          <p className="text-xs text-muted-foreground">
+            No worker agents allocated yet. Add agents to the pool so they can be assigned to tasks.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {workerAgents.map((agent) => {
+              const canRemove = isAuthor || agent.added_by === currentUserId;
+              const colors = getRoleColor(agent.bot.role);
+              return (
+                <div
+                  key={agent.id}
+                  className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm transition-colors hover:border-primary"
                 >
-                  <div className="relative">
-                    <Avatar className="h-5 w-5">
-                      <AvatarImage src={agent.bot.avatar_url ?? undefined} />
-                      <AvatarFallback className={`text-[10px] ${colors.avatarBg} ${colors.avatarText}`}>
-                        {agent.bot.name?.[0]?.toUpperCase() ?? "?"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <Bot className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 text-primary" />
-                  </div>
-                  <div className="flex flex-col leading-tight text-left">
-                    <span>{agent.bot.name}</span>
-                    {agent.bot.role && (
-                      <span className="text-[11px] text-muted-foreground">{agent.bot.role}</span>
-                    )}
-                  </div>
-                </button>
-                {isTeamMember && (
                   <button
-                    onClick={() => handleToggleOrchestrator(agent.bot_id)}
-                    disabled={pending}
-                    title={isOrchestrator ? "Remove as orchestrator" : "Set as orchestrator"}
-                    className={`ml-0.5 rounded-full p-0.5 transition-colors disabled:opacity-50 ${isOrchestrator ? "text-amber-500" : "text-muted-foreground/40 hover:text-amber-500/70"}`}
+                    type="button"
+                    onClick={() => setSelectedBotId(agent.bot_id)}
+                    className="flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Crown className="h-3 w-3" fill={isOrchestrator ? "currentColor" : "none"} />
+                    <div className="relative">
+                      <Avatar className="h-5 w-5">
+                        <AvatarImage src={agent.bot.avatar_url ?? undefined} />
+                        <AvatarFallback className={`text-[10px] ${colors.avatarBg} ${colors.avatarText}`}>
+                          {agent.bot.name?.[0]?.toUpperCase() ?? "?"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <Bot className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 text-primary" />
+                    </div>
+                    <div className="flex flex-col leading-tight text-left">
+                      <span>{agent.bot.name}</span>
+                      {agent.bot.role && (
+                        <span className="text-[11px] text-muted-foreground">{agent.bot.role}</span>
+                      )}
+                    </div>
                   </button>
-                )}
-                {canRemove && (
-                  <button
-                    onClick={() => handleRemove(agent.bot_id)}
-                    disabled={pending}
-                    className="ml-0.5 rounded-full p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
+                  {canRemove && (
+                    <button
+                      onClick={() => handleRemove(agent.bot_id)}
+                      disabled={pending}
+                      className="ml-0.5 rounded-full p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       <AgentProfileDialog
         botId={selectedBotId}
         open={selectedBotId !== null}
         onOpenChange={(open) => { if (!open) setSelectedBotId(null); }}
       />
     </div>
+  );
+}
+
+// --- Add agent popover ---
+
+function AddAgentPopover({
+  open,
+  onOpenChange,
+  bots,
+  onAllocate,
+  pending,
+  label,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  bots: BotProfile[];
+  onAllocate: (botId: string) => void;
+  pending: boolean;
+  label: string;
+}) {
+  return (
+    <Popover open={open} onOpenChange={onOpenChange}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="icon" className="h-5 w-5 rounded-full">
+          <Plus className="h-3 w-3" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-2" align="start">
+        <p className="mb-2 text-xs font-medium text-muted-foreground">{label}</p>
+        <div className="space-y-1">
+          {bots.map((bot) => {
+            const colors = getRoleColor(bot.role);
+            return (
+              <button
+                key={bot.id}
+                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent disabled:opacity-50"
+                onClick={() => onAllocate(bot.id)}
+                disabled={pending}
+              >
+                <Avatar className="h-5 w-5">
+                  <AvatarImage src={bot.avatar_url ?? undefined} />
+                  <AvatarFallback className={`text-[10px] ${colors.avatarBg} ${colors.avatarText}`}>
+                    {bot.name?.[0]?.toUpperCase() ?? "?"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col leading-tight text-left">
+                  <span>{bot.name}</span>
+                  {bot.role && (
+                    <span className="text-[11px] text-muted-foreground">{bot.role}</span>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

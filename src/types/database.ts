@@ -1110,6 +1110,7 @@ export type Database = {
           skills: string[];
           deliverables: string[];
           workflow_templates: WorkflowTemplate[];
+          agent_type: "worker" | "orchestrator";
           is_published: boolean;
           community_upvotes: number;
           times_cloned: number;
@@ -1129,6 +1130,7 @@ export type Database = {
           skills?: string[];
           deliverables?: string[];
           workflow_templates?: WorkflowTemplate[];
+          agent_type?: "worker" | "orchestrator";
           is_published?: boolean;
           community_upvotes?: number;
           times_cloned?: number;
@@ -1148,6 +1150,7 @@ export type Database = {
           skills?: string[];
           deliverables?: string[];
           workflow_templates?: WorkflowTemplate[];
+          agent_type?: "worker" | "orchestrator";
           is_published?: boolean;
           community_upvotes?: number;
           times_cloned?: number;

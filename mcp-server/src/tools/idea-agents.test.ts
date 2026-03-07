@@ -291,6 +291,9 @@ describe("listIdeaAgents", () => {
           avatar_url: "https://example.com/avatar.png",
           is_active: true,
           owner_id: OWNER_ID,
+          agent_type: "worker",
+          deliverables: ["implementation code"],
+          workflow_templates: null,
         },
         adder: { id: OWNER_ID, full_name: "Alice" },
       },
@@ -307,6 +310,10 @@ describe("listIdeaAgents", () => {
       bot_role: "developer",
       bot_avatar_url: "https://example.com/avatar.png",
       is_active: true,
+      is_orchestrator: undefined,
+      agent_type: "worker",
+      deliverables: ["implementation code"],
+      workflow_templates: null,
       owner_id: OWNER_ID,
       added_by: OWNER_ID,
       added_by_name: "Alice",
@@ -343,6 +350,9 @@ describe("listIdeaAgents", () => {
     expect(result[0].bot_name).toBeNull();
     expect(result[0].bot_role).toBeNull();
     expect(result[0].is_active).toBe(false);
+    expect(result[0].agent_type).toBe("worker");
+    expect(result[0].deliverables).toBeNull();
+    expect(result[0].workflow_templates).toBeNull();
     expect(result[0].owner_id).toBeNull();
     expect(result[0].added_by_name).toBeNull();
   });

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Pencil } from "lucide-react";
+import { Crown, Pencil, Wrench } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { AgentVoteButton } from "./agent-vote-button";
@@ -196,6 +196,21 @@ export function AgentCard({
                 {bot.role}
               </Badge>
             )}
+            <Badge
+              className={cn(
+                "text-[10px] shrink-0 border-0 gap-0.5 px-1.5",
+                bot.agent_type === "orchestrator"
+                  ? "bg-amber-500/15 text-amber-500"
+                  : "bg-blue-500/15 text-blue-500"
+              )}
+            >
+              {bot.agent_type === "orchestrator" ? (
+                <Crown className="h-2.5 w-2.5" />
+              ) : (
+                <Wrench className="h-2.5 w-2.5" />
+              )}
+              {bot.agent_type === "orchestrator" ? "Orchestrator" : "Worker"}
+            </Badge>
             {!bot.is_active && (
               <Badge variant="outline" className="text-[10px] text-muted-foreground">
                 Inactive

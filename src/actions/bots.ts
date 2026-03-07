@@ -13,7 +13,8 @@ export async function createBot(
   bio?: string | null,
   skills?: string[],
   deliverables?: string[],
-  workflowTemplates?: unknown[]
+  workflowTemplates?: unknown[],
+  agentType?: "worker" | "orchestrator"
 ): Promise<string> {
   const supabase = await createClient();
   const {
@@ -42,14 +43,15 @@ export async function createBot(
 
   const botId = data as string;
 
-  // Set bio/skills via follow-up UPDATE (RPC doesn't know about new columns)
-  if (validatedBio || validatedSkills.length > 0) {
-    const extras: Record<string, unknown> = {};
-    if (validatedBio) extras.bio = validatedBio;
-    if (validatedSkills.length > 0) extras.skills = validatedSkills;
-    if (validatedDeliverables.length > 0) extras.deliverables = validatedDeliverables;
-    if (validatedTemplates.length > 0) extras.workflow_templates = validatedTemplates;
+  // Set extended fields via follow-up UPDATE (RPC doesn't know about new columns)
+  const extras: Record<string, unknown> = {};
+  if (validatedBio) extras.bio = validatedBio;
+  if (validatedSkills.length > 0) extras.skills = validatedSkills;
+  if (validatedDeliverables.length > 0) extras.deliverables = validatedDeliverables;
+  if (validatedTemplates.length > 0) extras.workflow_templates = validatedTemplates;
+  if (agentType && agentType !== "worker") extras.agent_type = agentType;
 
+  if (Object.keys(extras).length > 0) {
     await supabase
       .from("bot_profiles")
       .update(extras)
@@ -74,6 +76,7 @@ export async function updateBot(
     skills?: string[];
     deliverables?: string[];
     workflow_templates?: unknown[];
+    agent_type?: "worker" | "orchestrator";
     is_published?: boolean;
   }
 ) {
@@ -103,6 +106,7 @@ export async function updateBot(
   if (updates.skills !== undefined) profileUpdates.skills = validateSkills(updates.skills ?? []);
   if (updates.deliverables !== undefined) profileUpdates.deliverables = validateDeliverables(updates.deliverables ?? []);
   if (updates.workflow_templates !== undefined) profileUpdates.workflow_templates = validateWorkflowTemplates(updates.workflow_templates ?? []);
+  if (updates.agent_type !== undefined) profileUpdates.agent_type = updates.agent_type;
   if (updates.is_published !== undefined) profileUpdates.is_published = updates.is_published;
 
   if (Object.keys(profileUpdates).length > 0) {
@@ -236,6 +240,7 @@ async function cloneBotProfile(
         skills: source.skills,
         deliverables: source.deliverables,
         workflow_templates: source.workflow_templates,
+        agent_type: source.agent_type,
         cloned_from: source.id,
       })
       .eq("id", newBotId)

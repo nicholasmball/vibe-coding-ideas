@@ -71,6 +71,59 @@ export const createBotSchema = z.object({
     .max(10)
     .optional()
     .describe("Reusable workflow templates for orchestration agents. Each template defines a named sequence of steps referencing agent roles."),
+  agent_type: z
+    .enum(["worker", "orchestrator"])
+    .optional()
+    .describe("Agent type: 'worker' (default, does tasks) or 'orchestrator' (manages workflows and delegates to workers)"),
+});
+
+export const updateBotSchema = z.object({
+  bot_id: z.string().uuid().describe("The bot profile ID to update"),
+  name: z.string().min(1).max(100).optional().describe("New agent display name"),
+  role: z.string().max(50).optional().nullable().describe("New agent role"),
+  system_prompt: z
+    .string()
+    .max(10000)
+    .optional()
+    .nullable()
+    .describe("New system prompt for the agent persona"),
+  is_active: z.boolean().optional().describe("Activate or deactivate the agent"),
+  bio: z.string().max(500).optional().nullable().describe("Short tagline/bio"),
+  skills: z
+    .array(z.string().max(30))
+    .max(10)
+    .optional()
+    .describe("Capability tags (max 10, 30 chars each)"),
+  deliverables: z
+    .array(z.string().max(100))
+    .max(10)
+    .optional()
+    .describe("What this agent produces when completing workflow steps (e.g. 'design document', 'test plan'). Max 10, 100 chars each."),
+  workflow_templates: z
+    .array(
+      z.object({
+        name: z.string().min(1).max(100).describe("Template name"),
+        steps: z
+          .array(
+            z.object({
+              title: z.string().min(1).max(200).describe("Step name"),
+              agent_role: z.string().max(50).optional().describe("Optional agent role for auto-matching"),
+              description: z.string().max(1000).optional().describe("Step description"),
+              human_check_required: z.boolean().optional().describe("Require human approval before completing"),
+            })
+          )
+          .min(1)
+          .max(20),
+      })
+    )
+    .max(10)
+    .optional()
+    .describe("Reusable workflow templates for orchestration agents."),
+  agent_type: z
+    .enum(["worker", "orchestrator"])
+    .optional()
+    .describe("Agent type: 'worker' (does tasks) or 'orchestrator' (manages workflows)"),
+  is_published: z.boolean().optional().describe("Publish or unpublish the agent to the community"),
 });
 
 export const toggleAgentVoteSchema = z.object({
@@ -131,6 +184,7 @@ export async function listBots(
     skills: bot.skills,
     deliverables: bot.deliverables,
     workflow_templates: bot.workflow_templates,
+    agent_type: bot.agent_type,
     is_published: bot.is_published,
     community_upvotes: bot.community_upvotes,
     times_cloned: bot.times_cloned,
@@ -147,7 +201,7 @@ export async function getBotPrompt(
 
   const { data, error } = await ctx.supabase
     .from("bot_profiles")
-    .select("id, name, role, system_prompt")
+    .select("id, name, role, system_prompt, agent_type, deliverables, workflow_templates")
     .eq("id", botId)
     .maybeSingle();
 
@@ -272,6 +326,9 @@ export async function createBot(
   if (args.workflow_templates && args.workflow_templates.length > 0) {
     extras.workflow_templates = args.workflow_templates;
   }
+  if (args.agent_type && args.agent_type !== "worker") {
+    extras.agent_type = args.agent_type;
+  }
   if (Object.keys(extras).length > 0) {
     await ctx.supabase
       .from("bot_profiles")
@@ -283,11 +340,55 @@ export async function createBot(
   // Fetch the created profile
   const { data: profile } = await ctx.supabase
     .from("bot_profiles")
-    .select("id, name, role, system_prompt, is_active, avatar_url, bio, skills, deliverables, workflow_templates, is_published")
+    .select("id, name, role, system_prompt, is_active, avatar_url, bio, skills, deliverables, workflow_templates, agent_type, is_published")
     .eq("id", data)
     .single();
 
   return profile;
+}
+
+export async function updateBot(
+  ctx: McpContext,
+  args: z.infer<typeof updateBotSchema>
+) {
+  const ownerId = ctx.ownerUserId ?? ctx.userId;
+
+  const updates: Record<string, unknown> = {};
+  if (args.name !== undefined) updates.name = args.name.trim();
+  if (args.role !== undefined) updates.role = args.role?.trim() || null;
+  if (args.system_prompt !== undefined) updates.system_prompt = args.system_prompt?.trim() || null;
+  if (args.is_active !== undefined) updates.is_active = args.is_active;
+  if (args.bio !== undefined) updates.bio = args.bio?.trim() || null;
+  if (args.skills !== undefined) updates.skills = args.skills.map((s) => s.trim().toLowerCase());
+  if (args.deliverables !== undefined) updates.deliverables = args.deliverables.map((d) => d.trim());
+  if (args.workflow_templates !== undefined) updates.workflow_templates = args.workflow_templates;
+  if (args.agent_type !== undefined) updates.agent_type = args.agent_type;
+  if (args.is_published !== undefined) updates.is_published = args.is_published;
+
+  if (Object.keys(updates).length === 0) {
+    throw new Error("No fields to update");
+  }
+
+  // Also update users.full_name if name changed
+  if (updates.name) {
+    await ctx.supabase
+      .from("users")
+      .update({ full_name: updates.name as string })
+      .eq("id", args.bot_id);
+  }
+
+  const { data, error } = await ctx.supabase
+    .from("bot_profiles")
+    .update(updates)
+    .eq("id", args.bot_id)
+    .eq("owner_id", ownerId)
+    .select("id, name, role, system_prompt, is_active, bio, skills, deliverables, workflow_templates, agent_type, is_published")
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!data) throw new Error("Agent not found or not owned by you");
+
+  return data;
 }
 
 export async function toggleAgentVote(
@@ -358,6 +459,7 @@ export async function cloneAgent(
         skills: source.skills,
         deliverables: source.deliverables,
         workflow_templates: source.workflow_templates,
+        agent_type: source.agent_type,
         cloned_from: args.bot_id,
       })
       .eq("id", newId)

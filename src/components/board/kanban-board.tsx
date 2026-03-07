@@ -942,7 +942,7 @@ export function KanbanBoard({
                       ideaId={ideaId}
                       teamMembers={teamMembers}
                       boardLabels={boardLabels}
-                      checklistItemsByTaskId={checklistItemsByTaskId}
+                      workflowStepsByTaskId={workflowStepsByTaskId}
                       highlightQuery={searchQuery}
                       currentUserId={currentUserId}
                       initialTaskId={autoOpenTaskId}

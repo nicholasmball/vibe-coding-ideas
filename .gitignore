@@ -56,6 +56,10 @@ playwright-report/
 .playwright-mcp/
 .env.test
 
+# Demo app
+demo/node_modules
+demo/dist
+
 # Temp/generated files
 nul
 *.log

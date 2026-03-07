@@ -59,7 +59,7 @@ export async function listIdeaAgents(
 ) {
   const { data, error } = await ctx.supabase
     .from("idea_agents")
-    .select("bot_id, added_by, is_orchestrator, created_at, bot:bot_profiles!idea_agents_bot_id_fkey(id, name, role, avatar_url, is_active, owner_id), adder:users!idea_agents_added_by_fkey(id, full_name)")
+    .select("bot_id, added_by, is_orchestrator, created_at, bot:bot_profiles!idea_agents_bot_id_fkey(id, name, role, avatar_url, is_active, owner_id, agent_type, deliverables, workflow_templates), adder:users!idea_agents_added_by_fkey(id, full_name)")
     .eq("idea_id", params.idea_id)
     .order("created_at", { ascending: true });
 
@@ -75,6 +75,9 @@ export async function listIdeaAgents(
       bot_avatar_url: bot?.avatar_url ?? null,
       is_active: bot?.is_active ?? false,
       is_orchestrator: row.is_orchestrator,
+      agent_type: bot?.agent_type ?? "worker",
+      deliverables: bot?.deliverables ?? null,
+      workflow_templates: bot?.workflow_templates ?? null,
       owner_id: bot?.owner_id ?? null,
       added_by: row.added_by,
       added_by_name: adder?.full_name ?? null,

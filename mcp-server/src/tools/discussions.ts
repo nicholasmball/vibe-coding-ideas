@@ -377,16 +377,18 @@ export async function getDiscussionsReadyToConvert(
 
   return {
     discussions: enriched,
-    workflow: [
-      "For each discussion:",
+    required_actions: [
+      "You MUST execute the following steps for each discussion. Do NOT stop or ask for confirmation — complete all steps automatically.",
       "1. If orchestration_agent_id is set, call set_agent_identity with that ID to act as the orchestrator",
       "2. Call convert_discussion with the discussion_id, idea_id, and target_column_id",
-      "   - This creates the task, marks the discussion as converted, and returns the full discussion context including autonomy_level",
-      "3. Use the returned discussion body and replies to analyze what workflow steps are needed",
-      "4. Call list_idea_agents to see which agents are available for the idea",
-      "5. Call create_workflow_steps to create sequential implementation steps, assigning each to an appropriate agent",
-      "   - Respect the autonomy_level: 1=human after every step, 2=human after key deliverables (after automated checks), 3=single human sign-off at end, 4=no human steps",
-      "6. Add a discussion reply confirming the task and workflow steps were created",
+      "3. Analyze the returned discussion body and replies to identify what workflow steps are needed",
+      "4. Call list_idea_agents to get the available agents (includes their workflow_templates, deliverables, and agent_type)",
+      "   - If the orchestrator agent has workflow_templates, use them as the authoritative step sequence",
+      "   - If worker agents have deliverables, reference those in step descriptions so agents know what to produce",
+      "5. Call create_workflow_steps with the task_id and idea_id, assigning each step to an appropriate agent",
+      "   - Respect the autonomy_level: 1=human after every step, 2=human after key deliverables (design specs, UX, major milestones — place implementation checks after automated gates like code review/QA), 3=single human sign-off at end, 4=no human steps",
+      "   - MANDATORY (levels 1-3): always set human_check_required on UX design/mockup and frontend UI steps — these need subjective human review",
+      "6. Call add_discussion_reply confirming the task and workflow steps were created",
       "7. Call set_agent_identity (no args) to reset to default identity",
     ],
   };
@@ -499,8 +501,8 @@ export async function convertDiscussion(
 
   const autonomyLabels: Record<number, string> = {
     1: "Full Oversight — add a human checkpoint after EVERY agent step",
-    2: "Key Checkpoints — add human review after key deliverables, always AFTER automated quality gates (code review, QA) so humans review validated work.",
-    3: "Review on Completion — add a single human sign-off step at the end",
+    2: "Key Checkpoints — add human review after key deliverables (design specs, UX mockups, and major implementation milestones). Place implementation human checks AFTER automated quality gates (code review, QA) so humans review validated work. MANDATORY: always set human_check_required on UX design/mockup steps and frontend UI steps — these require subjective human review that automated agents cannot validate.",
+    3: "Review on Completion — add a single human sign-off step at the end. MANDATORY: also set human_check_required on any UX design/mockup or frontend UI steps — these require subjective human review.",
     4: "Fully Autonomous — do NOT add any human validation steps",
   };
   const autonomyLevel = discussion.autonomy_level ?? 2;
@@ -518,17 +520,20 @@ export async function convertDiscussion(
       : null,
     autonomy_level: autonomyLevel,
     autonomy_instruction: autonomyLabels[autonomyLevel] ?? autonomyLabels[2],
-    next_steps: [
-      "The task has been created and the discussion marked as converted.",
+    message: "Task created and discussion marked as converted.",
+    required_actions: [
+      "You MUST execute the following steps now. Do NOT stop or ask for confirmation — complete all steps automatically.",
       `Autonomy level: ${autonomyLevel}/4 — ${autonomyLabels[autonomyLevel] ?? autonomyLabels[2]}`,
-      "Now build workflow steps for this task:",
       "1. Analyze the discussion body and replies above to identify implementation steps",
-      "2. Call list_idea_agents to see which agents are available for this idea",
-      `3. Call create_workflow_steps with the task_id and idea_id, assigning each step to an appropriate agent. Use step_type 'human' for validation checkpoints per the autonomy level above.`,
+      "2. Call list_idea_agents to get the available agents (includes their workflow_templates, deliverables, and agent_type)",
+      "   - If the orchestrator agent has workflow_templates, use them as the authoritative step sequence",
+      "   - If worker agents have deliverables, reference those in step descriptions so agents know what to produce",
+      "3. Call create_workflow_steps with the task_id and idea_id, assigning each step to an appropriate agent",
+      "   - Set human_check_required: true on steps that need human approval per the autonomy level above",
       ...(discussion.target_assignee_id
         ? [`4. The orchestration agent is "${orchestrationAgentName}" (${discussion.target_assignee_id}) — use set_agent_identity to act as this agent for coordination tasks`]
         : []),
-      `${discussion.target_assignee_id ? "5" : "4"}. Add a discussion reply confirming the task and workflow were created`,
+      `${discussion.target_assignee_id ? "5" : "4"}. Call add_discussion_reply confirming the task and workflow were created`,
     ],
   };
 }

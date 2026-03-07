@@ -1,0 +1,5 @@
+# Keep memory folder private
+memory/*
+!memory/.gitkeep
+node_modules/*
+demo/node_modules/*

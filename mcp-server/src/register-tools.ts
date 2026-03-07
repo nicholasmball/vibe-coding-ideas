@@ -148,6 +148,8 @@ import {
   setBotIdentitySchema,
   createBot,
   createBotSchema,
+  updateBot,
+  updateBotSchema,
   toggleAgentVote,
   toggleAgentVoteSchema,
   cloneAgent,
@@ -525,7 +527,7 @@ export function registerTools(
 
   server.tool(
     "create_workflow_steps",
-    "Bulk-create sequential workflow pipeline steps for a task. Each step is assigned to a bot agent. ORDERING: UX design/mockup steps MUST come before any development/implementation steps. Set human_check_required: true on steps that need human approval before the agent can complete them.",
+    "Bulk-create sequential workflow pipeline steps for a task. Each step is assigned to a bot agent. Follow the orchestrator's workflow_templates for step ordering. Set human_check_required: true on steps that need human approval before the agent can complete them.",
     createWorkflowStepsSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
@@ -996,6 +998,20 @@ export function registerTools(
       try {
         const ctx = await getContext(extra);
         return jsonResult(await createBot(ctx, createBotSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "update_agent",
+    "Update an agent's profile: name, role, system prompt, bio, skills, deliverables, workflow templates, agent type, active/published status. Only changed fields need to be provided.",
+    updateBotSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await updateBot(ctx, updateBotSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
       }

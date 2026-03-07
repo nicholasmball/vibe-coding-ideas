@@ -232,7 +232,7 @@ See `docs/release-process.md` for full details.
 
 ## MCP Server
 
-Two modes sharing 54 tools via `mcp-server/src/register-tools.ts` + `McpContext` DI:
+Two modes sharing 55 tools via `mcp-server/src/register-tools.ts` + `McpContext` DI:
 - **Local (stdio)**: `mcp-server/src/index.ts` — service-role client, bypasses RLS
 - **Remote (HTTP)**: `src/app/api/mcp/[[...transport]]/route.ts` — OAuth 2.1 + PKCE, per-user RLS
 

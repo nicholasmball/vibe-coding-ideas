@@ -114,7 +114,10 @@
       "mcp__vibecodes__create_workflow_steps",
       "mcp__vibecodes__convert_discussion",
       "mcp__vibecodes__list_idea_agents",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "mcp__vibecodes__get_discussions_ready_to_convert",
+      "Bash(gh pr:*)",
+      "mcp__vibecodes__update_workflow_step"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -4,10 +4,13 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
+  Crown,
   MessageSquare,
   CheckCircle2,
   Lightbulb,
   Trash2,
+  UserCheck,
+  Wrench,
 } from "lucide-react";
 import {
   Dialog,
@@ -24,6 +27,7 @@ import { parsePromptToFields } from "@/lib/prompt-builder";
 import { cn, formatRelativeTime, getInitials } from "@/lib/utils";
 import { getRoleColor } from "@/lib/agent-colors";
 import { getAgentProfile, type AgentProfileData } from "@/actions/bots";
+import type { WorkflowTemplate } from "@/types";
 
 interface AgentProfileDialogProps {
   botId: string | null;
@@ -130,6 +134,21 @@ export function AgentProfileDialog({ botId, open, onOpenChange, onRemove, remove
                       {bot.role}
                     </Badge>
                   )}
+                  <Badge
+                    className={cn(
+                      "text-xs shrink-0 border-0 gap-1",
+                      bot.agent_type === "orchestrator"
+                        ? "bg-amber-500/15 text-amber-500"
+                        : "bg-blue-500/15 text-blue-500"
+                    )}
+                  >
+                    {bot.agent_type === "orchestrator" ? (
+                      <Crown className="h-3 w-3" />
+                    ) : (
+                      <Wrench className="h-3 w-3" />
+                    )}
+                    {bot.agent_type === "orchestrator" ? "Orchestrator" : "Worker"}
+                  </Badge>
                 </div>
 
                 {bot.bio && (
@@ -247,6 +266,47 @@ export function AgentProfileDialog({ botId, open, onOpenChange, onRemove, remove
                   </div>
                 </div>
               )}
+
+            {/* Workflow Templates */}
+            {bot.workflow_templates && (bot.workflow_templates as WorkflowTemplate[]).length > 0 && (
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  &#x1F504; Workflow Templates
+                </h3>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {(bot.workflow_templates as WorkflowTemplate[]).map((template, ti) => (
+                    <div
+                      key={ti}
+                      className="rounded-lg border border-border bg-muted/30 overflow-hidden"
+                    >
+                      <div className="px-3 py-2 border-b border-border/50">
+                        <span className="text-xs font-semibold">{template.name}</span>
+                        <span className="text-[10px] text-muted-foreground ml-2">
+                          {template.steps.length} step{template.steps.length !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+                      <div className="px-3 py-2">
+                        <div className="flex flex-wrap items-center gap-1">
+                          {template.steps.map((step, si) => (
+                            <span key={si} className="flex items-center gap-1">
+                              {si > 0 && (
+                                <span className="text-[10px] text-muted-foreground">&gt;</span>
+                              )}
+                              <span className="rounded-full border border-violet-500/30 bg-violet-500/10 px-2 py-0.5 text-[10px] font-medium text-violet-400">
+                                {step.title}
+                                {step.human_check_required && (
+                                  <UserCheck className="inline ml-0.5 h-2.5 w-2.5 text-amber-400" />
+                                )}
+                              </span>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Two-column: Active Tasks + Contributing Ideas */}
             {(data.tasks.length > 0 || data.contributingIdeas.length > 0) && (

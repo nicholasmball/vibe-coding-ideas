@@ -37,7 +37,8 @@ export async function createAdminAgent(
   bio?: string | null,
   skills?: string[],
   deliverables?: string[],
-  workflowTemplates?: unknown[]
+  workflowTemplates?: unknown[],
+  agentType?: "worker" | "orchestrator"
 ): Promise<string> {
   const { supabase } = await requireAdmin();
 
@@ -69,6 +70,7 @@ export async function createAdminAgent(
   if (validatedSkills.length > 0) extras.skills = validatedSkills;
   if (validatedDeliverables.length > 0) extras.deliverables = validatedDeliverables;
   if (validatedTemplates.length > 0) extras.workflow_templates = validatedTemplates;
+  if (agentType && agentType !== "worker") extras.agent_type = agentType;
 
   await supabase
     .from("bot_profiles")
@@ -92,6 +94,7 @@ export async function updateAdminAgent(
     skills?: string[];
     deliverables?: string[];
     workflow_templates?: unknown[];
+    agent_type?: "worker" | "orchestrator";
   }
 ) {
   const { supabase } = await requireAdmin();
@@ -113,6 +116,7 @@ export async function updateAdminAgent(
   if (updates.skills !== undefined) profileUpdates.skills = validateSkills(updates.skills ?? []);
   if (updates.deliverables !== undefined) profileUpdates.deliverables = validateDeliverables(updates.deliverables ?? []);
   if (updates.workflow_templates !== undefined) profileUpdates.workflow_templates = validateWorkflowTemplates(updates.workflow_templates ?? []);
+  if (updates.agent_type !== undefined) profileUpdates.agent_type = updates.agent_type;
 
   if (Object.keys(profileUpdates).length > 0) {
     const { error } = await supabase

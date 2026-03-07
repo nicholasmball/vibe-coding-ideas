@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
-import { Bot, Pencil, Upload } from "lucide-react";
+import { Bot, Crown, Pencil, Upload, Wrench } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -52,6 +52,7 @@ export function CreateAdminAgentDialog({
   const [bio, setBio] = useState("");
   const [skillsInput, setSkillsInput] = useState("");
   const [deliverablesInput, setDeliverablesInput] = useState("");
+  const [agentType, setAgentType] = useState<"worker" | "orchestrator">("worker");
   const [workflowTemplates, setWorkflowTemplates] = useState<WorkflowTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -73,6 +74,7 @@ export function CreateAdminAgentDialog({
       setBio(editAgent.bio ?? "");
       setSkillsInput((editAgent.skills ?? []).join(", "));
       setDeliverablesInput((editAgent.deliverables ?? []).join(", "));
+      setAgentType((editAgent.agent_type as "worker" | "orchestrator") ?? "worker");
       setWorkflowTemplates((editAgent.workflow_templates ?? []) as WorkflowTemplate[]);
       setSelectedTemplate(null);
       setTemplateStructured(null);
@@ -102,6 +104,7 @@ export function CreateAdminAgentDialog({
     setBio("");
     setSkillsInput("");
     setDeliverablesInput("");
+    setAgentType("worker");
     setWorkflowTemplates([]);
     setSelectedTemplate(null);
     setTemplateStructured(null);
@@ -191,6 +194,7 @@ export function CreateAdminAgentDialog({
           skills,
           deliverables,
           workflow_templates: workflowTemplates,
+          agent_type: agentType,
           ...(avatarUrl !== undefined && { avatar_url: avatarUrl }),
         });
         toast.success("Agent updated");
@@ -204,7 +208,8 @@ export function CreateAdminAgentDialog({
           bio.trim() || null,
           skills,
           deliverables,
-          workflowTemplates
+          workflowTemplates,
+          agentType
         );
 
         // Upload avatar if selected
@@ -346,6 +351,39 @@ export function CreateAdminAgentDialog({
             </p>
           </div>
 
+          {/* Agent Type Toggle */}
+          <div className="space-y-1">
+            <Label className="text-xs">Agent Type</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setAgentType("worker")}
+                className={cn(
+                  "flex items-center gap-2 rounded-md border py-2 px-3 text-xs font-medium transition-colors",
+                  agentType === "worker"
+                    ? "border-blue-500 bg-blue-500/15 text-blue-400"
+                    : "border-border text-muted-foreground hover:border-blue-500/30 hover:text-foreground"
+                )}
+              >
+                <Wrench className="h-3.5 w-3.5" />
+                Worker
+              </button>
+              <button
+                type="button"
+                onClick={() => setAgentType("orchestrator")}
+                className={cn(
+                  "flex items-center gap-2 rounded-md border py-2 px-3 text-xs font-medium transition-colors",
+                  agentType === "orchestrator"
+                    ? "border-amber-500 bg-amber-500/15 text-amber-400"
+                    : "border-border text-muted-foreground hover:border-amber-500/30 hover:text-foreground"
+                )}
+              >
+                <Crown className="h-3.5 w-3.5" />
+                Orchestrator
+              </button>
+            </div>
+          </div>
+
           {/* Skills (comma-separated) */}
           <div className="space-y-1">
             <Label htmlFor="admin-bot-skills" className="text-xs">
@@ -367,31 +405,35 @@ export function CreateAdminAgentDialog({
             </p>
           </div>
 
-          {/* Deliverables (comma-separated) */}
-          <div className="space-y-1">
-            <Label htmlFor="admin-bot-deliverables" className="text-xs">
-              Deliverables{" "}
-              <span className="font-normal text-muted-foreground">
-                (optional)
-              </span>
-            </Label>
-            <Input
-              id="admin-bot-deliverables"
-              value={deliverablesInput}
-              onChange={(e) => setDeliverablesInput(e.target.value)}
-              placeholder="e.g. design document, wireframes, test plan"
-              maxLength={1000}
-            />
-            <p className="text-[10px] text-muted-foreground">
-              What this agent produces when completing workflow steps.
-            </p>
-          </div>
+          {/* Deliverables (workers only) */}
+          {agentType === "worker" && (
+            <div className="space-y-1">
+              <Label htmlFor="admin-bot-deliverables" className="text-xs">
+                Deliverables{" "}
+                <span className="font-normal text-muted-foreground">
+                  (optional)
+                </span>
+              </Label>
+              <Input
+                id="admin-bot-deliverables"
+                value={deliverablesInput}
+                onChange={(e) => setDeliverablesInput(e.target.value)}
+                placeholder="e.g. design document, wireframes, test plan"
+                maxLength={1000}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                What this agent produces when completing workflow steps.
+              </p>
+            </div>
+          )}
 
-          {/* Workflow Templates */}
-          <WorkflowTemplateEditor
-            value={workflowTemplates}
-            onChange={setWorkflowTemplates}
-          />
+          {/* Workflow Templates (orchestrators only) */}
+          {agentType === "orchestrator" && (
+            <WorkflowTemplateEditor
+              value={workflowTemplates}
+              onChange={setWorkflowTemplates}
+            />
+          )}
 
           {/* Prompt Builder */}
           <PromptBuilder

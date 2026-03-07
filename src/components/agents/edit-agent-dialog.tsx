@@ -2,7 +2,7 @@
 
 import { useState, useRef } from "react";
 import { toast } from "sonner";
-import { Pencil, Trash2, Upload } from "lucide-react";
+import { Crown, Pencil, Trash2, Upload, Wrench } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -18,7 +18,7 @@ import { updateBot, deleteBot } from "@/actions/bots";
 import { PromptBuilder } from "@/components/profile/prompt-builder";
 import { WorkflowTemplateEditor } from "./workflow-template-editor";
 import { createClient } from "@/lib/supabase/client";
-import { getInitials } from "@/lib/utils";
+import { cn, getInitials } from "@/lib/utils";
 import type { BotProfile, WorkflowTemplate } from "@/types";
 
 interface EditAgentDialogProps {
@@ -34,6 +34,9 @@ export function EditAgentDialog({ bot, open, onOpenChange }: EditAgentDialogProp
   const [bio, setBio] = useState(bot.bio ?? "");
   const [skillsInput, setSkillsInput] = useState((bot.skills ?? []).join(", "));
   const [deliverablesInput, setDeliverablesInput] = useState((bot.deliverables ?? []).join(", "));
+  const [agentType, setAgentType] = useState<"worker" | "orchestrator">(
+    (bot.agent_type as "worker" | "orchestrator") ?? "worker"
+  );
   const [workflowTemplates, setWorkflowTemplates] = useState<WorkflowTemplate[]>(
     (bot.workflow_templates ?? []) as WorkflowTemplate[]
   );
@@ -115,6 +118,7 @@ export function EditAgentDialog({ bot, open, onOpenChange }: EditAgentDialogProp
         skills: parseSkills(),
         deliverables: parseDeliverables(),
         workflow_templates: workflowTemplates,
+        agent_type: agentType,
         is_published: isPublished,
         ...(avatarUrl !== undefined && { avatar_url: avatarUrl }),
       });
@@ -223,6 +227,44 @@ export function EditAgentDialog({ bot, open, onOpenChange }: EditAgentDialogProp
             />
           </div>
 
+          {/* Agent Type Toggle */}
+          <div className="space-y-1">
+            <Label className="text-xs">Agent Type</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setAgentType("worker")}
+                className={cn(
+                  "flex items-center gap-2 rounded-md border py-2 px-3 text-xs font-medium transition-colors",
+                  agentType === "worker"
+                    ? "border-blue-500 bg-blue-500/15 text-blue-400"
+                    : "border-border text-muted-foreground hover:border-blue-500/30 hover:text-foreground"
+                )}
+              >
+                <Wrench className="h-3.5 w-3.5" />
+                Worker
+              </button>
+              <button
+                type="button"
+                onClick={() => setAgentType("orchestrator")}
+                className={cn(
+                  "flex items-center gap-2 rounded-md border py-2 px-3 text-xs font-medium transition-colors",
+                  agentType === "orchestrator"
+                    ? "border-amber-500 bg-amber-500/15 text-amber-400"
+                    : "border-border text-muted-foreground hover:border-amber-500/30 hover:text-foreground"
+                )}
+              >
+                <Crown className="h-3.5 w-3.5" />
+                Orchestrator
+              </button>
+            </div>
+            <p className="text-[10px] text-muted-foreground">
+              {agentType === "worker"
+                ? "Workers complete tasks and produce deliverables."
+                : "Orchestrators manage workflows and delegate tasks to workers."}
+            </p>
+          </div>
+
           {/* Skills (comma-separated) */}
           <div className="space-y-1">
             <Label htmlFor="edit-bot-skills" className="text-xs">
@@ -240,28 +282,32 @@ export function EditAgentDialog({ bot, open, onOpenChange }: EditAgentDialogProp
             </p>
           </div>
 
-          {/* Deliverables (comma-separated) */}
-          <div className="space-y-1">
-            <Label htmlFor="edit-bot-deliverables" className="text-xs">
-              Deliverables <span className="font-normal text-muted-foreground">(optional)</span>
-            </Label>
-            <Input
-              id="edit-bot-deliverables"
-              value={deliverablesInput}
-              onChange={(e) => setDeliverablesInput(e.target.value)}
-              placeholder="e.g. design document, wireframes, test plan"
-              maxLength={1000}
-            />
-            <p className="text-[10px] text-muted-foreground">
-              What this agent produces when completing workflow steps.
-            </p>
-          </div>
+          {/* Deliverables (workers only) */}
+          {agentType === "worker" && (
+            <div className="space-y-1">
+              <Label htmlFor="edit-bot-deliverables" className="text-xs">
+                Deliverables <span className="font-normal text-muted-foreground">(optional)</span>
+              </Label>
+              <Input
+                id="edit-bot-deliverables"
+                value={deliverablesInput}
+                onChange={(e) => setDeliverablesInput(e.target.value)}
+                placeholder="e.g. design document, wireframes, test plan"
+                maxLength={1000}
+              />
+              <p className="text-[10px] text-muted-foreground">
+                What this agent produces when completing workflow steps.
+              </p>
+            </div>
+          )}
 
-          {/* Workflow Templates */}
-          <WorkflowTemplateEditor
-            value={workflowTemplates}
-            onChange={setWorkflowTemplates}
-          />
+          {/* Workflow Templates (orchestrators only) */}
+          {agentType === "orchestrator" && (
+            <WorkflowTemplateEditor
+              value={workflowTemplates}
+              onChange={setWorkflowTemplates}
+            />
+          )}
 
           {/* Prompt Builder */}
           <PromptBuilder

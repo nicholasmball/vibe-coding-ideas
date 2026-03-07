@@ -228,9 +228,9 @@ export function ImportPreviewTable({
                   >
                     <span className="line-clamp-2">
                       {task.title}
-                      {task.checklistItems && task.checklistItems.length > 0 && (
+                      {task.workflowSteps && task.workflowSteps.length > 0 && (
                         <span className="ml-1 text-muted-foreground">
-                          ({task.checklistItems.length} subtasks)
+                          ({task.workflowSteps.length} subtasks)
                         </span>
                       )}
                     </span>
