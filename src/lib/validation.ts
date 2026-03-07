@@ -25,6 +25,9 @@ const VALID_LABEL_COLORS = [
   "rose", "zinc",
 ];
 
+const VALID_PRIORITIES = ["low", "medium", "high", "urgent"] as const;
+export type TaskPriority = (typeof VALID_PRIORITIES)[number];
+
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const GITHUB_URL_PATTERN = /^https:\/\/github\.com\/.+/;
@@ -97,6 +100,15 @@ export function validateTags(tagsRaw: string): string[] {
     }
   }
   return tags;
+}
+
+export function validatePriority(priority: string): TaskPriority {
+  if (!VALID_PRIORITIES.includes(priority as TaskPriority)) {
+    throw new ValidationError(
+      `Invalid priority: must be one of ${VALID_PRIORITIES.join(", ")}`,
+    );
+  }
+  return priority as TaskPriority;
 }
 
 export function validateLabelColor(color: string): string {

@@ -24,6 +24,7 @@ import { LabelPicker } from "./label-picker";
 import { DueDateBadge } from "./due-date-badge";
 import { createClient } from "@/lib/supabase/client";
 import { TaskAutoOpenContext } from "./kanban-board";
+import { PRIORITY_CONFIG } from "@/lib/priority";
 import type { BoardTaskWithAssignee, BoardLabel, TaskWorkflowStepWithAgent, User } from "@/types";
 
 const TaskDetailDialog = dynamic(() => import("./task-detail-dialog").then((m) => m.TaskDetailDialog), { ssr: false });
@@ -288,8 +289,12 @@ export const BoardTaskCard = memo(function BoardTaskCard({
               </div>
             )}
 
-            <p className="text-sm font-medium leading-snug">
-              {highlightQuery ? <HighlightedText text={task.title} query={highlightQuery} /> : task.title}
+            <p className="text-sm font-medium leading-snug flex items-start gap-1.5">
+              <span
+                className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${PRIORITY_CONFIG[task.priority as keyof typeof PRIORITY_CONFIG]?.dot ?? PRIORITY_CONFIG.medium.dot}`}
+                title={`${PRIORITY_CONFIG[task.priority as keyof typeof PRIORITY_CONFIG]?.label ?? "Medium"} priority`}
+              />
+              <span>{highlightQuery ? <HighlightedText text={task.title} query={highlightQuery} /> : task.title}</span>
             </p>
 
             {task.description && (

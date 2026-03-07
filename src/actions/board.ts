@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { DEFAULT_BOARD_COLUMNS, POSITION_GAP } from "@/lib/constants";
-import { validateTitle, validateOptionalDescription, validateLabelName, validateLabelColor, validateComment } from "@/lib/validation";
+import { validateTitle, validateOptionalDescription, validateLabelName, validateLabelColor, validateComment, validatePriority } from "@/lib/validation";
 
 export async function initializeBoardColumns(ideaId: string) {
   const supabase = await createClient();
@@ -159,7 +159,8 @@ export async function createBoardTask(
   columnId: string,
   title: string,
   description?: string,
-  assigneeId?: string
+  assigneeId?: string,
+  priority?: string
 ) {
   const supabase = await createClient();
   const {
@@ -170,6 +171,7 @@ export async function createBoardTask(
 
   title = validateTitle(title);
   description = validateOptionalDescription(description ?? null) ?? undefined;
+  const validatedPriority = priority ? validatePriority(priority) : undefined;
 
   // Get max position in this column
   const { data: tasks } = await supabase
@@ -190,6 +192,7 @@ export async function createBoardTask(
       description: description || null,
       assignee_id: assigneeId || null,
       position: maxPos + POSITION_GAP,
+      ...(validatedPriority && { priority: validatedPriority }),
     })
     .select("id")
     .single();
@@ -210,6 +213,7 @@ export async function updateBoardTask(
     assignee_id?: string | null;
     due_date?: string | null;
     archived?: boolean;
+    priority?: string;
   }
 ) {
   const supabase = await createClient();
@@ -225,10 +229,14 @@ export async function updateBoardTask(
   if (updates.description !== undefined) {
     updates.description = validateOptionalDescription(updates.description ?? null);
   }
+  const validatedUpdates: Record<string, unknown> = { ...updates };
+  if (updates.priority !== undefined) {
+    validatedUpdates.priority = validatePriority(updates.priority);
+  }
 
   const { error } = await supabase
     .from("board_tasks")
-    .update(updates)
+    .update(validatedUpdates)
     .eq("id", taskId)
     .eq("idea_id", ideaId);
 

@@ -27,6 +27,9 @@ import { enhanceTaskDescription } from "@/actions/ai";
 import { useBoardOps } from "./board-context";
 import { createClient } from "@/lib/supabase/client";
 import { logTaskActivity } from "@/lib/activity";
+import { PRIORITY_CONFIG, PRIORITY_OPTIONS } from "@/lib/priority";
+import type { TaskPriority } from "@/lib/priority";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useBotRoles } from "@/components/bot-roles-context";
 import { getRoleColor } from "@/lib/agent-colors";
 import { getInitials } from "@/lib/utils";
@@ -109,6 +112,7 @@ export function TaskDetailDialog({
   const [isArchived, setIsArchived] = useState(task.archived);
 
   const [localAssigneeId, setLocalAssigneeId] = useState<string | null>(task.assignee_id);
+  const [localPriority, setLocalPriority] = useState<TaskPriority>(task.priority as TaskPriority);
 
   // Sync state when task prop changes (including external updates via Realtime/MCP)
   const [lastTaskId, setLastTaskId] = useState(task.id);
@@ -116,12 +120,14 @@ export function TaskDetailDialog({
   const [lastTaskTitle, setLastTaskTitle] = useState(task.title);
   const [lastTaskAssigneeId, setLastTaskAssigneeId] = useState(task.assignee_id);
   const [lastTaskArchived, setLastTaskArchived] = useState(task.archived);
+  const [lastTaskPriority, setLastTaskPriority] = useState(task.priority);
 
   if (task.id !== lastTaskId) {
     // Different task — full reset
     setTitle(task.title);
     setDescription(task.description ?? "");
     setLocalAssigneeId(task.assignee_id);
+    setLocalPriority(task.priority as TaskPriority);
     setIsArchived(task.archived);
     setEditingDescription(false);
     setLastTaskId(task.id);
@@ -129,6 +135,7 @@ export function TaskDetailDialog({
     setLastTaskTitle(task.title);
     setLastTaskAssigneeId(task.assignee_id);
     setLastTaskArchived(task.archived);
+    setLastTaskPriority(task.priority);
   } else {
     // Same task — sync fields changed externally (only if user isn't actively editing)
     if (task.description !== lastTaskDesc && !editingDescription) {
@@ -146,6 +153,10 @@ export function TaskDetailDialog({
     if (task.archived !== lastTaskArchived) {
       setIsArchived(task.archived);
       setLastTaskArchived(task.archived);
+    }
+    if (task.priority !== lastTaskPriority) {
+      setLocalPriority(task.priority as TaskPriority);
+      setLastTaskPriority(task.priority);
     }
   }
 
@@ -317,6 +328,23 @@ export function TaskDetailDialog({
     } catch {
       toast.error("Failed to update assignee");
       setLocalAssigneeId(task.assignee_id);
+    }
+  }
+
+  async function handlePriorityChange(value: string) {
+    const prev = localPriority;
+    const next = value as TaskPriority;
+    setLocalPriority(next);
+
+    try {
+      await updateBoardTask(task.id, ideaId, { priority: next });
+      logTaskActivity(task.id, ideaId, currentUserId, "priority_changed", {
+        from: prev,
+        to: next,
+      });
+    } catch {
+      toast.error("Failed to update priority");
+      setLocalPriority(prev);
     }
   }
 
@@ -619,6 +647,43 @@ export function TaskDetailDialog({
                         dueDate={task.due_date}
                         currentUserId={currentUserId}
                       />
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <span className="text-sm font-medium">Priority</span>
+                  <div className="flex items-center gap-2">
+                    {isReadOnly ? (
+                      <div className="flex items-center gap-1.5">
+                        <span className={`h-2 w-2 rounded-full ${PRIORITY_CONFIG[localPriority]?.dot ?? PRIORITY_CONFIG.medium.dot}`} />
+                        <span className="text-xs">
+                          {PRIORITY_CONFIG[localPriority]?.label ?? "Medium"}
+                        </span>
+                      </div>
+                    ) : (
+                      <Select value={localPriority} onValueChange={handlePriorityChange}>
+                        <SelectTrigger className="h-8 w-32 text-xs">
+                          <SelectValue placeholder="Set priority">
+                            {PRIORITY_CONFIG[localPriority] && (
+                              <div className="flex items-center gap-2">
+                                <span className={`h-2 w-2 rounded-full ${PRIORITY_CONFIG[localPriority].dot}`} />
+                                {PRIORITY_CONFIG[localPriority].label}
+                              </div>
+                            )}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PRIORITY_OPTIONS.map(([key, config]) => (
+                            <SelectItem key={key} value={key}>
+                              <div className="flex items-center gap-2">
+                                <span className={`h-1.5 w-1.5 rounded-full ${config.dot}`} />
+                                {config.label}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     )}
                   </div>
                 </div>

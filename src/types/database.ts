@@ -356,6 +356,7 @@ export type Database = {
           attachment_count: number;
           comment_count: number;
           cover_image_path: string | null;
+          priority: "low" | "medium" | "high" | "urgent";
           discussion_id: string | null;
           created_at: string;
           updated_at: string;
@@ -375,6 +376,7 @@ export type Database = {
           attachment_count?: number;
           comment_count?: number;
           cover_image_path?: string | null;
+          priority?: "low" | "medium" | "high" | "urgent";
           discussion_id?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -394,6 +396,7 @@ export type Database = {
           attachment_count?: number;
           comment_count?: number;
           cover_image_path?: string | null;
+          priority?: "low" | "medium" | "high" | "urgent";
           discussion_id?: string | null;
           created_at?: string;
           updated_at?: string;
