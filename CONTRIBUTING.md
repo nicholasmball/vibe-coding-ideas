@@ -12,7 +12,7 @@ Thanks for your interest in contributing! This guide will help you get set up an
 ### Option A: Supabase Cloud
 
 ```bash
-git clone https://github.com/nicholasgriffintn/vibe-coding-ideas.git
+git clone https://github.com/vibecodes-org/vibe-coding-ideas.git
 cd vibe-coding-ideas
 npm install
 cp .env.example .env.local
@@ -25,7 +25,7 @@ Run the SQL migration files in `supabase/migrations/` in order in the Supabase S
 ### Option B: Docker (Local Supabase)
 
 ```bash
-git clone https://github.com/nicholasgriffintn/vibe-coding-ideas.git
+git clone https://github.com/vibecodes-org/vibe-coding-ideas.git
 cd vibe-coding-ideas
 npm install
 cp .env.example .env.local

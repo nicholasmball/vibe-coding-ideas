@@ -1,5 +1,5 @@
 import { test, expect } from "../fixtures/auth";
-import { createTestIdea, cleanupTestData } from "../fixtures/test-data";
+import { createTestIdea, cleanupIdeas } from "../fixtures/test-data";
 import { supabaseAdmin } from "../fixtures/supabase-admin";
 
 let userAId: string;
@@ -51,7 +51,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await cleanupTestData();
+  await cleanupIdeas([editIdeaId, visibilityIdeaId, githubIdeaId, escapeIdeaId]);
 });
 
 test.describe("Inline Editing (Author)", () => {

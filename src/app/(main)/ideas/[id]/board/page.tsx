@@ -18,6 +18,8 @@ import type {
 } from "@/types";
 import type { Metadata } from "next";
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://vibecodes.co.uk";
+
 export const maxDuration = 120;
 
 interface PageProps {
@@ -50,9 +52,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   return {
     title: `${idea.title} — Board`,
     description: ogDescription,
+    alternates: { canonical: `${appUrl}/ideas/${id}/board` },
     openGraph: {
       title: ogTitle,
       description: ogDescription,
+      url: `${appUrl}/ideas/${id}/board`,
     },
     twitter: {
       card: "summary_large_image",
@@ -123,6 +127,7 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
     { data: rawWorkflowSteps },
     { data: userProfile },
     ideaTeam,
+    { data: userBotProfiles },
   ] = await Promise.all([
     supabase.from("board_columns").select("*").eq("idea_id", id).order("position", { ascending: true }),
     supabase
@@ -148,6 +153,13 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
           .single()
       : Promise.resolve({ data: null }),
     getIdeaTeam(supabase, id, idea.author_id, user.id),
+    isTeamMember
+      ? supabase
+          .from("bot_profiles")
+          .select("*")
+          .eq("owner_id", user.id)
+          .eq("is_active", true)
+      : Promise.resolve({ data: null }),
   ]);
 
   const { teamMembers, ideaAgents, botProfiles: ideaAgentBotProfiles } = ideaTeam;
@@ -253,6 +265,7 @@ export default async function BoardPage({ params, searchParams }: PageProps) {
         hasByokKey={userHasByokKey}
         starterCredits={starterCredits}
         botProfiles={ideaAgentBotProfiles}
+        userBotProfiles={(userBotProfiles ?? []) as import("@/types").BotProfile[]}
         coverImageUrls={coverImageUrls}
         isReadOnly={isReadOnly}
       />

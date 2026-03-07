@@ -3,7 +3,7 @@ import {
   createTestIdea,
   createTestBoardWithTasks,
   addCollaborator,
-  cleanupTestData,
+  cleanupIdeas,
 } from "../fixtures/test-data";
 import { supabaseAdmin } from "../fixtures/supabase-admin";
 
@@ -57,7 +57,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await cleanupTestData();
+  await cleanupIdeas([bareIdeaId, deepLinkIdeaId, accessIdeaId]);
 });
 
 test.describe("Board Basics", () => {

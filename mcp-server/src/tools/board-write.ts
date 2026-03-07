@@ -3,6 +3,22 @@ import { POSITION_GAP } from "../constants";
 import { logActivity } from "../activity";
 import type { McpContext } from "../context";
 
+/** Auto-add a user as collaborator on an idea if they aren't already (author or collaborator). */
+async function ensureCollaborator(ctx: McpContext, ideaId: string, userId: string) {
+  // Check if user is the idea author
+  const { data: idea } = await ctx.supabase
+    .from("ideas")
+    .select("author_id")
+    .eq("id", ideaId)
+    .single();
+  if (idea?.author_id === userId) return;
+
+  // Upsert collaborator (ignore conflict = already a collaborator)
+  await ctx.supabase
+    .from("collaborators")
+    .upsert({ idea_id: ideaId, user_id: userId }, { onConflict: "idea_id,user_id", ignoreDuplicates: true });
+}
+
 async function getNextPosition(
   ctx: McpContext,
   columnId: string,
@@ -68,6 +84,7 @@ export async function createTask(ctx: McpContext, params: z.infer<typeof createT
   await logActivity(ctx, task.id, params.idea_id, "created");
 
   if (params.assignee_id) {
+    await ensureCollaborator(ctx, params.idea_id, params.assignee_id);
     await logActivity(ctx, task.id, params.idea_id, "assigned", {
       assignee_id: params.assignee_id,
     });
@@ -152,6 +169,7 @@ export async function updateTask(ctx: McpContext, params: z.infer<typeof updateT
   }
   if (params.assignee_id !== undefined && params.assignee_id !== current.assignee_id) {
     if (params.assignee_id) {
+      await ensureCollaborator(ctx, params.idea_id, params.assignee_id);
       await logActivity(ctx, params.task_id, params.idea_id, "assigned", {
         assignee_id: params.assignee_id,
       });

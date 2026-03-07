@@ -2,7 +2,7 @@ import { test, expect } from "../fixtures/auth";
 import {
   createTestIdea,
   createTestBoardWithTasks,
-  cleanupTestData,
+  cleanupIdeas,
 } from "../fixtures/test-data";
 import { supabaseAdmin } from "../fixtures/supabase-admin";
 
@@ -29,7 +29,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await cleanupTestData();
+  await cleanupIdeas([guestIdeaId]);
 });
 
 test.describe("Guest Board — Read-Only Access", () => {

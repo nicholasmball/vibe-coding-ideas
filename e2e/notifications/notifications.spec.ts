@@ -2,7 +2,7 @@ import { test, expect } from "../fixtures/auth";
 import {
   createTestIdea,
   createTestBoardWithTasks,
-  cleanupTestData,
+  cleanupIdeas,
 } from "../fixtures/test-data";
 import { supabaseAdmin } from "../fixtures/supabase-admin";
 
@@ -52,7 +52,7 @@ test.afterAll(async () => {
       .delete()
       .in("id", seededNotificationIds);
   }
-  await cleanupTestData();
+  await cleanupIdeas([ideaId, boardIdeaId]);
 });
 
 /** Insert test notifications for User A, returning their IDs */

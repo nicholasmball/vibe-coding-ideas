@@ -5,7 +5,7 @@ import {
   createTestDiscussion,
   createTestDiscussionReply,
   addCollaborator,
-  cleanupTestData,
+  cleanupIdeas,
 } from "../fixtures/test-data";
 import { supabaseAdmin } from "../fixtures/supabase-admin";
 
@@ -40,7 +40,7 @@ test.describe("Discussions", () => {
   });
 
   test.afterAll(async () => {
-    await cleanupTestData();
+    await cleanupIdeas([ideaId]);
   });
 
   test.describe("Empty state and navigation", () => {

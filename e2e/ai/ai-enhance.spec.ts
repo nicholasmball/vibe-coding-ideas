@@ -1,6 +1,6 @@
 import { EXPECT_TIMEOUT } from "../fixtures/constants";
 import { test, expect } from "../fixtures/auth";
-import { createTestIdea, cleanupTestData, getTestUserId, scopedTitle } from "../fixtures/test-data";
+import { createTestIdea, cleanupIdeas, getTestUserId, scopedTitle } from "../fixtures/test-data";
 import { supabaseAdmin } from "../fixtures/supabase-admin";
 
 let userAId: string;
@@ -27,7 +27,7 @@ test.afterAll(async () => {
     .update({ encrypted_anthropic_key: null })
     .eq("id", userAId);
 
-  await cleanupTestData();
+  await cleanupIdeas([testIdeaId]);
 });
 
 test.describe("AI Enhance - Idea Detail", () => {

@@ -113,7 +113,8 @@
       "mcp__vibecodes__add_discussion_reply",
       "mcp__vibecodes__create_workflow_steps",
       "mcp__vibecodes__convert_discussion",
-      "mcp__vibecodes__list_idea_agents"
+      "mcp__vibecodes__list_idea_agents",
+      "Bash(git:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

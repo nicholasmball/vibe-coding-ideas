@@ -2,6 +2,11 @@
 
 import { useState, useRef, useCallback } from "react";
 import { Badge } from "@/components/ui/badge";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { TagInput } from "./tag-input";
 import { toast } from "sonner";
 import { updateIdeaFields } from "@/actions/ideas";
@@ -42,9 +47,9 @@ export function InlineIdeaTags({
   if (!isAuthor) {
     if (initialTags.length === 0) return null;
     return (
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-1.5">
         {initialTags.map((tag) => (
-          <Badge key={tag} variant="secondary">
+          <Badge key={tag} variant="secondary" className="text-xs">
             {tag}
           </Badge>
         ))}
@@ -53,8 +58,22 @@ export function InlineIdeaTags({
   }
 
   return (
-    <div className="mt-4">
-      <TagInput value={tags} onChange={handleTagsChange} />
+    <div className="flex flex-wrap items-center gap-1.5">
+      {tags.map((tag) => (
+        <Badge key={tag} variant="secondary" className="text-xs">
+          {tag}
+        </Badge>
+      ))}
+      <Popover>
+        <PopoverTrigger asChild>
+          <button className="flex h-5 w-5 items-center justify-center rounded-full border border-dashed border-muted-foreground/40 text-xs text-muted-foreground transition-colors hover:border-primary hover:text-primary">
+            +
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80 p-3" align="start">
+          <TagInput value={tags} onChange={handleTagsChange} />
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }

@@ -40,10 +40,13 @@ export async function POST(req: Request) {
     const { anthropic, keyType } = resolved;
 
     const body = await req.json();
-    const { ideaId, prompt, personaPrompt } = body as {
+    const { ideaId, prompt, personaPrompt, agentRole, agentSkills, agentBio } = body as {
       ideaId: string;
       prompt: string;
       personaPrompt?: string | null;
+      agentRole?: string | null;
+      agentSkills?: string[] | null;
+      agentBio?: string | null;
     };
 
     if (!ideaId || !prompt) {
@@ -87,9 +90,11 @@ export async function POST(req: Request) {
 
     const existingColumns = (columns ?? []).map((c) => c.title);
 
-    const systemPrompt = personaPrompt
-      ? `${personaPrompt}\n\nYou are generating a structured task board for a software project on a kanban-style project management platform. If a task has subtasks or implementation steps, include them as a markdown checklist in the description (e.g. "- [ ] Step one\\n- [ ] Step two"). These will become workflow steps.`
-      : "You are an expert project manager generating a structured task board for a software project on a kanban-style project management platform. If a task has subtasks or implementation steps, include them as a markdown checklist in the description (e.g. \"- [ ] Step one\\n- [ ] Step two\"). These will become workflow steps.";
+    const hasAgent = !!(personaPrompt || agentRole || agentSkills?.length);
+
+    const systemPrompt = hasAgent
+      ? `${personaPrompt ?? "You are a specialist AI agent."}\n\nYou are generating a structured task board for a software project on a kanban-style project management platform. Focus your task generation on your area of expertise — prioritize tasks you would own or contribute to. If a task has subtasks or implementation steps, include them as a markdown checklist in the description (e.g. "- [ ] Step one\\n- [ ] Step two").`
+      : "You are an expert project manager generating a structured task board for a software project on a kanban-style project management platform. If a task has subtasks or implementation steps, include them as a markdown checklist in the description (e.g. \"- [ ] Step one\\n- [ ] Step two\").";
 
     const contextParts = [
       `${prompt}`,
@@ -97,6 +102,19 @@ export async function POST(req: Request) {
       `**Idea Title:** ${idea.title}`,
       `**Idea Description:**\n${idea.description}`,
     ];
+
+    // Include agent expertise so it meaningfully influences task generation
+    if (hasAgent) {
+      const agentParts: string[] = [];
+      if (agentRole) agentParts.push(`**Agent Role:** ${agentRole}`);
+      if (agentSkills?.length) agentParts.push(`**Agent Skills:** ${agentSkills.join(", ")}`);
+      if (agentBio) agentParts.push(`**Agent Bio:** ${agentBio}`);
+      contextParts.push(
+        `---`,
+        `The tasks should be generated from the perspective of the following specialist agent. Emphasize tasks relevant to their role and skills. De-prioritize or omit tasks outside their expertise.`,
+        ...agentParts
+      );
+    }
 
     if (existingColumns.length > 0) {
       contextParts.push(

@@ -35,9 +35,13 @@ export function AgentCard({
 
   if (variant === "community") {
     return (
-      <div className="group relative flex flex-col overflow-hidden rounded-lg border border-border bg-muted/30 transition-colors hover:border-border/80">
-        {/* Hero */}
-        <div className="flex items-center gap-3 p-4 pb-2">
+      <div className={cn(
+        "group relative flex flex-col overflow-hidden rounded-lg border border-border bg-muted/30 transition-all duration-200",
+        colors.hoverGlow,
+        "hover:border-border/80"
+      )}>
+        {/* Header */}
+        <div className="flex items-start gap-3 p-4 pb-2">
           {onClick ? (
             <button type="button" onClick={onClick} className="shrink-0">
               <Avatar className="h-12 w-12">
@@ -74,9 +78,16 @@ export function AgentCard({
                 {bot.name}
               </Link>
             )}
-            <p className="text-[11px] text-muted-foreground">
-              by <span className="font-medium text-muted-foreground/80">{ownerName ?? "Unknown"}</span>
-            </p>
+            <div className="flex items-center gap-1.5 mt-0.5">
+              {bot.role && (
+                <Badge className={cn("text-[10px] shrink-0 max-w-[140px] truncate border-0", colors.badge)}>
+                  {bot.role}
+                </Badge>
+              )}
+              <span className="text-[10px] text-muted-foreground/60">
+                by {ownerName ?? "Unknown"}
+              </span>
+            </div>
           </div>
         </div>
 

@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Link from "next/link";
 import { toast } from "sonner";
-import { Bot, Upload } from "lucide-react";
+import { Bot, Upload, CheckCircle2, Cable } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +18,7 @@ import { BOT_ROLE_TEMPLATES } from "@/lib/constants";
 import { createBot } from "@/actions/bots";
 import { PromptBuilder } from "@/components/profile/prompt-builder";
 import { WorkflowTemplateEditor } from "./workflow-template-editor";
+import { generatePromptFromFields } from "@/lib/prompt-builder";
 import { createClient } from "@/lib/supabase/client";
 import { cn, getInitials } from "@/lib/utils";
 import type { StructuredPromptFields } from "@/lib/prompt-builder";
@@ -46,6 +48,8 @@ export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps
   const [workflowTemplates, setWorkflowTemplates] = useState<WorkflowTemplate[]>([]);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [created, setCreated] = useState(false);
+  const [createdName, setCreatedName] = useState("");
   const [templateStructured, setTemplateStructured] =
     useState<StructuredPromptFields | null>(null);
   const [promptKey, setPromptKey] = useState(0);
@@ -60,10 +64,13 @@ export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps
     if (template) {
       setSelectedTemplate(templateRole);
       setRole(template.role);
-      setSystemPrompt(template.prompt);
-      setTemplateStructured(
-        template.structured ? { ...template.structured } : null
-      );
+      if (template.structured) {
+        setSystemPrompt(generatePromptFromFields(template.role, template.structured));
+        setTemplateStructured({ ...template.structured });
+      } else {
+        setSystemPrompt(template.prompt);
+        setTemplateStructured(null);
+      }
       setPromptKey((k) => k + 1);
     }
   }
@@ -79,6 +86,8 @@ export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps
     setSelectedTemplate(null);
     setTemplateStructured(null);
     setPromptKey((k) => k + 1);
+    setCreated(false);
+    setCreatedName("");
     setSelectedFile(null);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
@@ -164,8 +173,8 @@ export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps
         }
       }
 
-      toast.success("Agent created");
-      handleOpenChange(false);
+      setCreatedName(name.trim());
+      setCreated(true);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create agent");
     } finally {
@@ -178,6 +187,51 @@ export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
+        {created ? (
+          <div className="flex flex-col items-center gap-5 py-6">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-500/10">
+              <CheckCircle2 className="h-7 w-7 text-emerald-500" />
+            </div>
+            <div className="text-center">
+              <h3 className="text-lg font-semibold">Agent Created</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                <span className="font-medium text-foreground">{createdName}</span> is ready to go.
+              </p>
+            </div>
+            <div className="w-full rounded-lg border border-violet-500/15 bg-violet-500/[0.04] p-4">
+              <div className="flex items-start gap-3">
+                <Cable className="mt-0.5 h-4 w-4 shrink-0 text-violet-400" />
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Next Step</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    Connect your agent to{" "}
+                    <span className="font-medium text-foreground">Claude Code</span>{" "}
+                    via MCP so it can start working on tasks.
+                  </p>
+                  <Link
+                    href="/guide/mcp-integration"
+                    target="_blank"
+                    className="mt-2 inline-flex items-center text-sm font-medium text-violet-400 hover:text-violet-300"
+                  >
+                    Setup guide &rarr;
+                  </Link>
+                </div>
+              </div>
+            </div>
+            <div className="flex w-full justify-end gap-2 pt-2 border-t border-border">
+              <Button
+                variant="ghost"
+                onClick={() => handleOpenChange(false)}
+              >
+                Skip for now
+              </Button>
+              <Button onClick={() => handleOpenChange(false)}>
+                Done
+              </Button>
+            </div>
+          </div>
+        ) : (
+        <>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5" />
@@ -338,6 +392,8 @@ export function CreateAgentDialog({ open, onOpenChange }: CreateAgentDialogProps
             </Button>
           </div>
         </form>
+        </>
+        )}
       </DialogContent>
     </Dialog>
   );

@@ -2,7 +2,7 @@ import { test, expect } from "../fixtures/auth";
 import {
   createTestIdea,
   createTestBoardWithTasks,
-  cleanupTestData,
+  cleanupIdeas,
 } from "../fixtures/test-data";
 import { supabaseAdmin } from "../fixtures/supabase-admin";
 
@@ -127,7 +127,7 @@ test.describe("Board Filters", () => {
   });
 
   test.afterAll(async () => {
-    await cleanupTestData();
+    await cleanupIdeas([ideaId]);
   });
 
   test("should search tasks by title", async ({ userAPage }) => {

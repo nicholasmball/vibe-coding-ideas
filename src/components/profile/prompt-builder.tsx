@@ -63,6 +63,9 @@ export function PromptBuilder({
     if (templateStructured) {
       setFields({ ...templateStructured });
       setMode("builder");
+      // Ensure the regenerate effect will call onChange on the next render
+      // (otherwise isInitialMount guard swallows the sync)
+      isInitialMount.current = false;
     }
   }, [templateStructured]);
 
