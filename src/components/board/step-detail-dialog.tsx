@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "sonner";
-import { Send, Trash2, AlertCircle, MessageSquare, Bot, CheckCircle2, UserCheck, ThumbsUp, RotateCcw } from "lucide-react";
+import { Send, Trash2, AlertCircle, MessageSquare, Bot, CheckCircle2, UserCheck, ThumbsUp, RotateCcw, Check, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { Markdown } from "@/components/ui/markdown";
 import { createClient } from "@/lib/supabase/client";
-import { addStepComment, deleteStepComment, approveWorkflowStep, requestChangesWorkflowStep } from "@/actions/workflow";
+import { addStepComment, deleteStepComment, approveWorkflowStep, failWorkflowStep } from "@/actions/workflow";
 import { cn, formatRelativeTime, getInitials } from "@/lib/utils";
 import { useBotRoles } from "@/components/bot-roles-context";
 import { getRoleColor } from "@/lib/agent-colors";
@@ -32,6 +32,7 @@ import type { TaskWorkflowStepWithAgent, WorkflowStepCommentWithAuthor } from "@
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   pending: { label: "Pending", className: "bg-zinc-500/20 text-zinc-400 border-zinc-500/30" },
   in_progress: { label: "In Progress", className: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+  awaiting_approval: { label: "Awaiting Approval", className: "bg-amber-500/20 text-amber-400 border-amber-500/30 animate-pulse" },
   completed: { label: "Completed", className: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" },
   failed: { label: "Failed", className: "bg-red-500/20 text-red-400 border-red-500/30" },
 };
@@ -62,16 +63,9 @@ export function StepDetailDialog({
   const [loading, setLoading] = useState(true);
   const [content, setContent] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [approving, setApproving] = useState(false);
-  const [requestingChanges, setRequestingChanges] = useState(false);
-  const [changesReason, setChangesReason] = useState("");
-  const [changesTargetId, setChangesTargetId] = useState("");
+  const [rejectTarget, setRejectTarget] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
   const commentsEndRef = useRef<HTMLDivElement>(null);
-
-  const isHumanStep = step.step_type === "human";
-  const canReview = isHumanStep && !isReadOnly && currentUserId && (step.status === "pending" || step.status === "in_progress");
-  // Previous steps that can be sent back for rework
-  const previousSteps = allSteps.filter((s) => s.position < step.position && s.step_type === "agent");
 
   const ac = step.agent?.is_bot ? getRoleColor(botRoles?.[step.agent.id]) : null;
   const status = STATUS_LABELS[step.status] ?? STATUS_LABELS.pending;
@@ -149,32 +143,28 @@ export function StepDetailDialog({
   }
 
   async function handleApprove() {
-    setApproving(true);
     try {
-      await approveWorkflowStep(step.id, ideaId, content.trim() || null);
-      setContent("");
+      await approveWorkflowStep(step.id, ideaId);
       toast.success("Step approved");
     } catch {
       toast.error("Failed to approve step");
-    } finally {
-      setApproving(false);
     }
   }
 
-  async function handleRequestChanges() {
-    if (!changesReason.trim() || !changesTargetId) return;
-    setRequestingChanges(true);
+  async function handleReject(targetStepId: string, reason: string) {
     try {
-      await requestChangesWorkflowStep(step.id, changesTargetId, ideaId, changesReason.trim());
-      setChangesReason("");
-      setChangesTargetId("");
-      toast.success("Changes requested");
+      await failWorkflowStep(targetStepId, ideaId, reason);
+      setRejectTarget(null);
+      toast.success("Step rejected — workflow will restart from the failed step");
     } catch {
-      toast.error("Failed to request changes");
-    } finally {
-      setRequestingChanges(false);
+      toast.error("Failed to reject step");
     }
   }
+
+  // Steps that can be failed back to (current + earlier completed steps)
+  const rejectableSteps = allSteps.filter(
+    (s) => s.position <= step.position && (s.status === "completed" || s.id === step.id)
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -185,42 +175,115 @@ export function StepDetailDialog({
             <span className={`inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium ${status.className}`}>
               {status.label}
             </span>
+            {step.human_check_required && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
+                <UserCheck className="h-2.5 w-2.5" />
+                Human check
+              </span>
+            )}
           </div>
           <DialogTitle className="text-base">{step.title}</DialogTitle>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 min-h-0">
-          {/* Agent or Human checkpoint */}
-          {isHumanStep ? (
-            <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20 border border-amber-500/30">
-                <UserCheck className="h-3.5 w-3.5 text-amber-400" />
-              </div>
-              <div>
-                <span className="text-sm font-medium text-amber-400">Human Validation</span>
-              </div>
+          {/* Agent info */}
+          <div className="flex items-center gap-2">
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={step.agent?.avatar_url ?? undefined} />
+              <AvatarFallback className={cn("text-[9px]", ac?.avatarBg, ac?.avatarText)}>
+                {getInitials(step.agent?.full_name ?? "?")}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <span className="text-sm font-medium">{step.agent?.full_name ?? "Unknown"}</span>
+              {step.agent?.is_bot && (
+                <Bot className="inline ml-1 h-3 w-3 text-muted-foreground" />
+              )}
             </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Avatar className="h-6 w-6">
-                <AvatarImage src={step.agent?.avatar_url ?? undefined} />
-                <AvatarFallback className={cn("text-[9px]", ac?.avatarBg, ac?.avatarText)}>
-                  {getInitials(step.agent?.full_name ?? "?")}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <span className="text-sm font-medium">{step.agent?.full_name ?? "Unknown"}</span>
-                {step.agent?.is_bot && (
-                  <Bot className="inline ml-1 h-3 w-3 text-muted-foreground" />
-                )}
-              </div>
-            </div>
-          )}
+          </div>
 
           {/* Description */}
           {step.description && (
             <div className="text-sm text-muted-foreground">
               {step.description}
+            </div>
+          )}
+
+          {/* Approval actions */}
+          {!isReadOnly && step.status === "awaiting_approval" && (
+            <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-medium text-amber-400">
+                <UserCheck className="h-4 w-4" />
+                Human approval required
+              </div>
+              {!rejectTarget ? (
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                    onClick={handleApprove}
+                  >
+                    <Check className="h-3 w-3 mr-1" />
+                    Approve
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                    onClick={() => { setRejectTarget(step.id); setRejectReason(""); }}
+                  >
+                    <X className="h-3 w-3 mr-1" />
+                    Reject
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="text-xs text-muted-foreground">
+                    Which step should be sent back for rework? All steps after it will be reset.
+                  </div>
+                  <Select value={rejectTarget} onValueChange={setRejectTarget}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {rejectableSteps.map((s, i) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          <span className="text-xs">
+                            {allSteps.indexOf(s) + 1}. {s.title}
+                            {s.id === step.id ? " (this step)" : ""}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Textarea
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    placeholder="What needs to change? (this feedback is shown to the agent)"
+                    className="min-h-[60px] text-xs"
+                  />
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      className="text-xs"
+                      disabled={!rejectReason.trim()}
+                      onClick={() => handleReject(rejectTarget, rejectReason.trim())}
+                    >
+                      Confirm Reject
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-xs"
+                      onClick={() => setRejectTarget(null)}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -295,7 +358,7 @@ export function StepDetailDialog({
                         </div>
                       )}
 
-                      {/* Approval comment */}
+                      {/* Approval comment (legacy, still rendered) */}
                       {comment.type === "approval" && (
                         <div className="rounded-md border border-emerald-500/30 bg-emerald-500/5">
                           <div className="flex items-center gap-2 px-3 py-1.5 border-b border-emerald-500/20">
@@ -319,7 +382,7 @@ export function StepDetailDialog({
                         </div>
                       )}
 
-                      {/* Changes requested comment */}
+                      {/* Changes requested comment (legacy, still rendered) */}
                       {comment.type === "changes_requested" && (
                         <div className="rounded-md border border-amber-500/30 bg-amber-500/5">
                           <div className="flex items-center gap-2 px-3 py-1.5 border-b border-amber-500/20">
@@ -390,100 +453,6 @@ export function StepDetailDialog({
             )}
           </div>
         </div>
-
-        {/* Human step approval actions */}
-        {canReview && (
-          <div className="space-y-3 pt-2 border-t border-amber-500/20">
-            <div className="flex items-center gap-2">
-              <UserCheck className="h-4 w-4 text-amber-400" />
-              <span className="text-sm font-medium text-amber-400">Review</span>
-            </div>
-
-            <Textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Optional feedback..."
-              className="min-h-[50px] text-sm resize-none"
-            />
-
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                onClick={handleApprove}
-                disabled={approving}
-              >
-                <ThumbsUp className="h-3 w-3 mr-1.5" />
-                {approving ? "Approving..." : "Approve"}
-              </Button>
-
-              {previousSteps.length > 0 && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
-                  onClick={() => {
-                    setRequestingChanges(true);
-                    if (!changesTargetId && previousSteps.length > 0) {
-                      setChangesTargetId(previousSteps[previousSteps.length - 1].id);
-                    }
-                  }}
-                  disabled={requestingChanges}
-                >
-                  <RotateCcw className="h-3 w-3 mr-1.5" />
-                  Request Changes
-                </Button>
-              )}
-            </div>
-
-            {requestingChanges && previousSteps.length > 0 && (
-              <div className="space-y-2 rounded-md border border-amber-500/20 p-3">
-                <label className="text-xs font-medium text-muted-foreground">
-                  Send back to step:
-                </label>
-                <Select value={changesTargetId} onValueChange={setChangesTargetId}>
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Select step..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {previousSteps.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Textarea
-                  value={changesReason}
-                  onChange={(e) => setChangesReason(e.target.value)}
-                  placeholder="What changes are needed?"
-                  className="min-h-[60px] text-sm resize-none"
-                />
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10"
-                    onClick={handleRequestChanges}
-                    disabled={!changesReason.trim() || !changesTargetId}
-                  >
-                    Submit
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setRequestingChanges(false);
-                      setChangesReason("");
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         {/* Comment input */}
         {!isReadOnly && currentUserId && (

@@ -78,12 +78,12 @@ import {
 import {
   createWorkflowSteps,
   createWorkflowStepsSchema,
-  getNextStep,
-  getNextStepSchema,
-  startStep,
-  startStepSchema,
+  claimNextStep,
+  claimNextStepSchema,
   completeStep,
   completeStepSchema,
+  approveStep,
+  approveStepSchema,
   failStep,
   failStepSchema,
   getStepContext,
@@ -96,10 +96,6 @@ import {
   addStepCommentSchema,
   getStepComments,
   getStepCommentsSchema,
-  approveStep,
-  approveStepSchema,
-  requestChanges,
-  requestChangesSchema,
 } from "./tools/workflow";
 import {
   listDiscussions,
@@ -529,7 +525,7 @@ export function registerTools(
 
   server.tool(
     "create_workflow_steps",
-    "Bulk-create sequential workflow pipeline steps for a task. Each step can be an 'agent' step (assigned to a bot) or a 'human' step (validation checkpoint requiring human approval before continuing).",
+    "Bulk-create sequential workflow pipeline steps for a task. Each step is assigned to a bot agent. ORDERING: UX design/mockup steps MUST come before any development/implementation steps. Set human_check_required: true on steps that need human approval before the agent can complete them.",
     createWorkflowStepsSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
@@ -542,27 +538,13 @@ export function registerTools(
   );
 
   server.tool(
-    "get_next_step",
-    "Get the next pending or failed workflow step for a task, with previous step outputs as context.",
-    getNextStepSchema.shape,
+    "claim_next_step",
+    "Find the next pending/failed workflow step, start it (moves to in_progress, updates task assignee), and return prior step outputs as context. Combines get + start into one call. When human_check_required is true, the agent should still call complete_step normally — the step will automatically move to awaiting_approval for human review instead of completed. SCOPE RULE: Each step has a defined scope — only produce the deliverable described in the step's title/description. Do NOT implement changes belonging to other steps (e.g. a Design step should only produce/update the design document, not make code changes). When re-claiming a failed step, read the failure comments and revise ONLY that step's output.",
+    claimNextStepSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
         const ctx = await getContext(extra);
-        return jsonResult(await getNextStep(ctx, getNextStepSchema.parse(args)));
-      } catch (e) {
-        return errorResult(e);
-      }
-    }
-  );
-
-  server.tool(
-    "start_step",
-    "Start a workflow step (moves to in_progress). Race-condition safe — fails if already claimed.",
-    startStepSchema.shape,
-    async (args: Record<string, unknown>, extra: ServerExtra) => {
-      try {
-        const ctx = await getContext(extra);
-        return jsonResult(await startStep(ctx, startStepSchema.parse(args)));
+        return jsonResult(await claimNextStep(ctx, claimNextStepSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
       }
@@ -571,7 +553,7 @@ export function registerTools(
 
   server.tool(
     "complete_step",
-    "Complete a workflow step with structured markdown output.",
+    "Complete a workflow step with structured markdown output. If the step has human_check_required=true, it moves to awaiting_approval instead of completed — a human must then approve or reject it. FEEDBACK RULE: If a human provides feedback requesting changes on your step, you MUST call fail_step with their feedback as the reason, then call claim_next_step to redo the step. Never apply human feedback directly without going through the fail/claim cycle — this maintains the audit trail and feedback loop.",
     completeStepSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
@@ -584,8 +566,22 @@ export function registerTools(
   );
 
   server.tool(
+    "approve_step",
+    "Approve a workflow step that is awaiting human approval. Moves it from awaiting_approval to completed, allowing the pipeline to continue. Only use this for steps in awaiting_approval status.",
+    approveStepSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await approveStep(ctx, approveStepSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
     "fail_step",
-    "Mark a workflow step as failed with a reason. All subsequent steps are automatically cascade-reset to pending. Do NOT delete and recreate steps — use fail_step instead.",
+    "Mark a workflow step as failed with a reason. All subsequent steps are automatically cascade-reset to pending. Do NOT delete and recreate steps — use fail_step instead. Use this when: (1) human feedback requires rework on a step, (2) a step's output is unsatisfactory, or (3) you need to revise a previous step. The reason is recorded as a failure comment visible to the agent when it re-claims the step.",
     failStepSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
@@ -661,34 +657,6 @@ export function registerTools(
       try {
         const ctx = await getContext(extra);
         return jsonResult(await getStepComments(ctx, getStepCommentsSchema.parse(args)));
-      } catch (e) {
-        return errorResult(e);
-      }
-    }
-  );
-
-  server.tool(
-    "approve_step",
-    "Approve a human validation step, marking it as completed and allowing the workflow to continue. Only works on human-type steps.",
-    approveStepSchema.shape,
-    async (args: Record<string, unknown>, extra: ServerExtra) => {
-      try {
-        const ctx = await getContext(extra);
-        return jsonResult(await approveStep(ctx, approveStepSchema.parse(args)));
-      } catch (e) {
-        return errorResult(e);
-      }
-    }
-  );
-
-  server.tool(
-    "request_changes",
-    "Request changes on a human validation step, sending a previous step back for rework. The target step is marked as failed, and all subsequent steps (including the human step) are cascade-reset to pending.",
-    requestChangesSchema.shape,
-    async (args: Record<string, unknown>, extra: ServerExtra) => {
-      try {
-        const ctx = await getContext(extra);
-        return jsonResult(await requestChanges(ctx, requestChangesSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
       }

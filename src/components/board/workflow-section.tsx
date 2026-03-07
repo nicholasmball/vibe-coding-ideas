@@ -9,6 +9,8 @@ import {
   AlertCircle,
   MessageSquare,
   UserCheck,
+  Check,
+  X,
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
@@ -27,11 +29,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { logTaskActivity } from "@/lib/activity";
 import {
   createWorkflowStep,
   failWorkflowStep,
   deleteWorkflowStep,
+  approveWorkflowStep,
 } from "@/actions/workflow";
 import { cn, getInitials } from "@/lib/utils";
 import { useBotRoles } from "@/components/bot-roles-context";
@@ -64,6 +68,10 @@ const STATUS_STYLES: Record<
     badge: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
     label: "Completed",
   },
+  awaiting_approval: {
+    badge: "bg-amber-500/20 text-amber-400 border-amber-500/30 animate-pulse",
+    label: "Awaiting Approval",
+  },
   failed: {
     badge: "bg-red-500/20 text-red-400 border-red-500/30",
     label: "Failed",
@@ -84,7 +92,7 @@ export function WorkflowSection({
   const [newTitle, setNewTitle] = useState("");
   const [newBotId, setNewBotId] = useState("");
   const [newDescription, setNewDescription] = useState("");
-  const [newStepType, setNewStepType] = useState<"agent" | "human">("agent");
+  const [newHumanCheck, setNewHumanCheck] = useState(false);
   const [selectedStep, setSelectedStep] = useState<TaskWorkflowStepWithAgent | null>(null);
   const [selectedStepIndex, setSelectedStepIndex] = useState(0);
   const pendingOps = useRef(0);
@@ -107,11 +115,10 @@ export function WorkflowSection({
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     const title = newTitle.trim();
-    if (!title) return;
-    if (newStepType === "agent" && !newBotId) return;
+    if (!title || !newBotId) return;
 
-    const agent = newStepType === "agent" ? ideaAgents.find((a) => a.id === newBotId) ?? null : null;
-    if (newStepType === "agent" && !agent) return;
+    const agent = ideaAgents.find((a) => a.id === newBotId) ?? null;
+    if (!agent) return;
 
     const tempId = `temp-${Date.now()}`;
     const maxPos = localSteps.reduce((max, s) => Math.max(max, s.position), 0);
@@ -119,8 +126,8 @@ export function WorkflowSection({
       id: tempId,
       task_id: taskId,
       idea_id: ideaId,
-      bot_id: newStepType === "human" ? null : newBotId,
-      step_type: newStepType,
+      bot_id: newBotId,
+      human_check_required: newHumanCheck,
       title,
       description: newDescription || null,
       status: "pending",
@@ -135,6 +142,7 @@ export function WorkflowSection({
     setLocalSteps((prev) => [...prev, optimisticStep]);
     setNewTitle("");
     setNewDescription("");
+    setNewHumanCheck(false);
 
     pendingOps.current++;
     try {
@@ -143,8 +151,8 @@ export function WorkflowSection({
         ideaId,
         title,
         newDescription || null,
-        newStepType === "human" ? null : newBotId,
-        newStepType
+        newBotId,
+        newHumanCheck
       );
       if (currentUserId) {
         logTaskActivity(taskId, ideaId, currentUserId, "workflow_step_added", {
@@ -171,7 +179,7 @@ export function WorkflowSection({
 
     pendingOps.current++;
     try {
-      await failWorkflowStep(stepId, stepId, ideaId, "Manual retry");
+      await failWorkflowStep(stepId, ideaId, "Manual retry");
     } catch {
       setLocalSteps((prev) =>
         prev.map((s) =>
@@ -179,6 +187,29 @@ export function WorkflowSection({
         )
       );
       toast.error("Failed to retry step");
+    } finally {
+      pendingOps.current--;
+    }
+  }
+
+  async function handleApprove(stepId: string) {
+    setLocalSteps((prev) =>
+      prev.map((s) =>
+        s.id === stepId ? { ...s, status: "completed" } : s
+      )
+    );
+
+    pendingOps.current++;
+    try {
+      await approveWorkflowStep(stepId, ideaId);
+      toast.success("Step approved");
+    } catch {
+      setLocalSteps((prev) =>
+        prev.map((s) =>
+          s.id === stepId ? { ...s, status: "awaiting_approval" } : s
+        )
+      );
+      toast.error("Failed to approve step");
     } finally {
       pendingOps.current--;
     }
@@ -219,6 +250,7 @@ export function WorkflowSection({
       <div className="space-y-1">
         {sortedSteps.map((step, index) => {
             const style = STATUS_STYLES[step.status] ?? STATUS_STYLES.pending;
+            const ac = step.agent?.is_bot ? getRoleColor(botRoles?.[step.agent.id]) : null;
 
             return (
               <div key={step.id} className="rounded-md border border-border/50">
@@ -239,6 +271,18 @@ export function WorkflowSection({
                     <AlertCircle className="h-3 w-3 shrink-0 text-red-400" />
                   )}
 
+                  {/* Human check required indicator */}
+                  {step.human_check_required && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-500/20 border border-amber-500/30">
+                          <UserCheck className="h-2.5 w-2.5 text-amber-400" />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>Human check required</TooltipContent>
+                    </Tooltip>
+                  )}
+
                   {/* Comment count badge */}
                   {step.comment_count > 0 && (
                     <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
@@ -247,38 +291,22 @@ export function WorkflowSection({
                     </span>
                   )}
 
-                  {/* Agent avatar or human checkpoint icon */}
-                  {step.step_type === "human" ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-amber-500/20 border border-amber-500/30">
-                          <UserCheck className="h-3 w-3 text-amber-400" />
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>Human validation</TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    (() => {
-                      const ac = step.agent?.is_bot ? getRoleColor(botRoles?.[step.agent.id]) : null;
-                      return (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Avatar className="h-5 w-5 shrink-0">
-                              <AvatarImage
-                                src={step.agent?.avatar_url ?? undefined}
-                              />
-                              <AvatarFallback className={cn("text-[8px]", ac?.avatarBg, ac?.avatarText)}>
-                                {getInitials(step.agent?.full_name ?? "?")}
-                              </AvatarFallback>
-                            </Avatar>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {step.agent?.full_name ?? "Unknown agent"}
-                          </TooltipContent>
-                        </Tooltip>
-                      );
-                    })()
-                  )}
+                  {/* Agent avatar */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Avatar className="h-5 w-5 shrink-0">
+                        <AvatarImage
+                          src={step.agent?.avatar_url ?? undefined}
+                        />
+                        <AvatarFallback className={cn("text-[8px]", ac?.avatarBg, ac?.avatarText)}>
+                          {getInitials(step.agent?.full_name ?? "?")}
+                        </AvatarFallback>
+                      </Avatar>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {step.agent?.full_name ?? "Unknown agent"}
+                    </TooltipContent>
+                  </Tooltip>
 
                   {/* Status badge */}
                   <span
@@ -286,6 +314,44 @@ export function WorkflowSection({
                   >
                     {style.label}
                   </span>
+
+                  {/* Approve/Reject buttons (always visible when awaiting) */}
+                  {!isReadOnly && step.status === "awaiting_approval" && (
+                    <div
+                      className="flex items-center gap-0.5"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => handleApprove(step.id)}
+                          >
+                            <Check className="h-3 w-3 text-emerald-400" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Approve</TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => {
+                              setSelectedStep(step);
+                              setSelectedStepIndex(index + 1);
+                            }}
+                          >
+                            <X className="h-3 w-3 text-red-400" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Reject (provide feedback)</TooltipContent>
+                      </Tooltip>
+                    </div>
+                  )}
 
                   {/* Action buttons */}
                   {!isReadOnly && (
@@ -332,51 +398,35 @@ export function WorkflowSection({
       {!isReadOnly && (
         <form onSubmit={handleAdd} className="space-y-2">
           <div className="flex gap-2">
-            <Select value={newStepType} onValueChange={(v) => setNewStepType(v as "agent" | "human")}>
-              <SelectTrigger className="h-8 w-[100px] text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="agent">Agent</SelectItem>
-                <SelectItem value="human">
-                  <span className="flex items-center gap-1.5">
-                    <UserCheck className="h-3 w-3 text-amber-400" />
-                    Human
-                  </span>
-                </SelectItem>
-              </SelectContent>
-            </Select>
             <Input
               value={newTitle}
               onChange={(e) => setNewTitle(e.target.value)}
-              placeholder={newStepType === "human" ? "e.g. Review design mockup..." : "Add a workflow step..."}
+              placeholder="Add a workflow step..."
               className="h-8 text-sm"
             />
-            {newStepType === "agent" && (
-              <Select value={newBotId} onValueChange={setNewBotId}>
-                <SelectTrigger className="h-8 w-[160px] text-xs">
-                  <SelectValue placeholder="Agent" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ideaAgents.map((agent) => {
-                    const ac = agent.is_bot ? getRoleColor(botRoles?.[agent.id]) : null;
-                    return (
-                      <SelectItem key={agent.id} value={agent.id}>
-                        <span className="flex items-center gap-1.5">
-                          <Avatar className="h-4 w-4">
-                            <AvatarImage src={agent.avatar_url ?? undefined} />
-                            <AvatarFallback className={cn("text-[7px]", ac?.avatarBg, ac?.avatarText)}>
-                              {getInitials(agent.full_name ?? "?")}
-                            </AvatarFallback>
-                          </Avatar>
-                          {agent.full_name ?? "Agent"}
-                        </span>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
-            )}
+            <Select value={newBotId} onValueChange={setNewBotId}>
+              <SelectTrigger className="h-8 w-[160px] text-xs">
+                <SelectValue placeholder="Agent" />
+              </SelectTrigger>
+              <SelectContent>
+                {ideaAgents.map((agent) => {
+                  const ac = agent.is_bot ? getRoleColor(botRoles?.[agent.id]) : null;
+                  return (
+                    <SelectItem key={agent.id} value={agent.id}>
+                      <span className="flex items-center gap-1.5">
+                        <Avatar className="h-4 w-4">
+                          <AvatarImage src={agent.avatar_url ?? undefined} />
+                          <AvatarFallback className={cn("text-[7px]", ac?.avatarBg, ac?.avatarText)}>
+                            {getInitials(agent.full_name ?? "?")}
+                          </AvatarFallback>
+                        </Avatar>
+                        {agent.full_name ?? "Agent"}
+                      </span>
+                    </SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -384,7 +434,7 @@ export function WorkflowSection({
                   size="sm"
                   variant="outline"
                   className="h-8"
-                  disabled={!newTitle.trim() || (newStepType === "agent" && !newBotId)}
+                  disabled={!newTitle.trim() || !newBotId}
                 >
                   <Plus className="h-3 w-3" />
                 </Button>
@@ -393,12 +443,23 @@ export function WorkflowSection({
             </Tooltip>
           </div>
           {newTitle.trim() && (
-            <Textarea
-              value={newDescription}
-              onChange={(e) => setNewDescription(e.target.value)}
-              placeholder="Step description (optional)..."
-              className="min-h-[60px] text-xs"
-            />
+            <>
+              <Textarea
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+                placeholder="Step description (optional)..."
+                className="min-h-[60px] text-xs"
+              />
+              <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+                <Checkbox
+                  checked={newHumanCheck}
+                  onCheckedChange={(checked) => setNewHumanCheck(checked === true)}
+                  className="h-3.5 w-3.5"
+                />
+                <UserCheck className="h-3 w-3 text-amber-400" />
+                Require human approval before completing
+              </label>
+            </>
           )}
         </form>
       )}
