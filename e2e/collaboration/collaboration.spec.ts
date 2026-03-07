@@ -3,7 +3,7 @@ import { test, expect } from "../fixtures/auth";
 import {
   createTestIdea,
   addCollaborator,
-  cleanupTestData,
+  cleanupIdeas,
   getTestUserId,
   scopedTitle,
 } from "../fixtures/test-data";
@@ -39,7 +39,7 @@ test.describe("Collaboration", () => {
   });
 
   test.afterAll(async () => {
-    await cleanupTestData();
+    await cleanupIdeas([publicIdeaId, privateIdeaId]);
   });
 
   test.describe("Self-join and leave (User B)", () => {

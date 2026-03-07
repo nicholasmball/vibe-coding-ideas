@@ -1,10 +1,11 @@
 import { test, expect } from "../fixtures/auth";
-import { createTestIdea, addCollaborator, cleanupTestData } from "../fixtures/test-data";
+import { createTestIdea, addCollaborator, cleanupIdeas } from "../fixtures/test-data";
 import { supabaseAdmin } from "../fixtures/supabase-admin";
 
 let userAId: string;
 let userBId: string;
 let adminId: string;
+const membersIdeaIds: string[] = [];
 
 test.beforeAll(async () => {
   const { data: users } = await supabaseAdmin
@@ -23,20 +24,22 @@ test.beforeAll(async () => {
   adminId = admin.id;
 
   // Create some ideas so idea counts are nonzero for sort tests
-  await createTestIdea(userAId, {
+  const idea1 = await createTestIdea(userAId, {
     title: "[E2E] Members Idea A1",
     description: "[E2E] Idea for member sorting tests",
     tags: ["e2e-test"],
   });
-  await createTestIdea(userAId, {
+  membersIdeaIds.push(idea1.id);
+  const idea2 = await createTestIdea(userAId, {
     title: "[E2E] Members Idea A2",
     description: "[E2E] Second idea for member sorting tests",
     tags: ["e2e-test"],
   });
+  membersIdeaIds.push(idea2.id);
 });
 
 test.afterAll(async () => {
-  await cleanupTestData();
+  await cleanupIdeas(membersIdeaIds);
 });
 
 test.describe("Members page", () => {
