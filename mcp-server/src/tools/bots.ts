@@ -58,8 +58,8 @@ export const createBotSchema = z.object({
         steps: z
           .array(
             z.object({
-              agent_role: z.string().min(1).max(50).describe("Agent role to match (e.g. 'UX Designer', 'Developer')"),
-              title: z.string().max(200).optional().describe("Custom step title. Defaults to agent_role if omitted."),
+              title: z.string().min(1).max(200).describe("Step name (e.g. 'Design', 'Development', 'Code Review')"),
+              agent_role: z.string().max(50).optional().describe("Optional agent role for auto-matching (e.g. 'UX Designer', 'Developer')"),
               description: z.string().max(1000).optional().describe("Step description"),
               human_check_required: z.boolean().optional().describe("Require human approval before completing"),
             })

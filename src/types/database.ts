@@ -1,8 +1,8 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export interface WorkflowTemplateStep {
-  agent_role: string;
-  title?: string;
+  title: string;
+  agent_role?: string;
   description?: string;
   human_check_required?: boolean;
 }

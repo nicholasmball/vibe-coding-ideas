@@ -247,7 +247,7 @@ export const MAX_WORKFLOW_TEMPLATE_STEPS = 20;
 
 export function validateWorkflowTemplates(
   templates: unknown[]
-): { name: string; steps: { agent_role: string; title?: string; description?: string; human_check_required?: boolean }[] }[] {
+): { name: string; steps: { title: string; agent_role?: string; description?: string; human_check_required?: boolean }[] }[] {
   if (!templates || templates.length === 0) return [];
   if (templates.length > MAX_WORKFLOW_TEMPLATES) {
     throw new ValidationError(`Maximum ${MAX_WORKFLOW_TEMPLATES} workflow templates allowed`);
@@ -271,16 +271,21 @@ export function validateWorkflowTemplates(
 
     const validatedSteps = steps.map((s, j) => {
       const step = s as Record<string, unknown>;
-      if (!step.agent_role || typeof step.agent_role !== "string" || !step.agent_role.trim()) {
-        throw new ValidationError(`Step ${j + 1} in "${tmpl.name}" must have an agent_role`);
+      if (!step.title || typeof step.title !== "string" || !step.title.trim()) {
+        throw new ValidationError(`Step ${j + 1} in "${tmpl.name}" must have a title`);
       }
-      if (step.agent_role.length > 50) {
-        throw new ValidationError(`Agent role "${step.agent_role}" exceeds 50 characters`);
+      if (step.title.length > 200) {
+        throw new ValidationError(`Step title "${step.title}" exceeds 200 characters`);
       }
-      const result: { agent_role: string; title?: string; description?: string; human_check_required?: boolean } = {
-        agent_role: (step.agent_role as string).trim(),
+      const result: { title: string; agent_role?: string; description?: string; human_check_required?: boolean } = {
+        title: (step.title as string).trim(),
       };
-      if (step.title && typeof step.title === "string") result.title = step.title.trim().slice(0, 200);
+      if (step.agent_role && typeof step.agent_role === "string" && step.agent_role.trim()) {
+        if (step.agent_role.length > 50) {
+          throw new ValidationError(`Agent role "${step.agent_role}" exceeds 50 characters`);
+        }
+        result.agent_role = step.agent_role.trim();
+      }
       if (step.description && typeof step.description === "string") result.description = step.description.trim().slice(0, 1000);
       if (typeof step.human_check_required === "boolean") result.human_check_required = step.human_check_required;
       return result;

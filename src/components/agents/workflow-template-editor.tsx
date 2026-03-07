@@ -22,7 +22,7 @@ export function WorkflowTemplateEditor({ value, onChange }: WorkflowTemplateEdit
   function addTemplate() {
     const newTemplate: WorkflowTemplate = {
       name: "",
-      steps: [{ agent_role: "" }],
+      steps: [{ title: "" }],
     };
     onChange([...value, newTemplate]);
     setExpandedIndex(value.length);
@@ -45,7 +45,7 @@ export function WorkflowTemplateEditor({ value, onChange }: WorkflowTemplateEdit
     const template = value[templateIndex];
     updateTemplate(templateIndex, {
       ...template,
-      steps: [...template.steps, { agent_role: "" }],
+      steps: [...template.steps, { title: "" }],
     });
   }
 
@@ -161,11 +161,11 @@ export function WorkflowTemplateEditor({ value, onChange }: WorkflowTemplateEdit
                           )}
                           <span className={cn(
                             "rounded-full border px-2 py-0.5 text-[10px] font-medium",
-                            step.agent_role
+                            step.title
                               ? "border-violet-500/30 bg-violet-500/10 text-violet-400"
                               : "border-border/50 text-muted-foreground"
                           )}>
-                            {step.agent_role || "..."}
+                            {step.title || "..."}
                             {step.human_check_required && (
                               <UserCheck className="inline ml-0.5 h-2.5 w-2.5 text-amber-400" />
                             )}
@@ -193,13 +193,13 @@ export function WorkflowTemplateEditor({ value, onChange }: WorkflowTemplateEdit
                         </Button>
                       </div>
                       <Input
-                        value={step.agent_role}
+                        value={step.title}
                         onChange={(e) =>
-                          updateStep(ti, si, { ...step, agent_role: e.target.value })
+                          updateStep(ti, si, { ...step, title: e.target.value })
                         }
-                        placeholder="Agent role (e.g. UX Designer)"
+                        placeholder="e.g. Design, Development, Review"
                         className="h-6 text-xs flex-1"
-                        maxLength={50}
+                        maxLength={200}
                       />
                       <label className="flex items-center shrink-0 cursor-pointer" title="Human check required">
                         <Checkbox
