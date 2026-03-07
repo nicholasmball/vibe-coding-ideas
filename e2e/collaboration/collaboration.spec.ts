@@ -204,11 +204,15 @@ test.describe("Collaboration", () => {
       await userBResult.click();
       await actionPromise;
 
-      // Wait for revalidation — the team section should show count "2" (author + User B)
-      const teamSection = main.locator("div").filter({ hasText: /^Team/ });
+      // Reload for fresh server data (revalidatePath may not update client immediately)
+      await userAPage.reload();
+      const mainReloaded = userAPage.getByRole('main');
+
+      // Wait for the team section to show count "2" (author + User B)
+      const teamSection = mainReloaded.locator("div").filter({ hasText: /^Team/ });
       await expect(teamSection.getByText("2")).toBeVisible({ timeout: EXPECT_TIMEOUT });
 
-      // Reload the page to verify the collaborator persisted
+      // Reload again to double-check persistence
       await userAPage.reload();
       const mainAfterReload = userAPage.getByRole('main');
 

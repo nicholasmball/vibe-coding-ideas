@@ -37,8 +37,9 @@ test.describe("Navbar", () => {
 
   // Use freshPage (separate user) for sign out to avoid revoking shared auth tokens
   test("sign out redirects away from protected routes", async ({ freshPage }) => {
-    // Navigate to /dashboard — re-authenticate if the stored session has expired
-    await ensureFreshPageAuthenticated(freshPage, "/dashboard");
+    // Navigate to /ideas — use /ideas instead of /dashboard to avoid onboarding dialog
+    // (fresh user has no onboarding_completed_at, dashboard shows un-dismissable dialog)
+    await ensureFreshPageAuthenticated(freshPage, "/ideas");
 
     // Open the user dropdown menu (click the avatar button)
     const avatarButton = freshPage

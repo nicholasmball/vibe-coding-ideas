@@ -52,7 +52,8 @@ test.describe("Landing page", () => {
     test("footer contains Guide and Privacy links", async ({ anonPage }) => {
       await anonPage.goto("/");
 
-      const footer = anonPage.locator("footer");
+      // Use last() — landing page has a testimonial <footer> and the site <footer>
+      const footer = anonPage.locator("footer").last();
       await expect(footer).toBeVisible();
 
       // Guide link
