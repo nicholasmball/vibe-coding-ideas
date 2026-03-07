@@ -690,35 +690,37 @@ export function OnboardingDialog({
                 type="button"
                 onClick={handleEnhance}
                 disabled={enhancing}
-                className="enhance-cta-border group mb-6 flex w-full items-center gap-3.5 rounded-xl bg-violet-500/[0.06] px-4 py-4 text-left transition-all hover:bg-violet-500/[0.10] hover:shadow-[0_0_32px_-6px_rgba(139,92,246,0.2)] disabled:pointer-events-none disabled:opacity-70"
+                className="enhance-cta-border group mb-6 flex w-full flex-col rounded-xl bg-violet-500/[0.06] px-4 py-4 text-left transition-all hover:bg-violet-500/[0.10] hover:shadow-[0_0_32px_-6px_rgba(139,92,246,0.2)] disabled:pointer-events-none disabled:opacity-70 sm:flex-row sm:items-center sm:gap-3.5"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-violet-500/25 to-purple-500/[0.12]">
-                  <Sparkles
-                    className={cn(
-                      "h-5 w-5 text-violet-300",
-                      enhancing && "animate-spin"
-                    )}
-                    style={enhancing ? { animationDuration: "2s" } : undefined}
-                  />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-zinc-200">
-                      {enhancing ? "Enhancing your idea..." : "Enhance your Idea with AI"}
-                    </span>
-                    {!enhancing && (
-                      <span className="rounded bg-violet-500/20 border border-violet-500/30 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-300">
-                        Free
-                      </span>
-                    )}
+                <div className="mb-3 flex items-center gap-3 sm:mb-0 sm:contents">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-br from-violet-500/25 to-purple-500/[0.12]">
+                    <Sparkles
+                      className={cn(
+                        "h-5 w-5 text-violet-300",
+                        enhancing && "animate-spin"
+                      )}
+                      style={enhancing ? { animationDuration: "2s" } : undefined}
+                    />
                   </div>
-                  <span className="text-xs text-zinc-500">
-                    {enhancing
-                      ? "This may take a moment..."
-                      : "AI can refine your description and auto-generate your task board"}
-                  </span>
+                  <div className="flex-1 sm:flex-initial">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-zinc-200">
+                        {enhancing ? "Enhancing your idea..." : "Enhance your Idea with AI"}
+                      </span>
+                      {!enhancing && (
+                        <span className="rounded bg-violet-500/20 border border-violet-500/30 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-violet-300">
+                          Free
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-xs text-zinc-500">
+                      {enhancing
+                        ? "This may take a moment..."
+                        : "AI can refine your description and auto-generate your task board"}
+                    </span>
+                  </div>
                 </div>
-                <span className="flex shrink-0 items-center gap-1.5 rounded-lg bg-gradient-to-br from-violet-600 to-violet-700 px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_8px_rgba(124,58,237,0.3)]">
+                <span className="flex w-full shrink-0 items-center justify-center gap-1.5 rounded-lg bg-gradient-to-br from-violet-600 to-violet-700 px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_8px_rgba(124,58,237,0.3)] sm:w-auto">
                   <Sparkles className="h-3.5 w-3.5" />
                   {enhancing ? "Working..." : "Enhance"}
                 </span>
