@@ -1,11 +1,6 @@
 import { test, expect } from "../fixtures/auth";
-import { cleanupTestData } from "../fixtures/test-data";
 
 test.describe("Create Idea", () => {
-  test.afterAll(async () => {
-    await cleanupTestData();
-  });
-
   test.describe("Form display", () => {
     test("should display the idea creation form at /ideas/new", async ({
       userAPage,

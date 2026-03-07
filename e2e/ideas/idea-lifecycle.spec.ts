@@ -1,9 +1,10 @@
 import { test, expect } from "../fixtures/auth";
-import { createTestIdea, cleanupTestData } from "../fixtures/test-data";
+import { createTestIdea, cleanupIdeas } from "../fixtures/test-data";
 import { supabaseAdmin } from "../fixtures/supabase-admin";
 
 let userAId: string;
 let adminId: string;
+const createdIdeaIds: string[] = [];
 
 test.beforeAll(async () => {
   // Look up test user IDs
@@ -22,7 +23,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await cleanupTestData();
+  await cleanupIdeas(createdIdeaIds);
 });
 
 test.describe("Idea Lifecycle", () => {
@@ -35,6 +36,7 @@ test.describe("Idea Lifecycle", () => {
         description: "[E2E] Testing status transition",
         status: "open",
       });
+      createdIdeaIds.push(idea.id);
 
       await userAPage.goto(`/ideas/${idea.id}`);
 
@@ -72,6 +74,7 @@ test.describe("Idea Lifecycle", () => {
         description: "[E2E] Testing second status transition",
         status: "in_progress",
       });
+      createdIdeaIds.push(idea.id);
 
       await userAPage.goto(`/ideas/${idea.id}`);
 
@@ -99,6 +102,7 @@ test.describe("Idea Lifecycle", () => {
         description: "[E2E] Testing archive transition",
         status: "open",
       });
+      createdIdeaIds.push(idea.id);
 
       await userAPage.goto(`/ideas/${idea.id}`);
 
@@ -134,6 +138,7 @@ test.describe("Idea Lifecycle", () => {
         title: "[E2E] Idea to Delete (Author)",
         description: "[E2E] This idea will be deleted by its author",
       });
+      createdIdeaIds.push(idea.id);
 
       await userAPage.goto(`/ideas/${idea.id}`);
 
@@ -177,6 +182,7 @@ test.describe("Idea Lifecycle", () => {
         title: "[E2E] Idea Cancel Delete",
         description: "[E2E] This idea should survive cancellation",
       });
+      createdIdeaIds.push(idea.id);
 
       await userAPage.goto(`/ideas/${idea.id}`);
 
@@ -216,6 +222,7 @@ test.describe("Idea Lifecycle", () => {
         title: "[E2E] Idea for Admin Delete",
         description: "[E2E] Admin should be able to delete this",
       });
+      createdIdeaIds.push(idea.id);
 
       await adminPage.goto(`/ideas/${idea.id}`);
 

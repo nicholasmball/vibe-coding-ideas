@@ -3,7 +3,7 @@ import {
   createTestIdea,
   createTestBoardWithTasks,
   addCollaborator,
-  cleanupTestData,
+  cleanupIdeas,
 } from "../fixtures/test-data";
 import { supabaseAdmin } from "../fixtures/supabase-admin";
 
@@ -43,7 +43,7 @@ test.describe("Board Task Comments", () => {
   });
 
   test.afterAll(async () => {
-    await cleanupTestData();
+    await cleanupIdeas([ideaId]);
   });
 
   test("post a task comment", async ({ userAPage }) => {

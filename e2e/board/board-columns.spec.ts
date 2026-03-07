@@ -2,7 +2,7 @@ import { test, expect } from "../fixtures/auth";
 import {
   createTestIdea,
   createTestBoardWithTasks,
-  cleanupTestData,
+  cleanupIdeas,
 } from "../fixtures/test-data";
 import { supabaseAdmin } from "../fixtures/supabase-admin";
 
@@ -37,7 +37,7 @@ test.describe("Board Columns", () => {
   });
 
   test.afterAll(async () => {
-    await cleanupTestData();
+    await cleanupIdeas([ideaId]);
   });
 
   test("should create a new column via the Add Column button", async ({

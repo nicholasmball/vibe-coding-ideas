@@ -1,5 +1,5 @@
 import { test, expect } from "../fixtures/auth";
-import { createTestIdea, cleanupTestData } from "../fixtures/test-data";
+import { createTestIdea, cleanupIdeas } from "../fixtures/test-data";
 import { supabaseAdmin } from "../fixtures/supabase-admin";
 
 async function getUserId(fullName: string): Promise<string> {
@@ -29,7 +29,7 @@ test.describe("Feed page", () => {
   });
 
   test.afterAll(async () => {
-    await cleanupTestData();
+    await cleanupIdeas([ideaId]);
   });
 
   test("displays idea cards with title, description, author, and tags", async ({

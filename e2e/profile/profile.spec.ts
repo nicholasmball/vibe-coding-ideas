@@ -3,7 +3,7 @@ import {
   createTestIdea,
   addCollaborator,
   createTestComment,
-  cleanupTestData,
+  cleanupIdeas,
 } from "../fixtures/test-data";
 import { supabaseAdmin } from "../fixtures/supabase-admin";
 
@@ -50,7 +50,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await cleanupTestData();
+  await cleanupIdeas([ideaId, collabIdeaId]);
 });
 
 test.describe("Profile page", () => {

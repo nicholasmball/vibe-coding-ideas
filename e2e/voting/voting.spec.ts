@@ -1,5 +1,5 @@
 import { test, expect } from "../fixtures/auth";
-import { createTestIdea, cleanupTestData } from "../fixtures/test-data";
+import { createTestIdea, cleanupIdeas } from "../fixtures/test-data";
 import { supabaseAdmin } from "../fixtures/supabase-admin";
 
 async function getUserId(fullName: string): Promise<string> {
@@ -28,7 +28,7 @@ test.describe("Voting on idea detail page", () => {
   });
 
   test.afterAll(async () => {
-    await cleanupTestData();
+    await cleanupIdeas([ideaId]);
   });
 
   test("click vote button increments count and applies active styling", async ({

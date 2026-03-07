@@ -4,7 +4,7 @@ import {
   createTestIdea,
   createTestBoardColumns,
   addCollaborator,
-  cleanupTestData,
+  cleanupIdeas,
   getTestUserId,
   scopedTitle,
 } from "../fixtures/test-data";
@@ -39,7 +39,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  await cleanupTestData();
+  await cleanupIdeas([ideaId]);
 });
 
 test.describe("Board Realtime", () => {

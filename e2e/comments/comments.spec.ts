@@ -3,7 +3,7 @@ import { test, expect } from "../fixtures/auth";
 import {
   createTestIdea,
   createTestComment,
-  cleanupTestData,
+  cleanupIdeas,
   getTestUserId,
   scopedTitle,
 } from "../fixtures/test-data";
@@ -27,7 +27,7 @@ test.describe("Comments", () => {
   });
 
   test.afterAll(async () => {
-    await cleanupTestData();
+    await cleanupIdeas([ideaId]);
   });
 
   // Clean up comments between tests to prevent accumulation/flakiness

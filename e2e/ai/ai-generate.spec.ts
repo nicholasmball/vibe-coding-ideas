@@ -3,7 +3,7 @@ import { test, expect } from "../fixtures/auth";
 import {
   createTestIdea,
   createTestBoardWithTasks,
-  cleanupTestData,
+  cleanupIdeas,
   getTestUserId,
   scopedTitle,
 } from "../fixtures/test-data";
@@ -34,7 +34,7 @@ test.afterAll(async () => {
     .update({ encrypted_anthropic_key: null })
     .eq("id", userAId);
 
-  await cleanupTestData();
+  await cleanupIdeas([testIdeaId]);
 });
 
 test.describe("AI Generate - Board Toolbar", () => {

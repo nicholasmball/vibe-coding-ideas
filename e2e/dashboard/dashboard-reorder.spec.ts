@@ -1,5 +1,5 @@
 import { test, expect } from "../fixtures/auth";
-import { createTestIdea, createTestBoardWithTasks, cleanupTestData } from "../fixtures/test-data";
+import { createTestIdea, createTestBoardWithTasks, cleanupIdeas } from "../fixtures/test-data";
 import { supabaseAdmin } from "../fixtures/supabase-admin";
 
 async function getUserId(fullName: string): Promise<string> {
@@ -13,6 +13,7 @@ async function getUserId(fullName: string): Promise<string> {
 }
 
 let userAId: string;
+let reorderIdeaId: string;
 
 test.beforeAll(async () => {
   userAId = await getUserId("Test User A");
@@ -22,11 +23,12 @@ test.beforeAll(async () => {
     title: "[E2E] Reorder Board Idea",
     description: "[E2E] Idea to ensure board section renders.",
   });
+  reorderIdeaId = idea.id;
   await createTestBoardWithTasks(idea.id, 1);
 });
 
 test.afterAll(async () => {
-  await cleanupTestData();
+  await cleanupIdeas([reorderIdeaId]);
 });
 
 test.describe("Dashboard Reorder", () => {
