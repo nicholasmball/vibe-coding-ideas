@@ -41,10 +41,10 @@ export function IdeaCard({ idea, hasVoted, taskCount }: IdeaCardProps) {
             />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 min-w-0">
               <Link
                 href={`/ideas/${idea.id}`}
-                className="relative z-10 text-lg font-semibold hover:text-primary transition-colors line-clamp-1"
+                className="relative z-10 text-lg font-semibold hover:text-primary transition-colors truncate"
               >
                 {idea.title}
               </Link>

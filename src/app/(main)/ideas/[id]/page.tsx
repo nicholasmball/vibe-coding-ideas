@@ -13,6 +13,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { IdeaStatusBadge } from "@/components/ideas/idea-status-badge";
+import { VisibilityToggle } from "@/components/ideas/visibility-toggle";
 import { VoteButton } from "@/components/ideas/vote-button";
 import { CollaboratorButton } from "@/components/ideas/collaborator-button";
 import { StatusSelect } from "@/components/ideas/status-select";
@@ -253,15 +254,19 @@ export default async function IdeaDetailPage({ params }: PageProps) {
             hasVoted={hasVoted}
           />
           <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-start justify-between gap-2">
               <InlineIdeaHeader
                 ideaId={idea.id}
                 title={idea.title}
-                visibility={idea.visibility}
                 isAuthor={isAuthor}
               />
-              {/* Actions: Enhance (prominent) + Edit/Delete (icon buttons) */}
-              <div className="flex shrink-0 items-center gap-1.5">
+              {/* Actions: Visibility + Enhance (prominent) + Edit/Delete (icon buttons) */}
+              <div className="flex shrink-0 items-center gap-1.5 mt-1">
+                <VisibilityToggle
+                  ideaId={idea.id}
+                  visibility={idea.visibility}
+                  isAuthor={isAuthor}
+                />
                 {isAuthor && (
                   <span className="hidden sm:inline-flex">
                     <EnhanceIdeaButton
