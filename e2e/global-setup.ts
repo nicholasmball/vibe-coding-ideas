@@ -47,12 +47,27 @@ setup("create test users and authenticate", async ({ browser }) => {
     await page.getByLabel("Password").fill(password);
     await page.getByRole("button", { name: /sign in/i }).click();
 
-    // Wait for auth cookies to be set, then navigate to dashboard explicitly.
-    // router.push("/dashboard") can race with cookie setting in Firefox,
-    // causing middleware to redirect back to /login. Explicit navigation is more reliable.
+    // Wait for the client-side redirect after signInWithPassword to complete,
+    // then navigate to dashboard explicitly. The middleware verifies the auth token
+    // which can be slow in CI (cold Supabase), so we retry navigation if needed.
     await page.waitForTimeout(3000);
-    await page.goto("/dashboard");
-    await page.waitForURL("**/dashboard", { timeout: 15_000 });
+
+    // Retry dashboard navigation up to 3 times — middleware may timeout on cold starts
+    let dashboardReached = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      await page.goto("/dashboard");
+      try {
+        await page.waitForURL("**/dashboard", { timeout: 10_000 });
+        dashboardReached = true;
+        break;
+      } catch {
+        console.warn(`Dashboard navigation attempt ${attempt + 1} failed for ${config.key}, retrying...`);
+        await page.waitForTimeout(2000);
+      }
+    }
+    if (!dashboardReached) {
+      throw new Error(`Failed to reach /dashboard for ${config.key} after 3 attempts. Current URL: ${page.url()}`);
+    }
 
     // Verify auth cookie exists (Supabase SSR uses cookies, not localStorage)
     const cookies = await context.cookies();
