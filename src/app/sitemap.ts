@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import type { MetadataRoute } from "next";
 
+export const dynamic = "force-dynamic";
 export const revalidate = 3600; // regenerate at most once per hour
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://vibecodes.co.uk";
