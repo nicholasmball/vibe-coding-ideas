@@ -8,4 +8,7 @@ Sentry.init({
 
   // Don't send events in development
   enabled: process.env.NODE_ENV === "production",
+
+  // Prevent OTel module duplication with Next.js 16 + Turbopack
+  skipOpenTelemetrySetup: true,
 });

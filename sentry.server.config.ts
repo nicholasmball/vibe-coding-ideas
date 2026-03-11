@@ -8,4 +8,8 @@ Sentry.init({
 
   // Don't send events in development
   enabled: process.env.NODE_ENV === "production",
+
+  // Prevent OTel module duplication with Next.js 16 + Turbopack
+  // that causes intermittent "No response is returned" 500s on cold starts
+  skipOpenTelemetrySetup: true,
 });
