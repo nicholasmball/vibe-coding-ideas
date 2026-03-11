@@ -1,18 +1,53 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Paperclip, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { MentionAutocomplete } from "@/components/board/mention-autocomplete";
 import { createDiscussionReply } from "@/actions/discussions";
+import { createClient } from "@/lib/supabase/client";
 import { useMentionState } from "@/hooks/use-mentions";
 import { sendDiscussionMentionNotifications } from "@/lib/mention-notifications";
-import { MAX_DISCUSSION_REPLY_LENGTH } from "@/lib/validation";
+import {
+  MAX_DISCUSSION_REPLY_LENGTH,
+  MAX_DISCUSSION_ATTACHMENTS,
+  MAX_IDEA_ATTACHMENT_SIZE,
+  ALLOWED_IDEA_ATTACHMENT_TYPES,
+} from "@/lib/validation";
 import { getInitials } from "@/lib/utils";
 import type { User } from "@/types";
+
+const ALLOWED_EXTENSIONS = [
+  "md", "html", "htm", "pdf", "png", "jpg", "jpeg", "gif", "webp", "svg",
+];
+
+function validateFile(file: File): string | null {
+  if (file.size > MAX_IDEA_ATTACHMENT_SIZE) return "File size must be under 10MB";
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const typeAllowed =
+    ALLOWED_IDEA_ATTACHMENT_TYPES.includes(
+      file.type as (typeof ALLOWED_IDEA_ATTACHMENT_TYPES)[number]
+    ) || ALLOWED_EXTENSIONS.includes(ext);
+  if (!typeAllowed) return "Unsupported file type";
+  return null;
+}
+
+function normalizeContentType(file: File): string {
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+  if (ext === "md" && file.type !== "text/markdown") return "text/markdown";
+  if ((ext === "html" || ext === "htm") && file.type !== "text/html") return "text/html";
+  return file.type;
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1048576).toFixed(1)} MB`;
+}
 
 interface DiscussionReplyFormProps {
   discussionId: string;
@@ -36,6 +71,8 @@ export function DiscussionReplyForm({
   const router = useRouter();
   const [content, setContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const mention = useMentionState(teamMembers);
 
@@ -43,6 +80,75 @@ export function DiscussionReplyForm({
     const value = e.target.value;
     setContent(value);
     mention.detectMention(value, e.target.selectionStart);
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (!files?.length) return;
+
+    const newFiles: File[] = [];
+    for (const file of files) {
+      if (pendingFiles.length + newFiles.length >= MAX_DISCUSSION_ATTACHMENTS) {
+        toast.error(`Maximum ${MAX_DISCUSSION_ATTACHMENTS} attachments`);
+        break;
+      }
+      const error = validateFile(file);
+      if (error) {
+        toast.error(`${file.name}: ${error}`);
+        continue;
+      }
+      newFiles.push(file);
+    }
+
+    if (newFiles.length > 0) {
+      setPendingFiles((prev) => [...prev, ...newFiles]);
+    }
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function removePendingFile(index: number) {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function uploadFiles(replyId: string) {
+    const supabase = createClient();
+
+    for (const file of pendingFiles) {
+      const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+      const uniqueName = `${crypto.randomUUID()}.${ext}`;
+      const storagePath = `${ideaId}/${discussionId}/${uniqueName}`;
+      const contentType = normalizeContentType(file);
+
+      const { error: uploadError } = await supabase.storage
+        .from("discussion-attachments")
+        .upload(storagePath, file);
+
+      if (uploadError) {
+        toast.error(`Failed to upload ${file.name}`);
+        continue;
+      }
+
+      const { error: dbError } = await supabase
+        .from("discussion_attachments")
+        .insert({
+          discussion_id: discussionId,
+          idea_id: ideaId,
+          reply_id: replyId,
+          uploaded_by: currentUser.id,
+          file_name: file.name,
+          file_size: file.size,
+          content_type: contentType,
+          storage_path: storagePath,
+        });
+
+      if (dbError) {
+        toast.error(`Failed to save ${file.name}`);
+        await supabase.storage
+          .from("discussion-attachments")
+          .remove([storagePath]);
+      }
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -53,6 +159,11 @@ export function DiscussionReplyForm({
     setIsSubmitting(true);
     try {
       const replyId = await createDiscussionReply(discussionId, ideaId, content, parentReplyId);
+
+      // Upload pending files to the new reply (fire-and-forget style — don't block success)
+      if (pendingFiles.length > 0) {
+        await uploadFiles(replyId);
+      }
 
       // Send mention notifications (fire-and-forget)
       if (savedMentionedUserIds.size > 0 && currentUser.id) {
@@ -67,6 +178,7 @@ export function DiscussionReplyForm({
       }
 
       setContent("");
+      setPendingFiles([]);
       mention.setMentionedUserIds(new Set());
       mention.setMentionQuery(null);
       toast.success("Reply posted");
@@ -78,6 +190,50 @@ export function DiscussionReplyForm({
       setIsSubmitting(false);
     }
   }
+
+  const pendingFileChips = pendingFiles.length > 0 && (
+    <div className="flex flex-wrap gap-1.5">
+      {pendingFiles.map((file, i) => (
+        <span
+          key={`${file.name}-${i}`}
+          className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 py-0.5 pl-2 pr-1 text-[11px] text-foreground/80"
+        >
+          {file.name}
+          <span className="text-[10px] text-muted-foreground">
+            {formatFileSize(file.size)}
+          </span>
+          <button
+            type="button"
+            onClick={() => removePendingFile(i)}
+            className="ml-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-destructive/15 hover:text-destructive"
+          >
+            <X className="h-2.5 w-2.5" />
+          </button>
+        </span>
+      ))}
+    </div>
+  );
+
+  const attachButton = (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        accept=".md,.html,.htm,.pdf,.png,.jpg,.jpeg,.gif,.webp,.svg"
+        onChange={handleFileSelect}
+        multiple
+      />
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        title="Attach file"
+      >
+        <Paperclip className="h-3.5 w-3.5" />
+      </button>
+    </>
+  );
 
   if (compact) {
     return (
@@ -102,10 +258,12 @@ export function DiscussionReplyForm({
             autoFocus
           />
         </div>
+        {pendingFileChips}
         <div className="flex items-center gap-2">
           <Button type="submit" size="sm" disabled={isSubmitting || !content.trim()}>
             {isSubmitting ? "Replying..." : "Reply"}
           </Button>
+          {attachButton}
           {onCancel && (
             <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
               Cancel
@@ -146,8 +304,12 @@ export function DiscussionReplyForm({
           className="min-h-[80px] resize-y"
         />
       </div>
+      {pendingFileChips}
       <div className="mt-2 flex items-center justify-between">
-        <span className="text-xs text-muted-foreground">Markdown supported</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">Markdown supported</span>
+          {attachButton}
+        </div>
         <Button type="submit" size="sm" disabled={isSubmitting || !content.trim()}>
           {isSubmitting ? "Replying..." : "Reply"}
         </Button>
