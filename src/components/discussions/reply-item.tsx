@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Pencil, Reply, Trash2 } from "lucide-react";
+import { Paperclip, Pencil, Reply, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,10 @@ import { updateDiscussionReply } from "@/actions/discussions";
 import { useMentionState } from "@/hooks/use-mentions";
 import { sendDiscussionMentionNotifications } from "@/lib/mention-notifications";
 import { formatRelativeTime, getInitials } from "@/lib/utils";
+import {
+  DiscussionAttachmentsSection,
+  type DiscussionAttachmentsHandle,
+} from "./discussion-attachments-section";
 import { DiscussionReplyForm } from "./discussion-reply-form";
 import { ChildReplyItem } from "./child-reply-item";
 import type {
@@ -28,6 +32,7 @@ interface ReplyItemProps {
   discussionAuthorId: string;
   currentUser: User | null;
   isAuthorOrOwner: boolean;
+  isTeamMember: boolean;
   canReply: boolean;
   onDelete: (id: string) => void;
   teamMembers?: User[];
@@ -40,11 +45,13 @@ export function ReplyItem({
   discussionAuthorId,
   currentUser,
   isAuthorOrOwner,
+  isTeamMember,
   canReply,
   onDelete,
   teamMembers = [],
 }: ReplyItemProps) {
   const router = useRouter();
+  const attachmentsRef = useRef<DiscussionAttachmentsHandle>(null);
   const canDelete =
     currentUser?.id === reply.author_id || isAuthorOrOwner || currentUser?.is_admin;
   const canEdit = currentUser?.id === reply.author_id;
@@ -133,6 +140,15 @@ export function ReplyItem({
                   <Reply className="h-3 w-3" />
                 </button>
               )}
+              {isTeamMember && !isEditing && (
+                <button
+                  onClick={() => attachmentsRef.current?.triggerUpload()}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                  title="Attach file"
+                >
+                  <Paperclip className="h-3 w-3" />
+                </button>
+              )}
               {canEdit && !isEditing && (
                 <button
                   onClick={() => setIsEditing(true)}
@@ -211,6 +227,19 @@ export function ReplyItem({
             </div>
           )}
 
+          {/* Attachment chips */}
+          {currentUser && (
+            <DiscussionAttachmentsSection
+              ref={attachmentsRef}
+              discussionId={discussionId}
+              ideaId={ideaId}
+              currentUserId={currentUser.id}
+              isAuthor={isAuthorOrOwner}
+              isTeamMember={isTeamMember}
+              replyId={reply.id}
+            />
+          )}
+
           {/* Inline reply form */}
           {isReplying && currentUser && (
             <DiscussionReplyForm
@@ -239,6 +268,7 @@ export function ReplyItem({
               discussionAuthorId={discussionAuthorId}
               currentUser={currentUser}
               isAuthorOrOwner={isAuthorOrOwner}
+              isTeamMember={isTeamMember}
               onDelete={onDelete}
               teamMembers={teamMembers}
             />

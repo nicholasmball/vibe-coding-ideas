@@ -587,6 +587,7 @@ export function DiscussionThread({
                 discussionAuthorId={discussion.author_id}
                 currentUser={currentUser}
                 isAuthorOrOwner={isAuthorOrOwner}
+                isTeamMember={isTeamMember}
                 canReply={canReply}
                 onDelete={handleDeleteReply}
                 teamMembers={teamMembers}

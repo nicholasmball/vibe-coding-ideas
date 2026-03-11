@@ -36,6 +36,8 @@ interface DiscussionAttachmentsSectionProps {
   currentUserId: string;
   isAuthor: boolean;
   isTeamMember: boolean;
+  /** When set, scopes attachments to this reply instead of the discussion post */
+  replyId?: string | null;
 }
 
 function formatFileSize(bytes: number): string {
@@ -74,7 +76,7 @@ export const DiscussionAttachmentsSection = forwardRef<
   DiscussionAttachmentsHandle,
   DiscussionAttachmentsSectionProps
 >(function DiscussionAttachmentsSection(
-  { discussionId, ideaId, currentUserId, isAuthor, isTeamMember },
+  { discussionId, ideaId, currentUserId, isAuthor, isTeamMember, replyId },
   ref
 ) {
   const [attachments, setAttachments] = useState<DiscussionAttachment[]>([]);
@@ -95,15 +97,21 @@ export const DiscussionAttachmentsSection = forwardRef<
 
   const fetchAttachments = useCallback(async () => {
     const supabase = createClient();
-    const { data } = await supabase
+    let query = supabase
       .from("discussion_attachments")
       .select("*")
-      .eq("discussion_id", discussionId)
-      .order("created_at", { ascending: false });
+      .eq("discussion_id", discussionId);
 
+    if (replyId) {
+      query = query.eq("reply_id", replyId);
+    } else {
+      query = query.is("reply_id", null);
+    }
+
+    const { data } = await query.order("created_at", { ascending: false });
     setAttachments(data ?? []);
     setLoading(false);
-  }, [discussionId]);
+  }, [discussionId, replyId]);
 
   useEffect(() => {
     fetchAttachments();
@@ -112,8 +120,11 @@ export const DiscussionAttachmentsSection = forwardRef<
   // Realtime
   useEffect(() => {
     const supabase = createClient();
+    const channelName = replyId
+      ? `discussion-attachments-reply-${replyId}`
+      : `discussion-attachments-${discussionId}`;
     const channel = supabase
-      .channel(`discussion-attachments-${discussionId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
@@ -123,6 +134,10 @@ export const DiscussionAttachmentsSection = forwardRef<
           filter: `discussion_id=eq.${discussionId}`,
         },
         async (payload) => {
+          // Filter by replyId client-side (Realtime doesn't support nullable filters)
+          const newReplyId = payload.new.reply_id ?? null;
+          if (replyId ? newReplyId !== replyId : newReplyId !== null) return;
+
           const { data } = await supabase
             .from("discussion_attachments")
             .select("*")
@@ -156,7 +171,7 @@ export const DiscussionAttachmentsSection = forwardRef<
     return () => {
       channel.unsubscribe();
     };
-  }, [discussionId]);
+  }, [discussionId, replyId]);
 
   // Paste handler for images
   useEffect(() => {
@@ -245,6 +260,7 @@ export const DiscussionAttachmentsSection = forwardRef<
       .insert({
         discussion_id: discussionId,
         idea_id: ideaId,
+        reply_id: replyId ?? null,
         uploaded_by: currentUserId,
         file_name: file.name,
         file_size: file.size,

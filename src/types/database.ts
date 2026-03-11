@@ -1057,6 +1057,7 @@ export type Database = {
           id: string;
           discussion_id: string;
           idea_id: string;
+          reply_id: string | null;
           uploaded_by: string;
           file_name: string;
           file_size: number;
@@ -1068,6 +1069,7 @@ export type Database = {
           id?: string;
           discussion_id: string;
           idea_id: string;
+          reply_id?: string | null;
           uploaded_by: string;
           file_name: string;
           file_size: number;
@@ -1079,6 +1081,7 @@ export type Database = {
           id?: string;
           discussion_id?: string;
           idea_id?: string;
+          reply_id?: string | null;
           uploaded_by?: string;
           file_name?: string;
           file_size?: number;
@@ -1099,6 +1102,13 @@ export type Database = {
             columns: ["idea_id"];
             isOneToOne: false;
             referencedRelation: "ideas";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "discussion_attachments_reply_id_fkey";
+            columns: ["reply_id"];
+            isOneToOne: false;
+            referencedRelation: "idea_discussion_replies";
             referencedColumns: ["id"];
           },
           {

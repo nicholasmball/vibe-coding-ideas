@@ -4,6 +4,7 @@ CREATE TABLE discussion_attachments (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   discussion_id uuid NOT NULL REFERENCES idea_discussions(id) ON DELETE CASCADE,
   idea_id uuid NOT NULL REFERENCES ideas(id) ON DELETE CASCADE,
+  reply_id uuid REFERENCES idea_discussion_replies(id) ON DELETE CASCADE,
   uploaded_by uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   file_name text NOT NULL,
   file_size integer NOT NULL,
@@ -13,6 +14,7 @@ CREATE TABLE discussion_attachments (
 );
 
 CREATE INDEX idx_discussion_attachments_discussion ON discussion_attachments(discussion_id);
+CREATE INDEX idx_discussion_attachments_reply ON discussion_attachments(reply_id);
 
 -- Denormalized attachment count on discussions
 ALTER TABLE idea_discussions ADD COLUMN attachment_count integer NOT NULL DEFAULT 0;
