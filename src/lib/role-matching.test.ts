@@ -53,15 +53,26 @@ describe("role-matching", () => {
       expect(result).toEqual({ botId: "bot-be", tier: "substring" });
     });
 
-    it("rejects short substrings (< 3 chars)", () => {
-      const result = matchRoleToAgent("FE", agents);
-      expect(result.tier).not.toBe("substring");
+    it("matches 2-char role 'QA' to 'QA Engineer'", () => {
+      const result = matchRoleToAgent("QA", agents);
+      expect(result).toEqual({ botId: "bot-qa", tier: "substring" });
     });
 
-    it("rejects 2-char match against short agent role", () => {
+    it("matches 2-char agent role to longer step role", () => {
       const shortAgents: AgentCandidate[] = [{ botId: "bot-x", role: "QA" }];
       const result = matchRoleToAgent("QA Tester", shortAgents);
-      // "QA" is only 2 chars normalized, below MIN_TOKEN_LENGTH for substring
+      expect(result).toEqual({ botId: "bot-x", tier: "substring" });
+    });
+
+    it("matches 'UX' to 'UX Designer'", () => {
+      const uxAgents: AgentCandidate[] = [{ botId: "bot-ux", role: "UX Designer" }];
+      const result = matchRoleToAgent("UX", uxAgents);
+      expect(result).toEqual({ botId: "bot-ux", tier: "substring" });
+    });
+
+    it("does not match 'FE' to 'Frontend Engineer' (no substring containment)", () => {
+      const result = matchRoleToAgent("FE", agents);
+      // "fe" is not a substring of "frontend engineer" — it's an abbreviation, not contained
       expect(result.tier).not.toBe("substring");
     });
   });
