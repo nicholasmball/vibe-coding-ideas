@@ -172,6 +172,8 @@ import {
   addStepCommentSchema,
   getStepComments,
   getStepCommentsSchema,
+  rematchWorkflowAgents,
+  rematchWorkflowAgentsSchema,
 } from "./tools/workflows";
 
 function jsonResult(data: unknown) {
@@ -1074,7 +1076,7 @@ export function registerTools(
 
   server.tool(
     "claim_next_step",
-    "Claim the next pending workflow step on a task. Returns the step with its agent_role (assume that persona) and description. Returns { done: true } when all steps are complete.",
+    "Claim the next pending workflow step on a task. Returns the step with bot_id (pre-matched agent) and available_agents. If bot_id is set, call set_agent_identity with that bot_id before executing the step. If bot_id is null, use agent_role + available_agents to find the best match and call set_agent_identity. Returns { done: true } when all steps are complete.",
     claimNextStepSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
@@ -1164,6 +1166,20 @@ export function registerTools(
       try {
         const ctx = await getContext(extra);
         return jsonResult(await getStepComments(ctx, getStepCommentsSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "rematch_workflow_agents",
+    "Re-run agent matching on unmatched pending workflow steps. Useful after adding new agents to the idea's agent pool. Updates bot_id on steps where a match is found.",
+    rematchWorkflowAgentsSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await rematchWorkflowAgents(ctx, rematchWorkflowAgentsSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
       }

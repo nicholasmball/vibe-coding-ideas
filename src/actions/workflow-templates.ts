@@ -241,6 +241,86 @@ export async function applyWorkflowTemplate(
   return { run, steps: createdSteps };
 }
 
+// ─── Rematch Agents ───
+
+export async function rematchWorkflowAgents(taskId: string) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Not authenticated");
+
+  // Fetch pending steps where bot_id IS NULL and agent_role IS NOT NULL
+  const { data: unmatchedSteps, error: stepsError } = await supabase
+    .from("task_workflow_steps")
+    .select("id, agent_role, idea_id")
+    .eq("task_id", taskId)
+    .eq("status", "pending")
+    .is("bot_id", null)
+    .not("agent_role", "is", null);
+
+  if (stepsError) throw new Error(stepsError.message);
+
+  if (!unmatchedSteps || unmatchedSteps.length === 0) {
+    return { matched: 0, unmatched: 0, matches: {} as Record<string, string> };
+  }
+
+  // Fetch task to get idea_id
+  const { data: task, error: taskError } = await supabase
+    .from("board_tasks")
+    .select("idea_id")
+    .eq("id", taskId)
+    .single();
+
+  if (taskError || !task) throw new Error("Task not found");
+
+  // Fetch idea agent pool
+  const { data: poolAgents } = await supabase
+    .from("idea_agents")
+    .select("bot_id, bot_profiles!inner(id, role)")
+    .eq("idea_id", task.idea_id);
+
+  const candidates = (poolAgents ?? [])
+    .map((agent) => {
+      const profile = agent.bot_profiles as unknown as {
+        id: string;
+        role: string | null;
+      };
+      return profile?.role
+        ? { botId: agent.bot_id, role: profile.role }
+        : null;
+    })
+    .filter((c): c is { botId: string; role: string } => c !== null);
+
+  const matchRole = buildRoleMatcher(candidates);
+
+  let matched = 0;
+  let unmatched = 0;
+  const matches: Record<string, string> = {};
+
+  for (const step of unmatchedSteps) {
+    const role = step.agent_role!;
+    const result = matchRole(role);
+
+    if (result.botId) {
+      await supabase
+        .from("task_workflow_steps")
+        .update({ bot_id: result.botId })
+        .eq("id", step.id);
+
+      matches[role] = result.botId;
+      matched++;
+    } else {
+      unmatched++;
+    }
+  }
+
+  revalidatePath(`/ideas/${task.idea_id}/board`);
+
+  return { matched, unmatched, matches };
+}
+
 // ─── Auto-Rules ───
 
 export async function listWorkflowAutoRules(ideaId: string) {

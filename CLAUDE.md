@@ -66,6 +66,7 @@ Move to "Blocked/Requires User Input" with a comment explaining why.
 - **Task Workflow Steps**: `task_workflow_steps` replaces old checklists — steps have status lifecycle (pending → in_progress → completed/failed/awaiting_approval), agent_role, bot_id, output, human_check_required
 - **Step Comments**: `workflow_step_comments` for inter-agent communication (types: comment, output, failure, approval, changes_requested)
 - **Claude Code as Orchestrator**: No designated orchestrator agent — Claude Code reads steps via `claim_next_step`, assumes agent personas per step's `agent_role`, executes, calls `complete_step`, loops
+- **Claim tracking**: `claimed_by` column on `task_workflow_steps` tracks who actually claimed/executed the step; `bot_id` preserves the pre-matched agent from template application. `claim_next_step` sets `claimed_by` (not `bot_id`), returns `bot_id` + `available_agents` for client-side identity switching via `set_agent_identity`
 - **Role-based Auto-Matching**: When applying a template, agents from the idea's pool are auto-matched to steps by role (case-insensitive)
 - **Template Library**: `workflow_library_templates` DB table (admin-managed) — seeded with 7 built-in templates; admin CRUD via `/admin?tab=templates` (`AdminTemplatesDashboard` + `TemplateEditorDialog`); `ImportTemplateLibraryDialog` fetches active templates from DB; RLS: all authenticated SELECT, admin-only write
 - **Board UI**: `BoardPageTabs` wraps board in tabs (Board / Workflows); `WorkflowsTab` for template CRUD + auto-rules + library import + onboarding guidance; `CreateTemplateDialog` for new templates; `TaskWorkflowSection` in task detail dialog shows live workflow steps with status badges, progress bar, realtime updates, inline approve/retry buttons, and "Apply Workflow" CTA when no workflow exists; `StepDetailDialog` shows step description, output, comments, timestamps, and action buttons (start/complete/approve/reject/retry); `getRoleBadgeClasses` shared between components
@@ -74,7 +75,7 @@ Move to "Blocked/Requires User Input" with a comment explaining why.
 - **Rework instructions**: MCP `claim_next_step` returns `rework_instructions` (previous failure output + `changes_requested` comments) when claiming a step that was previously failed, giving agents context for retry
 - **Agent match feedback**: `TaskWorkflowSection` shows a warning banner when pending steps have roles with no matching agent in the idea's pool
 - Server actions in `src/actions/workflow.ts` (step lifecycle) and `src/actions/workflow-templates.ts` (template CRUD + auto-rules)
-- MCP tools: 12 tools in `mcp-server/src/tools/workflows.ts` — template CRUD, apply, claim_next_step, complete_step, fail_step, approve_step, get_step_context, add_step_comment, get_step_comments
+- MCP tools: 13 tools in `mcp-server/src/tools/workflows.ts` — template CRUD, apply, claim_next_step, complete_step, fail_step, approve_step, get_step_context, add_step_comment, get_step_comments, rematch_workflow_agents
 
 ### Idea Agent Pool
 - `idea_agents` junction table: `(idea_id, bot_id, added_by)` with `UNIQUE(idea_id, bot_id)`

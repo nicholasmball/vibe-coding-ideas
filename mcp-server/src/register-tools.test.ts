@@ -70,6 +70,7 @@ const EXPECTED_TOOL_NAMES = [
   "get_step_context",
   "add_step_comment",
   "get_step_comments",
+  "rematch_workflow_agents",
 ];
 
 function createMockServer() {
@@ -83,7 +84,7 @@ describe("registerTools", () => {
 
     registerTools(server, getContext);
 
-    expect(server.tool).toHaveBeenCalledTimes(67);
+    expect(server.tool).toHaveBeenCalledTimes(68);
   });
 
   it("registers all expected tool names", () => {

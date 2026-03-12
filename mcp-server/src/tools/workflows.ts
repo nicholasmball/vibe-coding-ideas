@@ -251,7 +251,7 @@ export async function claimNextStep(
   // Find first pending step ordered by step_order then position
   const { data: steps, error } = await ctx.supabase
     .from("task_workflow_steps")
-    .select("id, task_id, idea_id, run_id, title, description, agent_role, bot_id, human_check_required, status, position, step_order, output, comment_count, started_at, completed_at, created_at")
+    .select("id, task_id, idea_id, run_id, title, description, agent_role, bot_id, claimed_by, human_check_required, status, position, step_order, output, comment_count, started_at, completed_at, created_at")
     .eq("task_id", params.task_id)
     .eq("status", "pending")
     .order("step_order", { ascending: true, nullsFirst: false })
@@ -272,10 +272,10 @@ export async function claimNextStep(
     .update({
       status: "in_progress",
       started_at: new Date().toISOString(),
-      bot_id: ctx.userId,
+      claimed_by: ctx.userId,
     })
     .eq("id", step.id)
-    .select("id, task_id, idea_id, run_id, title, description, agent_role, bot_id, human_check_required, status, position, step_order, output, comment_count, started_at, completed_at, created_at")
+    .select("id, task_id, idea_id, run_id, title, description, agent_role, bot_id, claimed_by, human_check_required, status, position, step_order, output, comment_count, started_at, completed_at, created_at")
     .single();
 
   if (updateError) throw new Error(`Failed to claim step: ${updateError.message}`);
@@ -320,7 +320,25 @@ export async function claimNextStep(
     }
   }
 
-  return { done: false, step: updated, rework_instructions };
+  // Fetch available agents on this idea so Claude Code can reason about
+  // which agent persona to assume for the step's agent_role
+  const { data: ideaAgents } = await ctx.supabase
+    .from("idea_agents")
+    .select("bot_id, bot:bot_profiles!idea_agents_bot_id_fkey(id, name, role, avatar_url, is_active)")
+    .eq("idea_id", step.idea_id)
+    .order("created_at", { ascending: true });
+
+  const available_agents = (ideaAgents ?? []).map((row) => {
+    const bot = (row as Record<string, unknown>).bot as Record<string, unknown> | null;
+    return {
+      bot_id: row.bot_id,
+      bot_name: bot?.name ?? null,
+      bot_role: bot?.role ?? null,
+      is_active: bot?.is_active ?? false,
+    };
+  });
+
+  return { done: false, step: updated, rework_instructions, available_agents };
 }
 
 // --- Complete Step ---
@@ -618,6 +636,81 @@ export async function addStepComment(
 
   if (error) throw new Error(`Failed to add step comment: ${error.message}`);
   return data;
+}
+
+// --- Rematch Workflow Agents ---
+
+export const rematchWorkflowAgentsSchema = z.object({
+  task_id: z.string().uuid().describe("The board task ID"),
+});
+
+export async function rematchWorkflowAgents(
+  ctx: McpContext,
+  params: z.infer<typeof rematchWorkflowAgentsSchema>
+) {
+  // Fetch pending steps where bot_id IS NULL and agent_role IS NOT NULL
+  const { data: unmatchedSteps, error: stepsError } = await ctx.supabase
+    .from("task_workflow_steps")
+    .select("id, agent_role")
+    .eq("task_id", params.task_id)
+    .eq("status", "pending")
+    .is("bot_id", null)
+    .not("agent_role", "is", null);
+
+  if (stepsError) throw new Error(`Failed to fetch unmatched steps: ${stepsError.message}`);
+
+  if (!unmatchedSteps || unmatchedSteps.length === 0) {
+    return { matched: 0, unmatched: 0, matches: {} };
+  }
+
+  // Fetch task to get idea_id
+  const { data: task, error: taskError } = await ctx.supabase
+    .from("board_tasks")
+    .select("idea_id")
+    .eq("id", params.task_id)
+    .single();
+
+  if (taskError || !task) throw new Error(`Task not found: ${params.task_id}`);
+
+  // Fetch idea agent pool with bot profiles
+  const { data: ideaAgents } = await ctx.supabase
+    .from("idea_agents")
+    .select("bot_id, bot:bot_profiles!idea_agents_bot_id_fkey(id, name, role)")
+    .eq("idea_id", task.idea_id);
+
+  const candidates = (ideaAgents ?? [])
+    .map((entry) => {
+      const bot = (entry as Record<string, unknown>).bot as Record<string, unknown> | null;
+      return bot?.role && entry.bot_id
+        ? { botId: entry.bot_id, role: String(bot.role) }
+        : null;
+    })
+    .filter((c): c is { botId: string; role: string } => c !== null);
+
+  const matchRole = buildRoleMatcher(candidates);
+
+  let matched = 0;
+  let unmatched = 0;
+  const matches: Record<string, string> = {};
+
+  for (const step of unmatchedSteps) {
+    const role = step.agent_role!;
+    const result = matchRole(role);
+
+    if (result.botId) {
+      await ctx.supabase
+        .from("task_workflow_steps")
+        .update({ bot_id: result.botId })
+        .eq("id", step.id);
+
+      matches[role] = result.botId;
+      matched++;
+    } else {
+      unmatched++;
+    }
+  }
+
+  return { matched, unmatched, matches };
 }
 
 // --- Get Step Comments ---

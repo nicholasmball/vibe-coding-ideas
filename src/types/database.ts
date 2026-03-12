@@ -702,6 +702,7 @@ export type Database = {
           idea_id: string;
           run_id: string | null;
           bot_id: string | null;
+          claimed_by: string | null;
           title: string;
           description: string | null;
           status: "pending" | "in_progress" | "completed" | "failed" | "awaiting_approval";
@@ -722,6 +723,7 @@ export type Database = {
           idea_id: string;
           run_id?: string | null;
           bot_id?: string | null;
+          claimed_by?: string | null;
           title: string;
           description?: string | null;
           status?: "pending" | "in_progress" | "completed" | "failed" | "awaiting_approval";
@@ -742,6 +744,7 @@ export type Database = {
           idea_id?: string;
           run_id?: string | null;
           bot_id?: string | null;
+          claimed_by?: string | null;
           title?: string;
           description?: string | null;
           status?: "pending" | "in_progress" | "completed" | "failed" | "awaiting_approval";
@@ -781,6 +784,13 @@ export type Database = {
           {
             foreignKeyName: "task_workflow_steps_bot_id_fkey";
             columns: ["bot_id"];
+            isOneToOne: false;
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "task_workflow_steps_claimed_by_fkey";
+            columns: ["claimed_by"];
             isOneToOne: false;
             referencedRelation: "users";
             referencedColumns: ["id"];
