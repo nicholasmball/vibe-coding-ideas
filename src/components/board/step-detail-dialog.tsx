@@ -123,7 +123,8 @@ export function StepDetailDialog({
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const [showRejectOptions, setShowRejectOptions] = useState(false);
+  const [activeAction, setActiveAction] = useState<"complete" | "fail" | "reject" | null>(null);
+  const [actionText, setActionText] = useState("");
   const [resetToStepId, setResetToStepId] = useState<string>("");
   const supabaseRef = useRef(createClient());
   const commentsEndRef = useRef<HTMLDivElement>(null);
@@ -217,14 +218,18 @@ export function StepDetailDialog({
           toast.success("Step skipped");
           break;
         case "complete":
-          await completeWorkflowStep(step.id);
+          await completeWorkflowStep(step.id, actionText.trim() || undefined);
           toast.success(
             step.human_check_required ? "Step submitted for approval" : "Step completed"
           );
+          setActiveAction(null);
+          setActionText("");
           break;
         case "fail":
-          await failWorkflowStep(step.id);
+          await failWorkflowStep(step.id, actionText.trim() || undefined);
           toast.success("Step marked as failed");
+          setActiveAction(null);
+          setActionText("");
           break;
         case "approve":
           await approveWorkflowStep(step.id);
@@ -232,14 +237,16 @@ export function StepDetailDialog({
           break;
         case "reject": {
           const cascadeTarget = resetToStepId && resetToStepId !== "__none" ? resetToStepId : undefined;
-          await addStepComment(step.id, ideaId, "Changes requested", "changes_requested");
+          const rejectMessage = actionText.trim() || "Changes requested";
+          await addStepComment(step.id, ideaId, rejectMessage, "changes_requested");
           await failWorkflowStep(step.id, undefined, cascadeTarget);
           toast.success(
             cascadeTarget
               ? "Step rejected — pipeline reset to earlier step"
               : "Step rejected — changes requested"
           );
-          setShowRejectOptions(false);
+          setActiveAction(null);
+          setActionText("");
           setResetToStepId("");
           break;
         }
@@ -384,26 +391,90 @@ export function StepDetailDialog({
               )}
               {step.status === "in_progress" && (
                 <>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-1.5 text-xs text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
-                    onClick={() => handleAction("complete")}
-                    disabled={actionLoading}
-                  >
-                    <CheckCircle2 className="h-3 w-3" />
-                    {step.human_check_required ? "Submit for Approval" : "Complete"}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="gap-1.5 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10"
-                    onClick={() => handleAction("fail")}
-                    disabled={actionLoading}
-                  >
-                    <XCircle className="h-3 w-3" />
-                    Fail
-                  </Button>
+                  {activeAction === "complete" ? (
+                    <div className="flex flex-col gap-2 w-full">
+                      <Textarea
+                        value={actionText}
+                        onChange={(e) => setActionText(e.target.value)}
+                        placeholder="Output / Deliverable (optional)"
+                        rows={3}
+                        className="text-xs min-h-[60px]"
+                      />
+                      <div className="flex gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 text-xs text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                          onClick={() => handleAction("complete")}
+                          disabled={actionLoading}
+                        >
+                          <CheckCircle2 className="h-3 w-3" />
+                          {step.human_check_required ? "Submit" : "Confirm"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-xs"
+                          onClick={() => { setActiveAction(null); setActionText(""); }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : activeAction === "fail" ? (
+                    <div className="flex flex-col gap-2 w-full">
+                      <Textarea
+                        value={actionText}
+                        onChange={(e) => setActionText(e.target.value)}
+                        placeholder="What went wrong? (optional)"
+                        rows={3}
+                        className="text-xs min-h-[60px]"
+                      />
+                      <div className="flex gap-1.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="gap-1.5 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10"
+                          onClick={() => handleAction("fail")}
+                          disabled={actionLoading}
+                        >
+                          <XCircle className="h-3 w-3" />
+                          Confirm Failure
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-xs"
+                          onClick={() => { setActiveAction(null); setActionText(""); }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-xs text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/10"
+                        onClick={() => setActiveAction("complete")}
+                        disabled={actionLoading}
+                      >
+                        <CheckCircle2 className="h-3 w-3" />
+                        {step.human_check_required ? "Submit for Approval" : "Complete"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="gap-1.5 text-xs text-red-400 border-red-500/30 hover:bg-red-500/10"
+                        onClick={() => setActiveAction("fail")}
+                        disabled={actionLoading}
+                      >
+                        <XCircle className="h-3 w-3" />
+                        Fail
+                      </Button>
+                    </>
+                  )}
                 </>
               )}
               {step.status === "awaiting_approval" && (
@@ -417,8 +488,15 @@ export function StepDetailDialog({
                     <Check className="h-3 w-3" />
                     Approve
                   </Button>
-                  {showRejectOptions ? (
+                  {activeAction === "reject" ? (
                     <div className="flex flex-col gap-2 w-full">
+                      <Textarea
+                        value={actionText}
+                        onChange={(e) => setActionText(e.target.value)}
+                        placeholder="Explain what needs to change..."
+                        rows={2}
+                        className="text-xs min-h-[50px]"
+                      />
                       {earlierSteps.length > 0 && (
                         <Select value={resetToStepId} onValueChange={setResetToStepId}>
                           <SelectTrigger className="h-7 text-xs">
@@ -440,7 +518,6 @@ export function StepDetailDialog({
                           variant="outline"
                           className="gap-1.5 text-xs text-amber-400 border-amber-500/30 hover:bg-amber-500/10"
                           onClick={() => {
-                            // Clear __none sentinel before sending
                             if (resetToStepId === "__none") setResetToStepId("");
                             handleAction("reject");
                           }}
@@ -453,7 +530,7 @@ export function StepDetailDialog({
                           size="sm"
                           variant="ghost"
                           className="text-xs"
-                          onClick={() => { setShowRejectOptions(false); setResetToStepId(""); }}
+                          onClick={() => { setActiveAction(null); setActionText(""); setResetToStepId(""); }}
                         >
                           Cancel
                         </Button>
@@ -464,7 +541,7 @@ export function StepDetailDialog({
                       size="sm"
                       variant="outline"
                       className="gap-1.5 text-xs text-amber-400 border-amber-500/30 hover:bg-amber-500/10"
-                      onClick={() => setShowRejectOptions(true)}
+                      onClick={() => setActiveAction("reject")}
                       disabled={actionLoading}
                     >
                       <X className="h-3 w-3" />

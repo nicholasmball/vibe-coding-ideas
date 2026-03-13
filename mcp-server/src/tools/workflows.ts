@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { McpContext } from "../context";
 import { buildRoleMatcher } from "../../../src/lib/role-matching";
+import { checkAndCompleteRun } from "../../../src/lib/workflow-helpers";
 
 // --- Shared step schema used by template tools ---
 
@@ -156,6 +157,20 @@ export async function applyWorkflowTemplate(
     throw new Error(`Task not found: ${params.task_id}`);
   }
 
+  // Check for active runs on this task
+  const { data: activeRun } = await ctx.supabase
+    .from("workflow_runs")
+    .select("id")
+    .eq("task_id", params.task_id)
+    .not("status", "in", '("completed","failed")')
+    .maybeSingle();
+
+  if (activeRun) {
+    throw new Error(
+      "This task already has an active workflow. Reset or remove it before applying a new one."
+    );
+  }
+
   // Create workflow run
   const { data: run, error: runError } = await ctx.supabase
     .from("workflow_runs")
@@ -169,6 +184,12 @@ export async function applyWorkflowTemplate(
     .single();
 
   if (runError || !run) {
+    // Catch unique constraint violation as fallback
+    if (runError?.code === "23505") {
+      throw new Error(
+        "This task already has an active workflow. Reset or remove it before applying a new one."
+      );
+    }
     throw new Error(`Failed to create workflow run: ${runError?.message}`);
   }
 
@@ -269,7 +290,7 @@ export async function claimNextStep(
 
   const step = steps[0];
 
-  // Claim the step
+  // Claim the step — status guard prevents concurrent claims
   const { data: updated, error: updateError } = await ctx.supabase
     .from("task_workflow_steps")
     .update({
@@ -278,10 +299,12 @@ export async function claimNextStep(
       claimed_by: ctx.userId,
     })
     .eq("id", step.id)
+    .eq("status", "pending")
     .select("id, task_id, idea_id, run_id, title, description, agent_role, bot_id, claimed_by, human_check_required, status, position, step_order, output, expected_deliverables, comment_count, started_at, completed_at, created_at")
-    .single();
+    .maybeSingle();
 
   if (updateError) throw new Error(`Failed to claim step: ${updateError.message}`);
+  if (!updated) throw new Error("Step is no longer pending — it may have been claimed by another agent");
 
   // Update workflow run status if step has a run_id
   if (step.run_id) {
@@ -442,10 +465,12 @@ export async function completeStep(
     .from("task_workflow_steps")
     .update(updateFields)
     .eq("id", params.step_id)
+    .eq("status", "in_progress")
     .select("id, task_id, run_id, title, agent_role, status, output, completed_at")
-    .single();
+    .maybeSingle();
 
   if (updateError) throw new Error(`Failed to complete step: ${updateError.message}`);
+  if (!updated) throw new Error("Step is no longer in progress — it may have been modified by another agent");
 
   // Store output as a step comment for context chaining
   if (params.output && step.idea_id) {
@@ -463,19 +488,7 @@ export async function completeStep(
   // Check if all steps in the run are done
   let runComplete = false;
   if (step.run_id && newStatus === "completed") {
-    const { data: remainingSteps } = await ctx.supabase
-      .from("task_workflow_steps")
-      .select("id, status")
-      .eq("run_id", step.run_id)
-      .not("status", "in", '("completed","failed","skipped")');
-
-    if (!remainingSteps || remainingSteps.length === 0) {
-      await ctx.supabase
-        .from("workflow_runs")
-        .update({ status: "completed", completed_at: new Date().toISOString() })
-        .eq("id", step.run_id);
-      runComplete = true;
-    }
+    runComplete = await checkAndCompleteRun(ctx.supabase, step.run_id);
   }
 
   return { step: updated, run_complete: runComplete, status: newStatus };
@@ -515,10 +528,12 @@ export async function failStep(
     .from("task_workflow_steps")
     .update(updateFields)
     .eq("id", params.step_id)
+    .in("status", ["in_progress", "awaiting_approval"])
     .select("id, task_id, run_id, title, agent_role, status, output")
-    .single();
+    .maybeSingle();
 
   if (updateError) throw new Error(`Failed to fail step: ${updateError.message}`);
+  if (!updated) throw new Error("Step is not in a state that can be failed (must be in_progress or awaiting_approval)");
 
   // Cascade rejection: reset all steps from the target step onward
   let stepsReset = 0;
@@ -587,27 +602,17 @@ export async function skipStep(
       output: params.reason ?? "Skipped — not applicable to this task",
     })
     .eq("id", params.step_id)
+    .eq("status", "pending")
     .select("id, task_id, run_id, title, agent_role, status, output, completed_at")
-    .single();
+    .maybeSingle();
 
   if (updateError) throw new Error(`Failed to skip step: ${updateError.message}`);
+  if (!updated) throw new Error("Step is no longer pending — it may have been claimed by another agent");
 
   // Check if all steps in the run are now resolved
   let runComplete = false;
   if (step.run_id) {
-    const { data: remainingSteps } = await ctx.supabase
-      .from("task_workflow_steps")
-      .select("id, status")
-      .eq("run_id", step.run_id)
-      .not("status", "in", '("completed","failed","skipped")');
-
-    if (!remainingSteps || remainingSteps.length === 0) {
-      await ctx.supabase
-        .from("workflow_runs")
-        .update({ status: "completed", completed_at: new Date().toISOString() })
-        .eq("id", step.run_id);
-      runComplete = true;
-    }
+    runComplete = await checkAndCompleteRun(ctx.supabase, step.run_id);
   }
 
   return { step: updated, run_complete: runComplete };
@@ -643,10 +648,12 @@ export async function approveStep(
       completed_at: new Date().toISOString(),
     })
     .eq("id", params.step_id)
+    .eq("status", "awaiting_approval")
     .select("id, task_id, run_id, title, agent_role, status, output, completed_at")
-    .single();
+    .maybeSingle();
 
   if (updateError) throw new Error(`Failed to approve step: ${updateError.message}`);
+  if (!updated) throw new Error("Step is no longer awaiting approval — it may have been modified concurrently");
 
   // Insert approval comment if provided
   if (params.comment && step.idea_id) {
@@ -668,19 +675,7 @@ export async function approveStep(
   // Check if all steps in the run are done
   let runComplete = false;
   if (step.run_id) {
-    const { data: remainingSteps } = await ctx.supabase
-      .from("task_workflow_steps")
-      .select("id, status")
-      .eq("run_id", step.run_id)
-      .not("status", "in", '("completed","failed","skipped")');
-
-    if (!remainingSteps || remainingSteps.length === 0) {
-      await ctx.supabase
-        .from("workflow_runs")
-        .update({ status: "completed", completed_at: new Date().toISOString() })
-        .eq("id", step.run_id);
-      runComplete = true;
-    }
+    runComplete = await checkAndCompleteRun(ctx.supabase, step.run_id);
   }
 
   return { step: updated, run_complete: runComplete };
@@ -885,4 +880,90 @@ export async function getStepComments(
       updated_at: row.updated_at,
     };
   });
+}
+
+// ============================================================
+// Workflow Reset & Remove Tools
+// ============================================================
+
+// --- Reset Workflow ---
+
+export const resetWorkflowSchema = z.object({
+  task_id: z.string().uuid().describe("The board task ID whose active workflow should be reset"),
+});
+
+export async function resetWorkflow(
+  ctx: McpContext,
+  params: z.infer<typeof resetWorkflowSchema>
+) {
+  // Find the active run for this task
+  const { data: run, error: runError } = await ctx.supabase
+    .from("workflow_runs")
+    .select("id")
+    .eq("task_id", params.task_id)
+    .not("status", "in", '("completed","failed")')
+    .maybeSingle();
+
+  if (runError) throw new Error(`Failed to find workflow run: ${runError.message}`);
+  if (!run) throw new Error("No active workflow found on this task");
+
+  // Reset all steps
+  const { error: stepsError } = await ctx.supabase
+    .from("task_workflow_steps")
+    .update({
+      status: "pending",
+      output: null,
+      started_at: null,
+      completed_at: null,
+      claimed_by: null,
+    })
+    .eq("run_id", run.id);
+
+  if (stepsError) throw new Error(`Failed to reset steps: ${stepsError.message}`);
+
+  // Reset run
+  const { error: resetError } = await ctx.supabase
+    .from("workflow_runs")
+    .update({
+      status: "pending",
+      current_step: null,
+      completed_at: null,
+    })
+    .eq("id", run.id);
+
+  if (resetError) throw new Error(`Failed to reset workflow run: ${resetError.message}`);
+
+  return { success: true, run_id: run.id, message: "Workflow reset — all steps are now pending" };
+}
+
+// --- Remove Workflow ---
+
+export const removeWorkflowSchema = z.object({
+  task_id: z.string().uuid().describe("The board task ID whose active workflow should be removed"),
+});
+
+export async function removeWorkflow(
+  ctx: McpContext,
+  params: z.infer<typeof removeWorkflowSchema>
+) {
+  // Find the active run for this task
+  const { data: run, error: runError } = await ctx.supabase
+    .from("workflow_runs")
+    .select("id")
+    .eq("task_id", params.task_id)
+    .not("status", "in", '("completed","failed")')
+    .maybeSingle();
+
+  if (runError) throw new Error(`Failed to find workflow run: ${runError.message}`);
+  if (!run) throw new Error("No active workflow found on this task");
+
+  // Delete run — steps cascade via FK ON DELETE CASCADE
+  const { error } = await ctx.supabase
+    .from("workflow_runs")
+    .delete()
+    .eq("id", run.id);
+
+  if (error) throw new Error(`Failed to remove workflow: ${error.message}`);
+
+  return { success: true, run_id: run.id, message: "Workflow removed — all steps deleted" };
 }

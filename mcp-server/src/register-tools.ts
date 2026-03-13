@@ -176,6 +176,10 @@ import {
   getStepCommentsSchema,
   rematchWorkflowAgents,
   rematchWorkflowAgentsSchema,
+  resetWorkflow,
+  resetWorkflowSchema,
+  removeWorkflow,
+  removeWorkflowSchema,
 } from "./tools/workflows";
 
 function jsonResult(data: unknown) {
@@ -1196,6 +1200,34 @@ export function registerTools(
       try {
         const ctx = await getContext(extra);
         return jsonResult(await rematchWorkflowAgents(ctx, rematchWorkflowAgentsSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "reset_workflow",
+    "Reset an active workflow on a task — all steps go back to pending, run resets to pending. Use when a workflow needs to start over from scratch.",
+    resetWorkflowSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await resetWorkflow(ctx, resetWorkflowSchema.parse(args)));
+      } catch (e) {
+        return errorResult(e);
+      }
+    }
+  );
+
+  server.tool(
+    "remove_workflow",
+    "Remove an active workflow from a task entirely. Deletes the run and all its steps. Use when the wrong template was applied.",
+    removeWorkflowSchema.shape,
+    async (args: Record<string, unknown>, extra: ServerExtra) => {
+      try {
+        const ctx = await getContext(extra);
+        return jsonResult(await removeWorkflow(ctx, removeWorkflowSchema.parse(args)));
       } catch (e) {
         return errorResult(e);
       }

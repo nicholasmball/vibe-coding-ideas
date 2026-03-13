@@ -16,6 +16,8 @@ import {
   Workflow,
   X,
   SkipForward,
+  MoreHorizontal,
+  Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +29,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { createClient } from "@/lib/supabase/client";
 import {
   approveWorkflowStep,
@@ -34,6 +52,8 @@ import {
   startWorkflowStep,
   failWorkflowStep,
   skipWorkflowStep,
+  resetWorkflow,
+  removeWorkflow,
 } from "@/actions/workflow";
 import { applyWorkflowTemplate, listWorkflowTemplates } from "@/actions/workflow-templates";
 import { StepDetailDialog } from "./step-detail-dialog";
@@ -134,6 +154,10 @@ export function TaskWorkflowSection({ taskId, ideaId, isReadOnly = false }: Task
 
   // Inline action loading state
   const [actionStepId, setActionStepId] = useState<string | null>(null);
+
+  // Workflow reset/remove confirmation
+  const [confirmAction, setConfirmAction] = useState<"reset" | "remove" | null>(null);
+  const [workflowActionLoading, setWorkflowActionLoading] = useState(false);
 
   const supabaseRef = useRef(createClient());
 
@@ -247,6 +271,25 @@ export function TaskWorkflowSection({ taskId, ideaId, isReadOnly = false }: Task
     }
   }
 
+  async function handleWorkflowAction(action: "reset" | "remove") {
+    if (!run) return;
+    setWorkflowActionLoading(true);
+    try {
+      if (action === "reset") {
+        await resetWorkflow(run.id);
+        toast.success("Workflow reset — all steps are now pending");
+      } else {
+        await removeWorkflow(run.id);
+        toast.success("Workflow removed");
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Action failed");
+    } finally {
+      setWorkflowActionLoading(false);
+      setConfirmAction(null);
+    }
+  }
+
   const hasWorkflow = !loading && steps && steps.length > 0;
   const noWorkflow = !loading && (!steps || steps.length === 0);
 
@@ -355,9 +398,33 @@ export function TaskWorkflowSection({ taskId, ideaId, isReadOnly = false }: Task
               </Badge>
             )}
           </div>
-          <span className="text-xs text-muted-foreground">
-            {completedCount} of {totalCount} steps completed
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              {completedCount} of {totalCount} steps completed
+            </span>
+            {!isReadOnly && run && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-6 w-6">
+                    <MoreHorizontal className="h-3.5 w-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => setConfirmAction("reset")}>
+                    <RotateCcw className="mr-2 h-3.5 w-3.5" />
+                    Reset Workflow
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={() => setConfirmAction("remove")}
+                  >
+                    <Trash2 className="mr-2 h-3.5 w-3.5" />
+                    Remove Workflow
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
 
         {/* Template name */}
@@ -508,6 +575,50 @@ export function TaskWorkflowSection({ taskId, ideaId, isReadOnly = false }: Task
           isReadOnly={isReadOnly}
         />
       )}
+
+      {/* Reset/Remove Confirmation Dialogs */}
+      <AlertDialog open={confirmAction === "reset"} onOpenChange={(open) => { if (!open) setConfirmAction(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Workflow?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will reset all steps back to pending and clear any outputs. The workflow template stays applied.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={workflowActionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleWorkflowAction("reset")}
+              disabled={workflowActionLoading}
+            >
+              {workflowActionLoading ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : null}
+              Reset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmAction === "remove"} onOpenChange={(open) => { if (!open) setConfirmAction(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Workflow?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove the workflow and all its steps from this task. You can apply a new template afterwards.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={workflowActionLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => handleWorkflowAction("remove")}
+              disabled={workflowActionLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {workflowActionLoading ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : null}
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

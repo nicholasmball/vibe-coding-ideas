@@ -177,6 +177,21 @@ function StepEditor({ steps, onChange }: StepEditorProps) {
                 </span>
               </div>
             </div>
+            <div className="pl-7">
+              <Input
+                value={(step.deliverables ?? []).join(", ")}
+                onChange={(e) =>
+                  updateStep(idx, {
+                    deliverables: e.target.value
+                      .split(",")
+                      .map((d) => d.trim())
+                      .filter(Boolean),
+                  })
+                }
+                placeholder="Deliverables (comma-separated, optional)"
+                className="h-7 text-xs"
+              />
+            </div>
           </div>
 
           <button

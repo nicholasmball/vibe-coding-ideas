@@ -666,7 +666,7 @@ export type Database = {
           task_id?: string;
           template_id?: string | null;
           status?: "pending" | "running" | "paused" | "completed" | "failed";
-          current_step?: number;
+          current_step?: number | null;
           started_by?: string | null;
           started_at?: string | null;
           completed_at?: string | null;

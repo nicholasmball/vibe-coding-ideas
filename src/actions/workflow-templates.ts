@@ -172,6 +172,20 @@ export async function applyWorkflowTemplate(
     throw new Error("Task not found");
   }
 
+  // Check for active runs on this task
+  const { data: activeRun } = await supabase
+    .from("workflow_runs")
+    .select("id")
+    .eq("task_id", taskId)
+    .not("status", "in", '("completed","failed")')
+    .maybeSingle();
+
+  if (activeRun) {
+    throw new Error(
+      "This task already has an active workflow. Reset or remove it before applying a new one."
+    );
+  }
+
   // Create a workflow run
   const { data: run, error: runError } = await supabase
     .from("workflow_runs")
