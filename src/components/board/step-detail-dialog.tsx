@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useMemo } from "react";
+import { Markdown } from "@/components/ui/markdown";
 import { toast } from "sonner";
 import {
   Check,
@@ -343,8 +344,8 @@ export function StepDetailDialog({
           {step.output && (
             <div className="space-y-1">
               <p className="text-xs font-medium text-muted-foreground">Output</p>
-              <div className="rounded-md border border-blue-500/20 bg-blue-500/5 px-3 py-2 text-sm whitespace-pre-wrap">
-                {step.output}
+              <div className="rounded-md border border-blue-500/20 bg-blue-500/5 px-3 py-2 text-sm prose-sm">
+                <Markdown>{step.output}</Markdown>
               </div>
             </div>
           )}
