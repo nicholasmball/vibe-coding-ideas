@@ -266,6 +266,7 @@ export function TaskWorkflowSection({ taskId, ideaId, isReadOnly = false }: Task
           toast.success("Step skipped");
           break;
       }
+      await fetchData();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Action failed");
     } finally {
