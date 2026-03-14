@@ -1092,7 +1092,7 @@ export function registerTools(
 
   server.tool(
     "claim_next_step",
-    "Claim the next pending workflow step on a task. Returns the step with bot_id (pre-matched agent) and available_agents. If bot_id is set, call set_agent_identity with that bot_id before executing the step. If bot_id is null, use agent_role + available_agents to find the best match and call set_agent_identity. Returns { done: true } when all steps are complete.",
+    "Claim the next pending workflow step on a task. Returns the step with bot_id (pre-matched agent), available_agents, and a `context` array of prior completed steps' outputs (step_title + output). If bot_id is set, call set_agent_identity with that bot_id before executing the step. If bot_id is null, use agent_role + available_agents to find the best match and call set_agent_identity. Returns { done: true } when all steps are complete.",
     claimNextStepSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
@@ -1106,7 +1106,7 @@ export function registerTools(
 
   server.tool(
     "complete_step",
-    "Mark a workflow step as completed with optional output/deliverable. The output is stored both on the step and as a step comment (type: 'output') so subsequent steps can access it via context chaining. If the step requires human approval, it moves to awaiting_approval instead.",
+    "Mark a workflow step as completed with optional output/deliverable. The output is stored on the step's `output` column (primary source for context chaining to subsequent steps) and also as a step comment for UI display. If the step requires human approval, it moves to awaiting_approval instead.",
     completeStepSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {
@@ -1148,7 +1148,7 @@ export function registerTools(
 
   server.tool(
     "approve_step",
-    "Approve a workflow step that is awaiting human approval. Moves it to completed. Optionally adds an approval comment.",
+    "Approve a workflow step that is awaiting human approval. Moves it to completed. The step's existing output (set by the agent) is preserved through approval. Optionally adds an approval comment.",
     approveStepSchema.shape,
     async (args: Record<string, unknown>, extra: ServerExtra) => {
       try {

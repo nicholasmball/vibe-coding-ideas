@@ -365,34 +365,22 @@ export async function claimNextStep(
   });
 
   // Fetch context from prior completed/skipped steps in the same run
+  // Reads directly from the step's `output` column (the single source of truth),
+  // not from workflow_step_comments which are a UI display feature only.
   let context: { step_title: string; output: string }[] = [];
   if (step.run_id) {
     const { data: priorSteps } = await ctx.supabase
       .from("task_workflow_steps")
-      .select("id, title, step_order")
+      .select("id, title, step_order, output")
       .eq("run_id", step.run_id)
       .in("status", ["completed", "skipped"])
       .lt("step_order", step.step_order ?? 999999)
       .order("step_order", { ascending: true });
 
     if (priorSteps && priorSteps.length > 0) {
-      const stepIds = priorSteps.map((s) => s.id);
-      const { data: outputComments } = await ctx.supabase
-        .from("workflow_step_comments")
-        .select("step_id, content")
-        .in("step_id", stepIds)
-        .eq("type", "output")
-        .order("created_at", { ascending: false });
-
-      // Group by step_id, take latest output per step
-      const outputMap = new Map<string, string>();
-      for (const c of outputComments ?? []) {
-        if (!outputMap.has(c.step_id)) outputMap.set(c.step_id, c.content);
-      }
-
       context = priorSteps
-        .filter((s) => outputMap.has(s.id))
-        .map((s) => ({ step_title: s.title, output: outputMap.get(s.id)! }));
+        .filter((s) => s.output)
+        .map((s) => ({ step_title: s.title, output: s.output! }));
     }
   }
 
@@ -438,7 +426,7 @@ export async function claimNextStep(
 
 export const completeStepSchema = z.object({
   step_id: z.string().uuid().describe("The workflow step ID"),
-  output: z.string().max(50000).optional().describe("Step output or deliverable — stored on the step and as a step comment for context chaining"),
+  output: z.string().max(50000).optional().describe("Step output or deliverable. This is stored on the step's `output` column and is how subsequent steps receive context — when the next step is claimed, all prior completed steps' outputs are passed in the `context` array. Also posted as a step comment for UI display."),
 });
 
 export async function completeStep(

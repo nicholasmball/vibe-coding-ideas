@@ -306,13 +306,17 @@ export async function approveWorkflowStep(stepId: string, output?: string) {
 
   if (!user) throw new Error("Not authenticated");
 
+  const updateFields: Record<string, unknown> = {
+    status: "completed",
+    completed_at: new Date().toISOString(),
+  };
+  // Only overwrite output if the approver explicitly provides one;
+  // otherwise preserve the agent's original deliverable.
+  if (output !== undefined) updateFields.output = output;
+
   const { data, error } = await supabase
     .from("task_workflow_steps")
-    .update({
-      status: "completed",
-      completed_at: new Date().toISOString(),
-      output: output ?? null,
-    })
+    .update(updateFields)
     .eq("id", stepId)
     .eq("status", "awaiting_approval")
     .select("*")
