@@ -5,6 +5,8 @@ import {
   claimNextStepSchema,
   completeStep,
   completeStepSchema,
+  approveStep,
+  approveStepSchema,
 } from "./workflows";
 
 // ---------------------------------------------------------------------------
@@ -423,6 +425,120 @@ describe("completeStep", () => {
     });
   });
 
+  it("returns stop message when step routes to awaiting_approval", async () => {
+    const stepData = {
+      id: STEP_ID,
+      run_id: RUN_ID,
+      idea_id: IDEA_ID,
+      human_check_required: true,
+      status: "in_progress",
+    };
+    const updatedStep = {
+      id: STEP_ID,
+      task_id: TASK_ID,
+      run_id: RUN_ID,
+      title: "Test Step",
+      agent_role: "developer",
+      status: "awaiting_approval",
+      output: "My output",
+      completed_at: null,
+    };
+
+    const ctx = makeContext(((table: string) => {
+      if (table === "task_workflow_steps") {
+        const chain = createChain(null);
+        chain.chain.single = vi.fn(() =>
+          Promise.resolve({ data: stepData, error: null })
+        );
+        chain.chain.maybeSingle = vi.fn(() =>
+          Promise.resolve({ data: updatedStep, error: null })
+        );
+        chain.chain.then = (resolve: (val: unknown) => void) =>
+          Promise.resolve({ data: [], error: null }).then(resolve);
+        return chain.chain;
+      }
+
+      if (table === "workflow_step_comments") {
+        return createChain(null).chain;
+      }
+
+      if (table === "workflow_runs") {
+        const chain = createChain(null);
+        chain.chain.then = (resolve: (val: unknown) => void) =>
+          Promise.resolve({ data: [], error: null }).then(resolve);
+        chain.chain.maybeSingle = vi.fn(() =>
+          Promise.resolve({ data: null, error: null })
+        );
+        return chain.chain;
+      }
+
+      return createChain(null).chain;
+    }) as unknown as McpContext["supabase"]["from"]);
+
+    const result = await completeStep(ctx, { step_id: STEP_ID, output: "My output" });
+
+    expect(result.status).toBe("awaiting_approval");
+    expect(result).toHaveProperty("message");
+    expect((result as { message: string }).message).toContain("STOP");
+    expect((result as { message: string }).message).toContain("do NOT call approve_step");
+  });
+
+  it("does not return stop message for normal completion", async () => {
+    const stepData = {
+      id: STEP_ID,
+      run_id: RUN_ID,
+      idea_id: IDEA_ID,
+      human_check_required: false,
+      status: "in_progress",
+    };
+    const updatedStep = {
+      id: STEP_ID,
+      task_id: TASK_ID,
+      run_id: RUN_ID,
+      title: "Test Step",
+      agent_role: "developer",
+      status: "completed",
+      output: "My output",
+      completed_at: "2026-01-01T00:00:00Z",
+    };
+
+    const ctx = makeContext(((table: string) => {
+      if (table === "task_workflow_steps") {
+        const chain = createChain(null);
+        chain.chain.single = vi.fn(() =>
+          Promise.resolve({ data: stepData, error: null })
+        );
+        chain.chain.maybeSingle = vi.fn(() =>
+          Promise.resolve({ data: updatedStep, error: null })
+        );
+        chain.chain.then = (resolve: (val: unknown) => void) =>
+          Promise.resolve({ data: [], error: null }).then(resolve);
+        return chain.chain;
+      }
+
+      if (table === "workflow_step_comments") {
+        return createChain(null).chain;
+      }
+
+      if (table === "workflow_runs") {
+        const chain = createChain(null);
+        chain.chain.then = (resolve: (val: unknown) => void) =>
+          Promise.resolve({ data: [], error: null }).then(resolve);
+        chain.chain.maybeSingle = vi.fn(() =>
+          Promise.resolve({ data: null, error: null })
+        );
+        return chain.chain;
+      }
+
+      return createChain(null).chain;
+    }) as unknown as McpContext["supabase"]["from"]);
+
+    const result = await completeStep(ctx, { step_id: STEP_ID, output: "My output" });
+
+    expect(result.status).toBe("completed");
+    expect(result).not.toHaveProperty("message");
+  });
+
   it("does not create output comment when output is omitted", async () => {
     const stepData = {
       id: STEP_ID,
@@ -483,5 +599,111 @@ describe("completeStep", () => {
     await completeStep(ctx, { step_id: STEP_ID });
 
     expect(commentInserted).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// claimNextStep — human approval directive tests
+// ---------------------------------------------------------------------------
+
+describe("claimNextStep — human approval directive", () => {
+  it("includes human approval directive when step has human_check_required", async () => {
+    const step = makeStepRow({ human_check_required: true });
+    const updatedStep = { ...step, status: "in_progress", claimed_by: USER_ID };
+
+    const ctx = makeClaimContext({ pendingStep: step, updatedStep, priorSteps: [] });
+    const result = await claimNextStep(ctx, { task_id: TASK_ID });
+
+    const r = result as { instruction: string };
+    expect(r.instruction).toContain("HUMAN APPROVAL REQUIRED");
+    expect(r.instruction).toContain("Do NOT call approve_step");
+  });
+
+  it("omits human approval directive when step does not require human check", async () => {
+    const step = makeStepRow({ human_check_required: false });
+    const updatedStep = { ...step, status: "in_progress", claimed_by: USER_ID };
+
+    const ctx = makeClaimContext({ pendingStep: step, updatedStep, priorSteps: [] });
+    const result = await claimNextStep(ctx, { task_id: TASK_ID });
+
+    const r = result as { instruction: string };
+    expect(r.instruction).not.toContain("HUMAN APPROVAL REQUIRED");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// approveStep — bot rejection test
+// ---------------------------------------------------------------------------
+
+describe("approveStep", () => {
+  it("rejects bot callers", async () => {
+    const ctx = makeContext(((table: string) => {
+      if (table === "users") {
+        const chain = createChain({ is_bot: true });
+        return chain.chain;
+      }
+      return createChain(null).chain;
+    }) as unknown as McpContext["supabase"]["from"]);
+
+    await expect(
+      approveStep(ctx, { step_id: STEP_ID })
+    ).rejects.toThrow("Only humans can approve");
+  });
+
+  it("allows human callers", async () => {
+    const stepData = {
+      id: STEP_ID,
+      run_id: RUN_ID,
+      idea_id: IDEA_ID,
+      status: "awaiting_approval",
+    };
+    const updatedStep = {
+      id: STEP_ID,
+      task_id: TASK_ID,
+      run_id: RUN_ID,
+      title: "Test Step",
+      agent_role: "developer",
+      status: "completed",
+      output: "output",
+      completed_at: "2026-01-01T00:00:00Z",
+    };
+
+    const tableCounts: Record<string, number> = {};
+    const ctx = makeContext(((table: string) => {
+      tableCounts[table] = (tableCounts[table] ?? 0) + 1;
+
+      if (table === "users") {
+        return createChain({ is_bot: false }).chain;
+      }
+
+      if (table === "task_workflow_steps") {
+        const callNum = tableCounts[table];
+        if (callNum === 1) {
+          // Fetch step
+          return createChain(stepData).chain;
+        }
+        // Update step
+        const chain = createChain(null);
+        chain.chain.maybeSingle = vi.fn(() =>
+          Promise.resolve({ data: updatedStep, error: null })
+        );
+        return chain.chain;
+      }
+
+      if (table === "workflow_runs") {
+        const chain = createChain(null);
+        chain.chain.then = (resolve: (val: unknown) => void) =>
+          Promise.resolve({ data: [], error: null }).then(resolve);
+        chain.chain.maybeSingle = vi.fn(() =>
+          Promise.resolve({ data: null, error: null })
+        );
+        return chain.chain;
+      }
+
+      return createChain(null).chain;
+    }) as unknown as McpContext["supabase"]["from"]);
+
+    const result = await approveStep(ctx, { step_id: STEP_ID });
+    expect(result.step).toMatchObject({ status: "completed" });
   });
 });

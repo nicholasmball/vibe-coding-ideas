@@ -415,6 +415,12 @@ export async function claimNextStep(
     );
   }
 
+  if (updated.human_check_required) {
+    contextParts.push(
+      `HUMAN APPROVAL REQUIRED: This step requires human approval. After producing your deliverable and calling complete_step, you MUST STOP. Do NOT call approve_step yourself. Present your deliverable to the user and wait for them to explicitly instruct you to approve it.`
+    );
+  }
+
   contextParts.push(
     `DELIVERABLE: Pass your full deliverable as the "output" parameter of complete_step.`
   );
@@ -485,7 +491,14 @@ export async function completeStep(
     runComplete = await checkAndCompleteRun(ctx.supabase, step.run_id);
   }
 
-  return { step: updated, run_complete: runComplete, status: newStatus };
+  return {
+    step: updated,
+    run_complete: runComplete,
+    status: newStatus,
+    ...(newStatus === "awaiting_approval" && {
+      message: "This step is now awaiting human approval. STOP here — do NOT call approve_step yourself. Present your output to the user and wait for them to explicitly instruct you to approve it.",
+    }),
+  };
 }
 
 // --- Fail Step ---
@@ -623,6 +636,20 @@ export async function approveStep(
   ctx: McpContext,
   params: z.infer<typeof approveStepSchema>
 ) {
+  // Block bot callers — only humans can approve human-gated steps
+  const { data: caller } = await ctx.supabase
+    .from("users")
+    .select("is_bot")
+    .eq("id", ctx.userId)
+    .single();
+
+  if (caller?.is_bot) {
+    throw new Error(
+      "Only humans can approve workflow steps. This step requires human review — " +
+      "do NOT call approve_step yourself. Stop and wait for a human to explicitly instruct you to approve."
+    );
+  }
+
   // Fetch step — must be awaiting_approval
   const { data: step, error: fetchError } = await ctx.supabase
     .from("task_workflow_steps")
